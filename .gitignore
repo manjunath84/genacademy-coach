@@ -15,9 +15,16 @@ venv/
 *.key
 secrets/
 
-# Corpus & course materials — do NOT publish (copyright + attribution pending)
+# Corpus & course materials — track the STRUCTURE, never the content.
+# corpus/ holds owned course material, used locally only. The skeleton
+# (folder layout + README + .gitkeep) is versioned so the ingestion
+# convention is reproducible; every actual source file stays out of git.
 data/
-corpus/
+corpus/**
+!corpus/
+!corpus/**/
+!corpus/README.md
+!corpus/**/.gitkeep
 *.pdf
 *.docx
 *.pptx
