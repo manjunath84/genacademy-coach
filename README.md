@@ -5,9 +5,9 @@ own style, checks understanding, **re-explains a different way when they stumble
 know and struggled with (within a session), and **refuses to bluff** — it only teaches what it can cite
 from the course materials, and escalates the rest to a human mentor.
 
-> **Status: pre-build (design gate).** This repo currently holds the **constitution** — mission, tech
-> stack, roadmap — plus the architecture design. No application code yet; the build follows the approved
-> plan (see [`AGENTS.md`](AGENTS.md) §2, the gates). Private during the build.
+> **Implementation status:** foundation adapter + eval guard slice implemented. The teach-loop agent is
+> still gated on an approved follow-up plan (see [`AGENTS.md`](AGENTS.md) §2, the gates). Private
+> during the build.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).

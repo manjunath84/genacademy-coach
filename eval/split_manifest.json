@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "id": "0864343bccc951cc",
+      "source_file": "week3-session1-chat-questions.pdf",
+      "source_sha256": "e8cab02deae6517718d0197cc18fdfab65bcdca4adaaa96e5cfc676b13d8ba0c",
+      "split": "test"
+    },
+    {
+      "id": "3df14f64046e6250",
+      "source_file": "week2-session2-questions.pdf",
+      "source_sha256": "a0eecc13a994b9541b38e78c7b5cfeb731016e3d6969bc328ce1b6425292b05d",
+      "split": "seed"
+    },
+    {
+      "id": "63f1a9265ae5a29d",
+      "source_file": "week1-session2-chat-questions.docx",
+      "source_sha256": "f702531cbbb67e2136734f72179167fad8ab2daca393754ee3956e358eea6d60",
+      "split": "dev"
+    },
+    {
+      "id": "a44138528dbe3cff",
+      "source_file": "week2-session1-chat-questions.docx",
+      "source_sha256": "311099e25d72179d2f05f6824fe0067fe2eb3983379e8ea448b4fdd2a53bd07a",
+      "split": "seed"
+    }
+  ],
+  "seed": "genacademy-coach-v1",
+  "version": 1
+}
