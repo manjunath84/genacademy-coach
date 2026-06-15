@@ -20,6 +20,8 @@ One agent engine, three modes that share it:
   re-explain a different way until it clicks.
 - **Quiz** *(pull-in)* — adaptive MCQ with deterministic grading.
 - **Mock interview** *(pull-in)* — open-answer grounded grading + follow-up probing.
+- **Admin upload / ElevenLabs voice** *(pull-ins)* — added only after the text teach loop, refusal path,
+  eval split, and trace are demoable end-to-end.
 
 The differentiator is **personalization** (never the same answer to everyone) on top of a **won't-bluff**
 grounding discipline.
@@ -34,16 +36,18 @@ grounding discipline.
 
 ## Build track
 
-Code-heavy (handout Track 2): **LangChain `create_agent`**, **Nebius Token Factory** for the generative
-call, vibe-coded with Codex / Claude Code. Full rationale in [`specs/tech-stack.md`](specs/tech-stack.md).
+Code-heavy (handout Track 2): **LangChain `create_agent`** on LangGraph's runtime, **Nebius Token
+Factory** for the generative call, vibe-coded with Codex / Claude Code. Full rationale in
+[`specs/tech-stack.md`](specs/tech-stack.md).
 
 ## What we carry from Week 2 (and what changed)
 
 Built on `genacademy-rag` (*GenAcademy Compass*) — the compounding arc, made concrete:
 
-- **Reused:** the embedding model + index format (no re-ingest), the citation-metadata schema
-  (`week · title · timestamp`), and the refusal-first / won't-bluff discipline.
-- **Extended:** citations gain `chunk_index`; single-corpus retrieval becomes a **multi-tool router**
-  (the agent picks *which* corpus at runtime); generation is now **constrained to one retrieved span**.
+- **Reused:** the embedding model, Chroma index/schema, section-aware chunker, citation metadata,
+  provider surface, eval harness, and refusal-first / won't-bluff discipline.
+- **Extended:** the local course corpus is ingested into an extended collection; retrieval becomes a
+  **single source-prioritized course retriever** where slides/handouts lead, notes fill gaps, and
+  transcripts support/fallback.
 - **New:** the adaptive **teach loop** + **within-session learner profile** — the agentic layer Week 2
   didn't have.

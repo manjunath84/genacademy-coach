@@ -24,6 +24,8 @@ An **adaptive teach loop** on LangChain `create_agent`, grounded in the owned co
 stumbles**, with a within-session learner profile, and **refuse-or-escalate** when retrieval can't cite
 it. Quiz and mock-interview are pull-in modes — **not** in the MVP. Agenticity is proven by a
 **runtime-decision trace** (re-explain vs. advance vs. refuse, chosen from observations — not a script).
+Admin upload and ElevenLabs voice are also pull-ins; the MVP stays text-first until the teach loop,
+refusal path, eval, and trace are demoable end-to-end.
 
 ## What the implementation plan (`docs/superpowers/plans/`) must cover
 
@@ -31,12 +33,14 @@ it. Quiz and mock-interview are pull-in modes — **not** in the MVP. Agenticity
    adapter spec (per `genacademy-rag-foundation.md` "first build task"), **before** any agent code.
 2. **Corpus ingest** — extend (don't rebuild) the Week-2 index with the owned corpus via the Week-2
    section-aware chunker; idempotent; same embedder (`all-MiniLM-L6-v2` / 384-d).
-3. **The `create_agent` teach loop** — toolset (retriever, grade-understanding, profile update), the
-   re-explain branch, the refuse/escalate branch. MINT restraint: no MCP / A2A / explicit LangGraph.
+3. **The `create_agent` teach loop** — toolset (one source-prioritized retriever, grade-understanding,
+   profile update, trace writer, escalation), the re-explain branch, the refuse/escalate branch. MINT
+   restraint: no MCP / A2A / explicit LangGraph.
 4. **Eval split + harness reuse** — hard seed/dev/test split of the held-out student chat-questions
    (corpus-independent, never indexed); test stays frozen; recalibrate thresholds against the new index.
 5. **Failure path + HITL** — the graded differentiator: refusal + escalation + the recovery mechanisms.
-6. **Demo trace + deliverables** — the runtime-decision trace, the ≤5-min video, the write-up.
+6. **Demo trace + deliverables** — local JSON/CLI runtime-decision trace, optional LangSmith trace,
+   the ≤5-min video, and the write-up.
 
 ## Constraints carried from the constitution (review-blockers, not aspirations)
 

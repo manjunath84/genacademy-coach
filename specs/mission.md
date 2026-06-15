@@ -18,10 +18,10 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
 > My agent helps a **Gen Academy cohort learner master a course concept** in a web chat, replacing the
 > *re-watch-the-lecture-and-hope-it-clicks* loop. It explains the concept grounded in the corpus, checks
 > understanding, and — when the learner stumbles — **re-explains a different way** (analogy for a PM,
-> depth for an engineer) on its own using 3 retrieval tools + an item generator; it hands off to a human
-> mentor when a question falls outside the corpus or grounding confidence is low (it refuses to bluff);
-> and **I'll know it works when a learner goes from "I don't get it" to passing a grounded check-question
-> in under 10 minutes, 8 times out of 10, on a held-out test set.**
+> depth for an engineer) on its own using a source-prioritized course retriever + an item generator; it
+> hands off to a human mentor when a question falls outside the corpus or grounding confidence is low
+> (it refuses to bluff); and **I'll know it works when a learner goes from "I don't get it" to passing a
+> grounded check-question in under 10 minutes, 8 times out of 10, on a held-out test set.**
 
 ## Who it's for
 
@@ -37,15 +37,17 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
   profile (style · known · struggled).
 - Grounded explanations + check-questions with **constrained one-span citations**; **real-signal
   refusal** (retrieval score + citation-present).
-- **Item-quality eval** on a hard-split, **held-out** test set; a **runtime-decision trace** as the
-  agenticity proof and the demo centerpiece.
+- **Item-quality eval** on a hard-split, **held-out** chat-question test set; a **runtime-decision trace**
+  as the agenticity proof and the demo centerpiece.
 - One persona, end-to-end.
 
 ## Out of scope (Week 3 — see `roadmap.md` for when each is earned)
 
 - Quiz and mock-interview modes (the top two pull-ins).
 - Track-aware *retrieval* (Week-3 track = prompt-level style only).
-- Cross-session memory (Mem0), caching at scale, voice, multimodal, cohort deployment/auth.
+- Admin upload for new docs/quiz questions (low-priority pull-in after the MVP is demoable).
+- ElevenLabs voice (pull-in idea over the same text engine; text transcript stays source of truth).
+- Cross-session memory (Mem0), caching at scale, multimodal, cohort deployment/auth.
 
 ## How I'll know it worked
 
@@ -57,7 +59,7 @@ live humans for the MVP):
   **step/time budget** (target ≈ under 10 minutes of interaction).
 - **Target: ≥ 8/10 scenarios pass.** *Pass* = the **deterministic grounded grader** marks the final
   check-answer correct **and** every citation shown resolves to a retrieved span.
-- **Supporting component metric:** item quality on the test set — answerability · unique-correct ·
-  distractor validity · citation support · no span-leakage.
+- **Supporting component metric:** item quality on the test set — answerability · citation support · no
+  span-leakage. Distractor validity belongs to the quiz pull-in, not the teach-loop MVP.
 
 Not "looks good."
