@@ -51,7 +51,8 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   answer from model priors. The refusal path is load-bearing, not decorative.
 - **Confidence is a real signal, never an LLM self-rating.** Refuse/STOP is driven by retrieval
   similarity score + a citation-present check. The bands (STOP < 0.60 · CONFIRM 0.60–0.85 · PROCEED >
-  0.85) are **calibrated against the actual index before use, not taken from a diagram** (see
+  0.85) are seed values only. The MVP must calibrate against the actual index by `source_type` before
+  use; shared numeric bands are allowed only if the measured distributions support them (see
   `specs/tech-stack.md`).
 - **Citations captured at retrieval, never reconstructed.** Every claim carries its source
   (`week · title · timestamp` / `chunk_index`). An answer that cites a source it didn't retrieve is a
@@ -124,7 +125,8 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   alternatives), self-contained in this repo.
 - *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
   board, the option scorecards, and the improvements ledger — the long-form trail behind
-  `docs/decisions.md`.
+  `docs/decisions.md`. Historical `D##` labels live only in that archive; settled decisions in this
+  repo are `AD-1` through `AD-11`.
 
 ## 8. Workflow & tool bindings
 

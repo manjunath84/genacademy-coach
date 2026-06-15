@@ -9,6 +9,9 @@
 > **How to use this in Codex:** run from inside the `genacademy-coach` repo so Codex can also read `AGENTS.md`,
 > `specs/*`, and `docs/genacademy-rag-foundation.md`. A ready prompt is at the bottom.
 
+Historical `D##` labels refer to the external brainstorm archive. Canonical settled decisions in this
+repo are tracked as `AD-1` through `AD-11` in `docs/decisions.md`.
+
 ---
 
 ## A. The project in five lines

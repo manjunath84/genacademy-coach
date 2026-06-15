@@ -22,6 +22,13 @@ deck speaker-notes were empty, so slide text may need support from handouts, not
 | `notes/` | The builder's own deep-notes `.md` (Lessons 1–5, 7, 8) | 2 — gap fill | Plain-English explanations used when slides/handouts are thin. |
 | `transcripts/` | Session-recording transcripts (`.md`) | 3 — support/fallback | Spoken narration and examples; useful but noisy, so trim/tag filler at ingest. |
 
+## Eval-only drop-zone
+
+`eval-questions/` contains real student chat-question files for the held-out split. It is never indexed,
+never used for prompts or demos, and never mixed with NotebookLM or generated quiz seed material.
+Normalize filenames to lowercase kebab-case before the deterministic split so stable IDs do not depend on
+case-sensitive filesystem behavior.
+
 ## Naming & chunk convention
 
 Keep source filenames or normalize to `week<N>-<session|lesson>-<slug>.<ext>`. The chunker emits a

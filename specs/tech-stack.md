@@ -41,7 +41,7 @@ through clean metadata and adapter seams.
 
 - **Grounded-or-refuse.** The tutor only teaches/asks/grades what it can cite from retrieved spans.
 - **Real confidence signal.** Refuse/STOP is driven by retrieval score plus citation-present checks,
-  never an LLM self-rating.
+  never an LLM self-rating. Confidence calibration is measured by `source_type` for the MVP.
 - **Citations captured at retrieval.** Never reconstruct a citation after generation.
 - **Agenticity = runtime decisioning shown in a trace.** Python enforces safety; the model chooses
   `advance`, `re_explain_differently`, `drill`, `refuse_escalate`, or `stop` plus a strategy.
@@ -57,7 +57,8 @@ The held-out test set is only credible if leakage is mechanically prevented:
 - **Source.** Test candidates come from real student chat-question files under `corpus/eval-questions/`.
   These questions are corpus-independent and are never indexed.
 - **Dev/seed.** Optional NotebookLM exports or deep-note "Quiz Yourself" sets are corpus-derived and may
-  be used only for seed/dev scenarios. NotebookLM is not an MVP dependency.
+  be used only for seed/dev scenarios. They must stay outside `corpus/eval-questions/`. NotebookLM is not
+  an MVP dependency.
 - **Deterministic split, fixed seed.** A single script derives seed/dev/test with stable IDs and
   week/session stratification where the data supports it.
 - **Commit the manifest, not private content.** Commit split IDs and checksums, never private answer text.
@@ -90,7 +91,9 @@ the failure modes.
 
 STOP < 0.60, CONFIRM 0.60-0.85, and PROCEED > 0.85 are starting points only. Before relying on them,
 run known-good and known-bad queries against the actual extended index, record scores by `source_type`,
-and set bands from that distribution. Source priority is ranking policy, not blind trust:
+and set MVP bands from those distributions. The calibration is per-source analysis; shared numeric bands
+are acceptable only if the measured slide/handout/note/transcript distributions justify them. Source
+priority is ranking policy, not blind trust:
 
 1. Prefer slides and handouts for teach explanations.
 2. Use notes when slides/handouts are thin.

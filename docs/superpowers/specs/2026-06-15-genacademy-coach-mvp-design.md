@@ -15,7 +15,8 @@
 - **Load-bearing decisions (settled · why · rejected alternatives):** [`../../../docs/decisions.md`](../../../docs/decisions.md)
 - **Foundation to reuse (Week-2 `genacademy-rag`):** [`../../../docs/genacademy-rag-foundation.md`](../../../docs/genacademy-rag-foundation.md)
 - **Long-form trail (historical):** the brainstorm archive in the parent Week-3 folder — decision log
-  (D1–D52), project board, option scorecards, improvements ledger.
+  (D1–D52), project board, option scorecards, improvements ledger. `D##` labels are historical archive
+  labels; canonical settled decisions in this repo are `AD-1` through `AD-11`.
 
 ## Thursday MVP — the one thing the plan must deliver
 
