@@ -40,6 +40,7 @@ chroma/
 *.faiss
 *.index
 models/
+eval/extraction_report.json
 eval/runs/
 *.log
 
