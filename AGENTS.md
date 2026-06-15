@@ -19,6 +19,12 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
 **mock interview**. Built on the author's Week-2 `genacademy-rag` retrieval system. Full design:
 `specs/` + `docs/architecture-diagrams.md`.
 
+**Foundation — reuse `genacademy-rag`, do not reinvent.** The Coach is an agentic layer on top of the
+Week-2 `genacademy-rag` system, which already provides the embedder, Chroma index/schema, section-aware
+chunker, refusal/grounding/citation pipeline, the Nebius provider call, and a working **eval harness**.
+Treat Week-2 as the foundation to **extend**, never a thing to rebuild. The verified facts + the binding
+reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before planning or building.
+
 ## 2. The gates (no skipping)
 
 1. **No code until the plan is approved.** Flow: brainstorm → design/spec → reviewed → implementation
@@ -65,6 +71,11 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
   `specs/tech-stack.md`).
 - **Never invent facts or numbers the corpus doesn't support.** Faithfulness to retrieved context is the
   product.
+- **Reuse the Week-2 foundation (review-blocker).** Do not build a new chunker, embedder, vector schema,
+  refusal/threshold scheme, or eval harness without a written delta vs `genacademy-rag` explaining why
+  its API can't serve the need (`docs/genacademy-rag-foundation.md`). The held-out eval set is the
+  **real student chat-questions** (corpus-independent), never indexed. Same-embedder rule: the index is
+  `all-MiniLM-L6-v2` / 384-d — switching embedders means re-ingesting a fresh collection.
 
 ## 4. Two cheap habits (mandatory)
 
@@ -104,3 +115,22 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
 - *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
   board, the option scorecards, and the improvements ledger — the long-form trail behind
   `docs/decisions.md`.
+
+## 8. Workflow & tool bindings
+
+This project runs on the **`ai-dev-workflow`** skill — the tool-neutral umbrella that binds the gates
+above to concrete tools (superpowers + gstack). The builder may be any model; the reviewer is always a
+**different** model or fresh context (gate #2). Phase map:
+
+| Phase | Binding | Realizes |
+|---|---|---|
+| Idea / scope | `superpowers:brainstorm`, `office-hours` | pressure-test before code |
+| **Plan** | `superpowers:write-plan` → design/plan in `docs/superpowers/{specs,plans}/` | gate #1 (no code until approved) |
+| Build | `superpowers:execute-plan` | one slice at a time |
+| Review | `/pr-review-toolkit:review-pr` + a different-model `/codex` challenge | gate #2 (builder ≠ reviewer) |
+| Verify | `/qa`, `/health`, `/verify` + the Week-2 eval harness | gate #3 (evidence before done) |
+| Ship | `/commit-commands:commit-push-pr` | reproducible, reviewed |
+
+The superpowers design/plan anchor is `docs/superpowers/specs/2026-06-15-genacademy-coach-mvp-design.md`.
+Tool-specific routing is mirrored (thin) in `CLAUDE.md` under "## Skill routing"; `AGENTS.md` stays the
+source of truth — the mirror is a pointer, not a copy.
