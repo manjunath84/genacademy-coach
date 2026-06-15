@@ -21,7 +21,7 @@ moment. Use this exact phrasing in the Google Doc opening and the video's first 
 | 1:00–2:30 | **Teach loop:** learner says "I don't get attention" → retrieves span → explains with an analogy → check-question → learner half-right → **re-explains differently, same citation** → it clicks. Show the **local JSON/CLI trace** side-by-side; show LangSmith only if already configured. | The agenticity proof |
 | 2:30–3:15 | **Deliberate failure:** out-of-corpus question → **refuses + escalation card** + a line in `review_queue.jsonl`. | Won't-bluff brand |
 | 3:15–4:00 | **Honest eval:** "Here's my held-out test set, the split, what passed and what didn't." Say the real fraction. | Technical thinking + integrity |
-| 4:00–4:45 | **Standout move:** same concept, two tracks back-to-back — low-code/no-code workflow explanation, then code-heavy Python/LangGraph explanation. | Creativity + personalization |
+| 4:00–4:45 | **Standout move:** same learner asks for the same concept through two teaching lenses — low-code/no-code workflow explanation, then code-heavy Python/LangGraph explanation. | Creativity + personalization |
 | 4:45–5:00 | "Next: quiz, interview, admin upload, and voice — same engine, after the text tutor works." + architecture thumbnail. | Forward momentum |
 
 ## Google Doc outline (the human-reasoning version)
@@ -47,7 +47,7 @@ moment. Use this exact phrasing in the Google Doc opening and the video's first 
 
 | # | Move | Effort | Payoff |
 |---|---|---|---|
-| S1 | Two-track demo back-to-back (same concept, low-code/no-code vs code-heavy) | ~10 min prompt change | Creativity + "actually adapts" |
+| S1 | Same learner switches track lens for one concept: low-code/no-code, then code-heavy | ~10 min prompt change | Creativity + "actually adapts" |
 | S2 | Honest eval numbers on screen — show the failures and why | ~0 build | Technical thinking + integrity |
 | S3 | "What I cut and why" — 30-sec scope-cut narrative | ~0 build | Initiative + human reasoning |
 | S4 | Corpus version-pin + SHA shown in the demo UI | ~1 hr | Technical thinking + reproducibility |
@@ -58,7 +58,7 @@ moment. Use this exact phrasing in the Google Doc opening and the video's first 
 | Criterion | What to show | Repo proof |
 |---|---|---|
 | Consistency | Week 3 compounds Week 2: Week 2 built grounded RAG; Week 3 adds agentic teaching, state, failure handling, and HITL. | `docs/genacademy-rag-foundation.md`, `AGENTS.md` |
-| Creativity | Same concept explained for the two bootcamp tracks: low-code/no-code workflow mental model, then code-heavy Python/LangGraph detail. | teach-loop trace + demo script |
+| Creativity | Same learner can switch teaching lenses for one topic: low-code/no-code workflow mental model, code-heavy Python/LangGraph detail, or bridge between them. | teach-loop trace + demo script |
 | Execution | Live teach loop with refusal, escalation, and trace, not a static prompt demo. | `traces/<session_id>.json`, `review_queue.jsonl`, eval output |
 | Technical thinking | Held-out chat-question eval, citation-resolves checks, deterministic grader, and calibrated retrieval thresholds. | `specs/tech-stack.md`, `docs/decisions.md` |
 | Initiative | The project shows reviewed trade-offs: one retriever, JSON/CLI trace, text-first MVP, and quiz/interview/admin/voice as pull-ins. | `docs/decisions.md`, `specs/roadmap.md` |

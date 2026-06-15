@@ -7,9 +7,9 @@ shippable demo must exist at every step ("demo cannot fail").
 
 The adaptive **teach loop**:
 
-> intake (topic · style · track) → retrieve grounded span (slides/handouts first) → explain in style → check understanding →
-> grade grounded → **runtime decide** (advance / re-explain-differently / drill / refuse+escalate) →
-> update the within-session learner profile → loop → session report.
+> intake (topic · style · track lens) → retrieve grounded span (slides/handouts first) → explain in
+> style → check understanding → grade grounded → **runtime decide** (advance / re-explain-differently /
+> drill / refuse+escalate) → update the within-session learner profile → loop → session report.
 
 **MUST ship:**
 
@@ -18,7 +18,7 @@ The adaptive **teach loop**:
 - **Real-signal refusal** + at least **one recovered tool failure on camera**.
 - A **human-escalation** path (the review-queue card).
 - **Item-quality eval** on a **held-out chat-question** test set, with honest on-screen numbers.
-- One persona, end-to-end, in under the target time.
+- One learner session, end-to-end, in under the target time; optional same-topic lens switch for the demo.
 
 **Build order.** Foundation adapter first, then eval scaffolding — `split_eval.py` +
 `eval/split_manifest.json` + `check_eval_leak.py` must exist and pass **before any prompt template is
@@ -29,7 +29,7 @@ instead — a working refusal + one re-explain branch beats a full stack with no
 ## PULL-IN (if time, in priority order — SHOULD)
 
 1. **Quiz mode** — adaptive MCQ, deterministic grading
-2. **Mock-interview mode** — open-answer grounded grading + follow-up probing
+2. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
 3. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
 4. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth
 5. **Track-aware retrieval** — corpus tagged by track

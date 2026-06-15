@@ -8,9 +8,11 @@
 
 > My agent helps a **Gen Academy cohort learner** master a course concept in a **web chat**, replacing
 > the re-watch-the-lecture-and-hope-it-clicks loop. It retrieves citeable course evidence, explains in
-> the learner's style, checks understanding, and when the learner stumbles, chooses a different
-> explanation strategy at runtime. It hands off to a human mentor when it cannot cite the answer, and I
-> know it works when held-out learner-sim scenarios reach a correct grounded answer 8 times out of 10.
+> the learner's style and chosen teaching lens, checks understanding, and when the learner stumbles,
+> chooses a different explanation strategy at runtime. The same learner can switch between
+> no-code/low-code, code-heavy, or bridge explanations for the same topic. It hands off to a human
+> mentor when it cannot cite the answer, and I know it works when held-out learner-sim scenarios reach a
+> correct grounded answer 8 times out of 10.
 
 | Framework field | Coach |
 |---|---|
@@ -18,7 +20,7 @@
 | **Where used** | Text web chat for the MVP; ElevenLabs voice is a pull-in over the same engine. |
 | **Steps** | intake -> retrieve -> explain -> check -> grade -> runtime decide -> update profile -> loop/report. |
 | **Tools** | `retrieve_course_corpus` (READ), `generate_check_item` (Nebius), `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` (WRITE/HITL). |
-| **State** | Within-session learner profile: style, track, known, struggled, coverage, turn budget, transcript. |
+| **State** | Within-session learner profile: style, track lens, optional bridge source, known, struggled, coverage, turn budget, transcript. |
 | **Never do** | Answer from model priors, fabricate citations, index held-out eval questions, or silently skip failure handling. |
 | **HITL** | Refuse and write a review-queue entry when confidence is low, evidence is missing, or the learner flags an issue. |
 | **Failure handling** | Retry/tool validation, confidence thresholds, source fallback, human escalation, stop/progress guard. |
@@ -32,7 +34,7 @@ extended Week-2 corpus, and local trace/eval artifacts. Most tools read; only es
 ```mermaid
 flowchart TD
     User["Cohort learner"]
-    Intake["Intake: topic · style · track"]
+    Intake["Intake: topic · style · track lens"]
 
     subgraph Agent["Coach Agent - LangChain create_agent"]
         Reason["REASON: choose next_action + strategy"]
@@ -84,10 +86,10 @@ thresholds, schema, citation presence, max turns, and stop conditions.
 
 ```mermaid
 flowchart TD
-    Start([Learner picks concept]) --> Retrieve["Retrieve citeable span\nslides/handouts first"]
+    Start([Learner picks concept + teaching lens]) --> Retrieve["Retrieve citeable span\nslides/handouts first"]
     Retrieve --> Ground{"Grounded?\nscore + citation present"}
     Ground -->|no| Refuse["Refuse + escalate"]
-    Ground -->|yes| Explain["Explain in learner style"]
+    Ground -->|yes| Explain["Explain in learner style + lens"]
     Explain --> Check["Ask grounded check-question"]
     Check --> Grade["Deterministic grounded grade"]
     Grade --> Decide{"MODEL CHOOSES\nnext_action + strategy"}
@@ -116,7 +118,7 @@ sequenceDiagram
     participant T as Trace
 
     L->>A: "I don't get attention"
-    A->>P: Read style, track, known, struggled
+    A->>P: Read style, track lens, known, struggled
     A->>R: retrieve_course_corpus("attention", preferred_sources=["slide","handout"])
     R-->>A: Spans + citation IDs + scores
     alt citeable
@@ -154,7 +156,8 @@ flowchart TD
 flowchart TD
     subgraph Session["MVP: within-session profile"]
         Style["style"]
-        Track["track"]
+        Track["track_lens"]
+        Bridge["bridge_from"]
         Known["known[]"]
         Struggled["struggled[]"]
         Coverage["coverage + turn budget"]
@@ -199,7 +202,7 @@ flowchart TD
 flowchart LR
     MVP["MVP: text teach loop"]
     MVP --> Quiz["Pull-in: quiz mode"]
-    Quiz --> Interview["Pull-in: mock interview"]
+    Quiz --> Interview["Pull-in: mock interview\nopen answer -> cited grading -> follow-up -> report"]
     MVP --> Admin["Low-priority pull-in: admin upload"]
     MVP --> Voice["Pull-in: ElevenLabs voice"]
     MVP --> Memory["Later: cross-session memory"]

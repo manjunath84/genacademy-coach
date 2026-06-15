@@ -72,10 +72,11 @@ network, or private-corpus trace exposure. LangSmith is useful for debugging and
 **Rejected.** HTML trace viewer as MVP-critical; LangSmith as the only proof artifact.
 
 ### AD-9 - State: Within-Session Profile
-**Decision.** Store learner style, track, known concepts, struggled concepts, coverage, turn budget, and
-transcript within the session.
+**Decision.** Store learner style, switchable track lens, optional bridge source, known concepts,
+struggled concepts, coverage, turn budget, and transcript within the session.
 **Why.** The handout calls state one of the hard parts; this is enough to drive adaptation without
-pulling in durable memory infrastructure.
+pulling in durable memory infrastructure. Track is a teaching lens, not an identity: the same learner can
+ask for a no-code/low-code explanation, a code-heavy explanation, or a bridge for the same topic.
 **Rejected.** Cross-session memory in the MVP. Mem0 is a rollout pull-in.
 
 ### AD-10 - Human-in-the-Loop and Failure Path
@@ -90,5 +91,6 @@ for the MVP.
 **Decision.** Quiz, mock interview, admin upload, and ElevenLabs voice remain product ideas but are not
 MVP blockers. They start only after the teach loop, refusal/eval path, and trace work end-to-end.
 **Why.** This preserves the long-term cohort-product architecture while protecting the judged Thursday
-deliverable.
+deliverable. Mock interview reuses the same grounded engine: ask open-ended questions, grade against
+cited expected points, follow up on gaps, and produce a strengths/weak-concepts report.
 **Rejected.** Starting any pull-in before the teach loop is demoable.

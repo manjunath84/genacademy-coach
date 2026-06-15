@@ -13,7 +13,7 @@ through clean metadata and adapter seams.
 | Generative call | **Nebius Token Factory via Week-2 provider surface** | The handout requires at least one Nebius model call. The richest MVP use is `generate_check_item`, grounded in a retrieved span. |
 | Retrieval | **One source-prioritized course-corpus retriever** | One retriever over the extended Week-2 collection is more reliable than sparse source-specific tools. Every chunk carries `source_type`; slides and handouts are preferred, notes fill gaps, transcripts support/fallback. |
 | Corpus | **Local owned corpus in `corpus/`** | `notes/`, `slides/`, `handouts/`, and `transcripts/` are the indexable sources; `eval-questions/` is never indexed. Content stays local/gitignored. |
-| State | **Within-session learner profile** | `style`, `track`, `known[]`, `struggled[]`, coverage, turn budget, and transcript. Cross-session state is deferred. |
+| State | **Within-session learner profile** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, turn budget, and transcript. Cross-session state is deferred. |
 | Grading | **Deterministic grounded gate** | The MVP pass/fail decision uses normalized answer matching plus citation-resolves checks. The inherited LLM judge is a secondary faithfulness audit, not the gate. |
 | Trace | **Local JSON trace + CLI pretty print; LangSmith optional** | The local artifact proves agenticity without external auth/network risk. LangSmith tracing is useful when configured; custom HTML is deferred. |
 | Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
@@ -24,6 +24,8 @@ through clean metadata and adapter seams.
 - **Agentic system, not one-shot RAG:** the model observes retrieval, grading, learner response, and
   profile state before choosing `next_action` and `strategy`.
 - **State:** the within-session learner profile drives subsequent explanations and the session report.
+  Track is a switchable teaching lens (`low_code_no_code`, `code_heavy`, or bridge), not a permanent
+  persona.
 - **Tool calls:** retrieval, check-item generation, grading, profile/session updates, trace writing, and
   mentor escalation.
 - **Human-in-the-loop:** out-of-corpus or low-confidence questions produce a learner-visible refusal and a
@@ -140,7 +142,7 @@ No webhook or mentor-notification system is required for the MVP.
 | Pull-in / Deferred Layer | Earned when |
 |---|---|
 | **Quiz mode** | The teach loop, refusal path, eval split/leak check, and trace are demoable end-to-end. |
-| **Mock interview mode** | The shared engine is stable; open-answer grading has enough grounded scenarios. |
+| **Mock interview mode** | The shared engine is stable; open-answer grading has enough grounded scenarios. It asks open-ended questions, grades against cited expected points, follows up on gaps, and reports strengths/weak concepts. |
 | **Admin upload** | Low-priority pull-in after the MVP works; reuse Week-2 auth/upload machinery and keep `source_origin` metadata. |
 | **ElevenLabs voice** | Pull-in over the same text engine after text UX is reliable; text transcript remains source of truth. |
 | **Explicit LangGraph graph** | Cross-session memory, pause/resume HITL, or auditable state transitions become core. |

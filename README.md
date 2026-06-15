@@ -19,12 +19,14 @@ One agent engine, three modes that share it:
 - **Teach** *(Thursday MVP)* — explain a concept grounded in the corpus → check understanding →
   re-explain a different way until it clicks.
 - **Quiz** *(pull-in)* — adaptive MCQ with deterministic grading.
-- **Mock interview** *(pull-in)* — open-answer grounded grading + follow-up probing.
+- **Mock interview** *(pull-in)* — open-answer questions, grounded grading against cited expected
+  points, follow-up probing, and a short gap report.
 - **Admin upload / ElevenLabs voice** *(pull-ins)* — added only after the text teach loop, refusal path,
   eval split, and trace are demoable end-to-end.
 
 The differentiator is **personalization** (never the same answer to everyone) on top of a **won't-bluff**
-grounding discipline.
+grounding discipline. Track is a teaching lens, not a learner identity: the same learner can ask for a
+low-code/no-code explanation, a code-heavy explanation, or a bridge between them for the same topic.
 
 ## The constitution
 
