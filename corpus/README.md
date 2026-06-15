@@ -35,13 +35,13 @@ origin.
 - [x] `transcripts/` — Week 1 · Session 1 (staged, cleaned from VTT)
 - [x] `transcripts/` — Week 1 · Session 2 (staged)
 - [x] `transcripts/` — Week 2 · Session 1 (staged)
-- [ ] `transcripts/` — Week 2 · Session 2 — ⚠️ **gap:** Maven won't allow download (gated recording `250882`); needs manual grab
+- [x] `transcripts/` — Week 2 · Session 2 (staged — ⚠️ **partial**: source starts at `02:00:43`, ~12.5k words, no speaker labels; likely the Q&A/demo tail only)
 - [x] `transcripts/` — Week 3 · Session 1 (staged)
 - [x] `transcripts/` — Week 3 · Session 2 (staged)
 
 > Transcripts are staged as cleaned markdown: VTT scaffolding (header, cue IDs, per-line timestamps)
 > stripped, same-speaker cues merged into readable turns, a start-timestamp kept per turn for citation.
-> ~159k words across 5 sessions. **Known item for build-time:** the first minutes of each session are
+> ~171k words across 6 sessions. **Known item for build-time:** the first minutes of each session are
 > orientation/logistics (not teaching) — handle via section-tagging or trimming at chunking/eval, not now.
 
 **Tier 2 — reference (have):**

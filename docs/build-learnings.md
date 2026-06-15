@@ -10,6 +10,21 @@
 
 ---
 
+## 2026-06-15 — A parser that works on five files can silently eat the sixth
+
+**What I believed:** my transcript cleaner ran cleanly on the first five session VTTs, so it was done.
+
+**What I found:** the sixth VTT was a different export — no speaker labels, sentences fragmented across
+tiny cues, a 2-hour timestamp offset. My cleaner assumed inline `Name:` speakers; with none present, a
+branch **silently discarded the whole file — 1,418 caption cues collapsed to 4 words.** No error, no
+crash. The only reason I caught it was sanity-checking the *output* (4 words out of 1,418 cues is
+obviously wrong).
+
+**Principle:** never assume one source's format generalizes — real corpora are heterogeneous. Validate a
+batch by the *plausibility of its output*, not its exit code: a clean run that produces nonsense is worse
+than a crash, because nothing flags it. Assert on the obvious invariant (words-out ≈ words-in) and build
+parsers to degrade gracefully on the shape you didn't expect.
+
 ## 2026-06-15 — A data/permission blocker is usually a reframing opportunity, not a wall
 
 **What I believed:** more data is better, so I should build on the richest corpus I could get —
