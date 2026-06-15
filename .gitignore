@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env / secrets
+.env
+.env.*
+*.key
+secrets/
+
+# Corpus & course materials — do NOT publish (copyright + attribution pending)
+data/
+corpus/
+*.pdf
+*.docx
+*.pptx
+*.jsonl
+*_transcript.txt
+
+# Notebooks / scratch
+.ipynb_checkpoints/
+scratch/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
