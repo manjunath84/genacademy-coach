@@ -30,7 +30,9 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
    agent loop, a **runtime-decision trace** of a real run. Green is demonstrated, not asserted.
 4. **The held-out test set is sacred.** `student_questions.jsonl` is hard-split into seed/dev/test
    *before* any prompt or tuning. **Test never enters prompts, examples, tuning, or the demo.** The
-   regression/dev set may grow from learner-flagged items; the test set stays frozen.
+   regression/dev set may grow from learner-flagged items; the test set stays frozen. **Enforced** by
+   the eval & data-split protocol in `specs/tech-stack.md` (deterministic split + committed
+   manifest/checksums + a CI leak check).
 5. **The graded differentiator is the failure path.** A demo that works on the happy path but falls
    over on the first tool failure is unfinished. Refusal + escalation + the 6 recovery mechanisms are
    built in, not bolted on.
@@ -49,7 +51,12 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
   re-explain vs advance vs refuse, retry/stop/escalate) is chosen from observations — not a hardcoded
   loop. If the path is scripted, it's a workflow, and we must call it that.
 - **MINT restraint — earn each layer.** One `create_agent` loop + a small read-mostly toolset. **No MCP,
-  no A2A, no LangGraph** this week (see `specs/tech-stack.md` for the trigger that earns each).
+  no A2A, and no _explicit_ LangGraph graph/imports** this week — `create_agent`'s internal LangGraph
+  runtime is fine; we just don't hand-author a graph (see `specs/tech-stack.md` for the trigger that
+  earns each).
+- **Pure core / thin view.** All agent, retrieval, grading, and learner-profile logic lives in a
+  testable core with **no** web-framework imports. A `from fastapi import` (or any HTTP/template import)
+  inside the core is a reject.
 - **Never invent facts or numbers the corpus doesn't support.** Faithfulness to retrieved context is the
   product.
 
@@ -86,5 +93,8 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
 - `specs/roadmap.md` — Thursday MVP → pull-ins → north star; MUST vs SHOULD; risk caps.
 - `docs/architecture-diagrams.md` — system architecture, the teach loop (agenticity proof), failure
   handling, state, eval split, the three modes, HITL, roadmap — visualized.
-- *Brainstorm archive (in the Week-3 planning folder, to migrate as needed):* the full decision log
-  (D1–D52), the project board, the option scorecards, and the improvements ledger.
+- `docs/decisions.md` — the load-bearing architecture decisions (settled choices · why · rejected
+  alternatives), self-contained in this repo.
+- *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
+  board, the option scorecards, and the improvements ledger — the long-form trail behind
+  `docs/decisions.md`.

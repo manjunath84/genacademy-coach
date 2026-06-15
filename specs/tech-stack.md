@@ -24,6 +24,25 @@ default to the lightest tool and justify every step up.
 - **Agenticity = runtime decisioning shown in a trace**, not a scripted loop.
 - **Pure core / thin view**: agent + retrieval + grading logic is testable with no web-framework imports.
 
+## Eval & data-split protocol (enforceable — `AGENTS.md` §2 gate 4)
+
+The held-out test set is only credible if leakage is *mechanically* prevented, not just promised:
+
+- **Deterministic split, fixed seed.** A single `split_eval.py` derives seed/dev/test from
+  `student_questions.jsonl` with a hard-coded seed and week-stratification; re-running reproduces the
+  exact split.
+- **Commit the manifest, not the content.** Commit `eval/split_manifest.json` = per-split question
+  **IDs + a sha256 content checksum**, never answer text. The **test** content stays out of the indexed
+  corpus and is git-ignored.
+- **No-test-access rule.** The retriever index and every prompt / example / few-shot are built from
+  **seed/dev only**. Test items load **only** inside the eval runner — never the agent, a prompt, or the
+  demo.
+- **Leak check (CI / pre-commit).** `check_eval_leak.py` fails the build if any test ID or checksum
+  appears in the index, a prompt template, a few-shot example, or the demo script. Green is shown, not
+  asserted.
+- **Frozen test.** The regression/dev set may grow from learner-flagged items; the **test** split is
+  frozen — changing it requires a new manifest + a note in `docs/decisions.md`.
+
 ## Deliberately deferred — and the trigger that earns each
 
 | Deferred | Earned when |

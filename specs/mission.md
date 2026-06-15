@@ -49,7 +49,15 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
 
 ## How I'll know it worked
 
-End-to-end task completion: a learner reaches a passing **grounded check-answer** on the target concept
-in **under 10 minutes, 8/10 sessions**, measured on the held-out test set — plus supporting item-quality
-numbers (answerability · unique-correct · distractor validity · citation support · no span-leakage). Not
-"looks good."
+End-to-end task completion, measured as a **reproducible eval protocol** (scripted — not dependent on
+live humans for the MVP):
+
+- Run **N ≥ 10 scripted learner-simulation scenarios** over held-out **test** concepts. Each scenario
+  starts from a wrong or partial answer; the tutor must drive the learner-sim to a check-answer within a
+  **step/time budget** (target ≈ under 10 minutes of interaction).
+- **Target: ≥ 8/10 scenarios pass.** *Pass* = the **deterministic grounded grader** marks the final
+  check-answer correct **and** every citation shown resolves to a retrieved span.
+- **Supporting component metric:** item quality on the test set — answerability · unique-correct ·
+  distractor validity · citation support · no span-leakage.
+
+Not "looks good."

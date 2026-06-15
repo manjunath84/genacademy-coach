@@ -362,13 +362,19 @@ flowchart LR
 | 8 HITL | D24 (review-queue card) · D25 (flag→eval) · D13 (HITL designed-in) |
 | 9 Roadmap | D51 (pull-in roadmap) · D39 (cut list) · board §5 |
 
-## Open items still pending the D52 idea+design review
+## Status — settled in the constitution; what's actually still open
 
-- **Framework (D44):** `create_agent` for the whole week — recommended, *confirm at gate*. Current LangChain docs (verified via Context7 during the codex review) confirm `create_agent` is **built on LangGraph** and supports middleware, a typed state schema, checkpointers, and HITL-interrupt middleware — so choosing it does **not** forfeit those; we can add a checkpointer / pause-resume interrupt later *without leaving* `create_agent`, and it *is* the Track-2 stack (handout-compliant). **Counter (codex):** the design is already drifting graph-shaped (explicit profile mutation, progress guard, confidence bands, refusal/fallback branches, future quiz/interview modes) — if mentor escalation becomes a real pause/resume interrupt or state transitions must be auditable, promote to explicit LangGraph.
-- **Thursday MVP shape (D48):** teach loop committed; quiz + interview as the top pull-ins targeted for Thursday if the engine lands.
-- **End-to-end success metric:** added to the spine above (passing check-answer in under 10 min, 8/10) — needs to land in spec §7 alongside item-quality eval.
-- **Corpus (D45/R6):** confirm CohortBrain attribution/permission + pin a version before relying on it.
+The framework and scope below are **settled** in the constitution (`../specs/`) — *not* open questions for a planning agent:
+
+- **Framework:** `create_agent` for the whole week (`../specs/tech-stack.md`). It's built on LangGraph, so middleware / typed state / checkpointers / HITL-interrupt middleware are available later **without a rewrite** — promote to an *explicit* LangGraph graph only when cross-session memory or a real pause/resume interrupt lands.
+- **Thursday MVP:** the teach loop; quiz + interview are pull-ins (`../specs/roadmap.md`).
+- **Success metric + eval protocol:** `../specs/mission.md` (measurable protocol) + `../specs/tech-stack.md` (hard-split, held-out, leak-checked).
+- **Decision rationale + rejected alternatives:** `decisions.md`.
+
+**Genuinely still open — a pre-build task, not a design question:**
+
+- **Corpus:** confirm CohortBrain attribution/permission + pin a corpus version before any data lands. No corpus is committed.
 
 ---
 
-*Diagrams authored 2026-06-14 to visualize spec §0 + §15. No implementation until the user approves the idea + design (D52). Next gate → `writing-plans`.*
+*Diagrams visualize the constitution (`../specs/` + `../AGENTS.md`); `(D##)` tags map to `decisions.md` (major calls) and the brainstorm archive (full history). No application code yet — the build follows the approved plan (`../AGENTS.md` §2, gate 1). Next: `writing-plans` for the teach-loop MVP.*

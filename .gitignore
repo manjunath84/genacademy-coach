@@ -11,6 +11,7 @@ venv/
 # Env / secrets
 .env
 .env.*
+!.env.example
 *.key
 secrets/
 
@@ -22,6 +23,18 @@ corpus/
 *.pptx
 *.jsonl
 *_transcript.txt
+
+# Generated artifacts / stores (can embed corpus or PII — never commit)
+*.sqlite
+*.sqlite3
+*.db
+chroma/
+.chroma/
+*.faiss
+*.index
+models/
+eval/runs/
+*.log
 
 # Notebooks / scratch
 .ipynb_checkpoints/
