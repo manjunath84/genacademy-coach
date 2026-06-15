@@ -682,6 +682,7 @@ from genacademy_coach.corpus import (
     extraction_summary,
     load_markdown_document,
     load_pptx_document,
+    load_pptx_document_with_stats,
     source_type_for_path,
 )
 from genacademy_rag.core.types import Document
@@ -738,12 +739,28 @@ def test_image_only_pptx_reports_empty_text_with_shape_count(tmp_path):
     slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1), Inches(1), Inches(2), Inches(1))
     prs.save(path)
 
-    doc = load_pptx_document(path)
-    summary = extraction_summary(doc)
+    loaded = load_pptx_document_with_stats(path)
+    doc = loaded.document
+    summary = extraction_summary(doc, slide_shape_count=loaded.slide_shape_count)
 
     assert doc.text.strip() == ""
     assert summary["empty"] is True
     assert summary["slide_shape_count"] == 1
+
+
+def test_pptx_loader_returns_shape_count_from_single_parse(tmp_path):
+    path = tmp_path / "corpus" / "slides" / "shape-count.pptx"
+    path.parent.mkdir(parents=True)
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1), Inches(1), Inches(2), Inches(1))
+    slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(1), Inches(2), Inches(2), Inches(1))
+    prs.save(path)
+
+    loaded = load_pptx_document_with_stats(path)
+
+    assert loaded.document.source_type == "slide"
+    assert loaded.slide_shape_count == 2
 
 
 def test_extraction_summary_marks_empty_text():
@@ -771,7 +788,7 @@ task.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from docx import Document as DocxDocument
@@ -783,6 +800,12 @@ from genacademy_rag.core.types import Document
 
 INDEXABLE_DIRS = ("notes", "transcripts", "slides", "handouts")
 INDEXABLE_SUFFIXES = {".md", ".pdf", ".pptx", ".docx"}
+
+
+@dataclass(frozen=True)
+class LoadedCorpusDocument:
+    document: Document
+    slide_shape_count: int | None = None
 
 
 def source_type_for_path(path: Path) -> str:
@@ -866,16 +889,13 @@ def _slide_notes_text(slide) -> str:
         return ""
 
 
-def pptx_shape_count(path: Path) -> int:
-    prs = Presentation(path)
-    return sum(len(slide.shapes) for slide in prs.slides)
-
-
-def load_pptx_document(path: Path) -> Document:
+def load_pptx_document_with_stats(path: Path) -> LoadedCorpusDocument:
     raw = path.read_bytes()
     prs = Presentation(path)
     parts: list[str] = []
+    slide_shape_count = 0
     for idx, slide in enumerate(prs.slides, start=1):
+        slide_shape_count += len(slide.shapes)
         texts: list[str] = []
         for shape in slide.shapes:
             texts.extend(_shape_text(shape))
@@ -884,14 +904,21 @@ def load_pptx_document(path: Path) -> Document:
             texts.append("## Speaker Notes\n\n" + notes)
         if texts:
             parts.append(f"# Slide {idx}\n\n" + "\n\n".join(texts))
-    return Document(
-        doc_id=build_doc_id(path, raw),
-        title=path.name,
-        source_type="slide",
-        text="\n\f\n".join(parts),
-        filename=path.name,
-        stored_path=str(path),
+    return LoadedCorpusDocument(
+        document=Document(
+            doc_id=build_doc_id(path, raw),
+            title=path.name,
+            source_type="slide",
+            text="\n\f\n".join(parts),
+            filename=path.name,
+            stored_path=str(path),
+        ),
+        slide_shape_count=slide_shape_count,
     )
+
+
+def load_pptx_document(path: Path) -> Document:
+    return load_pptx_document_with_stats(path).document
 
 
 def load_docx_document(path: Path) -> Document:
@@ -921,6 +948,12 @@ def load_corpus_document(path: Path) -> Document:
     raise ValueError(f"unsupported corpus file: {path}")
 
 
+def load_corpus_document_with_stats(path: Path) -> LoadedCorpusDocument:
+    if path.suffix.lower() == ".pptx":
+        return load_pptx_document_with_stats(path)
+    return LoadedCorpusDocument(document=load_corpus_document(path))
+
+
 def iter_indexable_files(corpus_dir: Path) -> list[Path]:
     files: list[Path] = []
     for dirname in INDEXABLE_DIRS:
@@ -935,17 +968,12 @@ def iter_indexable_files(corpus_dir: Path) -> list[Path]:
     return sorted(files)
 
 
-def extraction_summary(doc: Document) -> dict[str, object]:
+def extraction_summary(
+    doc: Document,
+    *,
+    slide_shape_count: int | None = None,
+) -> dict[str, object]:
     text = doc.text.strip()
-    stored_path = Path(doc.stored_path) if doc.stored_path else None
-    slide_shape_count = None
-    if (
-        doc.source_type == "slide"
-        and stored_path is not None
-        and stored_path.suffix.lower() == ".pptx"
-        and stored_path.exists()
-    ):
-        slide_shape_count = pptx_shape_count(stored_path)
     return {
         "doc_id": doc.doc_id,
         "title": doc.title,
@@ -965,9 +993,9 @@ uv run pytest tests/test_corpus.py -q
 
 Expected: pass.
 
-Implementation note: `extraction_summary()` re-opens `.pptx` files to count shapes because the reused
-Week-2 `Document` type has no metadata field for loader-only diagnostics. This is acceptable in the
-offline ingest slice; do not change the Week-2 type to optimize it.
+Implementation note: `load_pptx_document_with_stats()` returns a wrapper carrying PPTX shape
+diagnostics from the same parse that builds the Week-2 `Document`. This avoids a second PPTX parse
+without changing the reused Week-2 `Document` type.
 
 - [ ] **Step 4: Commit**
 
@@ -1402,7 +1430,7 @@ import json
 from genacademy_coach.corpus import (
     extraction_summary,
     iter_indexable_files,
-    load_corpus_document,
+    load_corpus_document_with_stats,
 )
 from genacademy_coach.foundation import Foundation
 from genacademy_coach.settings import CoachSettings
@@ -1418,8 +1446,12 @@ def refuse_empty_extractions(report: list[dict[str, object]]) -> None:
 def main() -> None:
     settings = CoachSettings.from_env()
     files = iter_indexable_files(settings.corpus_dir)
-    docs = [load_corpus_document(path) for path in files]
-    report = [extraction_summary(doc) for doc in docs]
+    loaded = [load_corpus_document_with_stats(path) for path in files]
+    docs = [item.document for item in loaded]
+    report = [
+        extraction_summary(item.document, slide_shape_count=item.slide_shape_count)
+        for item in loaded
+    ]
     settings.eval_dir.mkdir(parents=True, exist_ok=True)
     extraction_path = settings.eval_dir / "extraction_report.json"
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"

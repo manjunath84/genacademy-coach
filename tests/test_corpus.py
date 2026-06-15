@@ -12,6 +12,7 @@ from genacademy_coach.corpus import (
     load_docx_document,
     load_markdown_document,
     load_pptx_document,
+    load_pptx_document_with_stats,
     source_type_for_path,
 )
 
@@ -85,12 +86,28 @@ def test_image_only_pptx_reports_empty_text_with_shape_count(tmp_path):
     slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1), Inches(1), Inches(2), Inches(1))
     prs.save(path)
 
-    doc = load_pptx_document(path)
-    summary = extraction_summary(doc)
+    loaded = load_pptx_document_with_stats(path)
+    doc = loaded.document
+    summary = extraction_summary(doc, slide_shape_count=loaded.slide_shape_count)
 
     assert doc.text.strip() == ""
     assert summary["empty"] is True
     assert summary["slide_shape_count"] == 1
+
+
+def test_pptx_loader_returns_shape_count_from_single_parse(tmp_path):
+    path = tmp_path / "corpus" / "slides" / "shape-count.pptx"
+    path.parent.mkdir(parents=True)
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1), Inches(1), Inches(2), Inches(1))
+    slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(1), Inches(2), Inches(2), Inches(1))
+    prs.save(path)
+
+    loaded = load_pptx_document_with_stats(path)
+
+    assert loaded.document.source_type == "slide"
+    assert loaded.slide_shape_count == 2
 
 
 def test_extraction_summary_marks_empty_text():

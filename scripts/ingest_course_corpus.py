@@ -3,7 +3,7 @@ import json
 from genacademy_coach.corpus import (
     extraction_summary,
     iter_indexable_files,
-    load_corpus_document,
+    load_corpus_document_with_stats,
 )
 from genacademy_coach.foundation import Foundation
 from genacademy_coach.settings import CoachSettings
@@ -19,8 +19,12 @@ def refuse_empty_extractions(report: list[dict[str, object]]) -> None:
 def main() -> None:
     settings = CoachSettings.from_env()
     files = iter_indexable_files(settings.corpus_dir)
-    docs = [load_corpus_document(path) for path in files]
-    report = [extraction_summary(doc) for doc in docs]
+    loaded = [load_corpus_document_with_stats(path) for path in files]
+    docs = [item.document for item in loaded]
+    report = [
+        extraction_summary(item.document, slide_shape_count=item.slide_shape_count)
+        for item in loaded
+    ]
     settings.eval_dir.mkdir(parents=True, exist_ok=True)
     extraction_path = settings.eval_dir / "extraction_report.json"
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"

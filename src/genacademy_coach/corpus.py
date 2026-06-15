@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from docx import Document as DocxDocument
@@ -11,6 +11,12 @@ from pptx import Presentation
 
 INDEXABLE_DIRS = ("notes", "transcripts", "slides", "handouts")
 INDEXABLE_SUFFIXES = {".md", ".pdf", ".pptx", ".docx"}
+
+
+@dataclass(frozen=True)
+class LoadedCorpusDocument:
+    document: Document
+    slide_shape_count: int | None = None
 
 
 def source_type_for_path(path: Path) -> str:
@@ -94,16 +100,13 @@ def _slide_notes_text(slide) -> str:
         return ""
 
 
-def pptx_shape_count(path: Path) -> int:
-    prs = Presentation(path)
-    return sum(len(slide.shapes) for slide in prs.slides)
-
-
-def load_pptx_document(path: Path) -> Document:
+def load_pptx_document_with_stats(path: Path) -> LoadedCorpusDocument:
     raw = path.read_bytes()
     prs = Presentation(path)
     parts: list[str] = []
+    slide_shape_count = 0
     for idx, slide in enumerate(prs.slides, start=1):
+        slide_shape_count += len(slide.shapes)
         texts: list[str] = []
         for shape in slide.shapes:
             texts.extend(_shape_text(shape))
@@ -112,14 +115,21 @@ def load_pptx_document(path: Path) -> Document:
             texts.append("## Speaker Notes\n\n" + notes)
         if texts:
             parts.append(f"# Slide {idx}\n\n" + "\n\n".join(texts))
-    return Document(
-        doc_id=build_doc_id(path, raw),
-        title=path.name,
-        source_type="slide",
-        text="\n\f\n".join(parts),
-        filename=path.name,
-        stored_path=str(path),
+    return LoadedCorpusDocument(
+        document=Document(
+            doc_id=build_doc_id(path, raw),
+            title=path.name,
+            source_type="slide",
+            text="\n\f\n".join(parts),
+            filename=path.name,
+            stored_path=str(path),
+        ),
+        slide_shape_count=slide_shape_count,
     )
+
+
+def load_pptx_document(path: Path) -> Document:
+    return load_pptx_document_with_stats(path).document
 
 
 def _docx_table_text(parsed) -> list[str]:
@@ -160,6 +170,12 @@ def load_corpus_document(path: Path) -> Document:
     raise ValueError(f"unsupported corpus file: {path}")
 
 
+def load_corpus_document_with_stats(path: Path) -> LoadedCorpusDocument:
+    if path.suffix.lower() == ".pptx":
+        return load_pptx_document_with_stats(path)
+    return LoadedCorpusDocument(document=load_corpus_document(path))
+
+
 def iter_indexable_files(corpus_dir: Path) -> list[Path]:
     files: list[Path] = []
     for dirname in INDEXABLE_DIRS:
@@ -174,17 +190,12 @@ def iter_indexable_files(corpus_dir: Path) -> list[Path]:
     return sorted(files)
 
 
-def extraction_summary(doc: Document) -> dict[str, object]:
+def extraction_summary(
+    doc: Document,
+    *,
+    slide_shape_count: int | None = None,
+) -> dict[str, object]:
     text = doc.text.strip()
-    stored_path = Path(doc.stored_path) if doc.stored_path else None
-    slide_shape_count = None
-    if (
-        doc.source_type == "slide"
-        and stored_path is not None
-        and stored_path.suffix.lower() == ".pptx"
-        and stored_path.exists()
-    ):
-        slide_shape_count = pptx_shape_count(stored_path)
     return {
         "doc_id": doc.doc_id,
         "title": doc.title,
