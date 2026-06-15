@@ -20,6 +20,12 @@ The adaptive **teach loop**:
 - **Item-quality eval** on a **held-out** test set, with honest on-screen numbers.
 - One persona, end-to-end, in under the target time.
 
+**Build order.** Eval scaffolding first — `split_eval.py` + `eval/split_manifest.json` +
+`check_eval_leak.py` must exist and pass **before any prompt template is written** (else "the test set is
+sacred" is unenforceable). **Wednesday checkpoint:** if the teach loop isn't demoable on *real* retrieval
+by end of Wednesday, cut the quiz pull-in and the trace-viewer polish and **harden the refusal path
+instead** — a working refusal + one re-explain branch beats a full stack with no second pass.
+
 ## PULL-IN (if time, in priority order — SHOULD)
 
 1. **Quiz mode** — adaptive MCQ, deterministic grading
@@ -42,6 +48,9 @@ style + per-track + voice/multimodal, deployed to the cohort.
 
 - **Corpus attribution/permission.** Confirm CohortBrain license/attribution + pin a corpus version +
   spot-check vs. authoritative sources **before** relying on the data. No corpus committed to the repo.
+  **Plan B (if permission is denied):** corpus = the builder's own 8 lesson deep-notes + the 2 Week-3
+  handout PDFs, manually chunked with `week · title · timestamp` headers (~300 segments — enough for a
+  teach-loop demo on 3–4 core concepts). A "no" must not be able to kill the project.
 - **Eval contamination.** Hard-split before any use; the **test** split is frozen and never enters
   prompts/examples/demos.
 - **"Is it really an agent?"** Mitigated by the runtime-decision trace — the re-explain / refuse branches

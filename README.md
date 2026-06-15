@@ -36,3 +36,14 @@ grounding discipline.
 
 Code-heavy (handout Track 2): **LangChain `create_agent`**, **Nebius Token Factory** for the generative
 call, vibe-coded with Codex / Claude Code. Full rationale in [`specs/tech-stack.md`](specs/tech-stack.md).
+
+## What we carry from Week 2 (and what changed)
+
+Built on `genacademy-rag` (*GenAcademy Compass*) — the compounding arc, made concrete:
+
+- **Reused:** the embedding model + index format (no re-ingest), the citation-metadata schema
+  (`week · title · timestamp`), and the refusal-first / won't-bluff discipline.
+- **Extended:** citations gain `chunk_index`; single-corpus retrieval becomes a **multi-tool router**
+  (the agent picks *which* corpus at runtime); generation is now **constrained to one retrieved span**.
+- **New:** the adaptive **teach loop** + **within-session learner profile** — the agentic layer Week 2
+  didn't have.

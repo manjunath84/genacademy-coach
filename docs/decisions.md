@@ -31,10 +31,13 @@ looking like a "PDF→MCQ" wrapper.
 ### AD-3 — Framework: LangChain `create_agent` for the whole week (D44)
 **Decision.** Use `create_agent` for the entire Week-3 ship. Do **not** hand-author an explicit
 LangGraph graph this week.
-**Why.** `create_agent` is the standard agent entry point and is **built on LangGraph**, so middleware,
-a typed state schema, checkpointers, and HITL-interrupt middleware are available later *without a
-rewrite*. The MVP's state is within-session and its HITL is an escalation card (not a pause/resume), so
-the graph's primitives aren't needed yet. Fastest path; matches the cohort `agentic_rag` reference.
+**Why.** `create_agent` is the standard agent entry point and is **built on LangGraph**, so the concepts
+(middleware, typed state, checkpointers, HITL interrupts) carry over. To be precise: graduating to an
+*explicit* LangGraph graph later **does require rewriting the agent setup** (different imports, state
+definition, tool-binding) — but the **tool definitions and grounding logic transfer unchanged**, so it's
+a contained migration, not a teardown. The MVP's state is within-session and its HITL is an escalation
+card (not a pause/resume), so the explicit-graph primitives aren't needed yet. Fastest path; matches the
+cohort `agentic_rag` reference.
 **Trigger to promote.** Cross-session memory, a real pause/resume interrupt, or auditable state
 transitions becoming demo-core.
 **Rejected.** Explicit LangGraph from day 1 (slower ramp, eats failure-path polish) — unless *learning
@@ -44,7 +47,8 @@ LangGraph* is itself a goal, which is a separate post-ship track.
 **Decision.** Generated explanations/questions quote **one narrow retrieved span**; the answer cites the
 exact text + metadata (`week · title · timestamp`). Refuse/STOP is driven by a **real** signal —
 retrieval similarity score + a citation-present check — with bands STOP < 0.60 · CONFIRM 0.60–0.85 ·
-PROCEED > 0.85. MCQ grading is deterministic.
+PROCEED > 0.85 — **calibrated against the real index before use** (5 known-good + 5 known-bad queries),
+not taken as given. MCQ grading is deterministic.
 **Why.** "Won't bluff" is the brand; it must be mechanical, not vibes. Citations captured at retrieval
 can't be hallucinated.
 **Rejected.** LLM **self-rated** confidence (uncalibrated, gameable) and an LLM-judge verifier in the

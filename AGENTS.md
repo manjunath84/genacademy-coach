@@ -43,7 +43,9 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
   Low retrieval confidence → "I can't find this in the course materials" + escalate. It does **not**
   answer from model priors. The refusal path is load-bearing, not decorative.
 - **Confidence is a real signal, never an LLM self-rating.** Refuse/STOP is driven by retrieval
-  similarity score + a citation-present check (bands: STOP < 0.60 · CONFIRM 0.60–0.85 · PROCEED > 0.85).
+  similarity score + a citation-present check. The bands (STOP < 0.60 · CONFIRM 0.60–0.85 · PROCEED >
+  0.85) are **calibrated against the actual index before use, not taken from a diagram** (see
+  `specs/tech-stack.md`).
 - **Citations captured at retrieval, never reconstructed.** Every claim carries its source
   (`week · title · timestamp` / `chunk_index`). An answer that cites a source it didn't retrieve is a
   correctness bug.
@@ -57,6 +59,10 @@ corpus (escalates to a mentor instead). Three modes on one engine: **teach** (th
 - **Pure core / thin view.** All agent, retrieval, grading, and learner-profile logic lives in a
   testable core with **no** web-framework imports. A `from fastapi import` (or any HTTP/template import)
   inside the core is a reject.
+- **`create_agent` boundary (no accidental LangGraph).** Do not import `langgraph.graph.StateGraph`,
+  `langgraph.checkpoint.*`, or `langgraph.interrupt` directly this week — that's the deferred
+  explicit-graph layer. Such an import in a PR is a reject (full allowed/forbidden list in
+  `specs/tech-stack.md`).
 - **Never invent facts or numbers the corpus doesn't support.** Faithfulness to retrieved context is the
   product.
 

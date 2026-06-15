@@ -42,6 +42,58 @@ The held-out test set is only credible if leakage is *mechanically* prevented, n
   asserted.
 - **Frozen test.** The regression/dev set may grow from learner-flagged items; the **test** split is
   frozen — changing it requires a new manifest + a note in `docs/decisions.md`.
+- **Pre-build data audit (gate).** Before writing any prompt: `wc -l` each split, check **per-week**
+  counts, and confirm ≥ 10 eval scenarios can be drawn from `test` without replacement. If a week is too
+  thin, broaden stratification or lower N — never claim a number the data can't support.
+
+## Success-metric protocol — the eval scenario (lock before code)
+
+The "8/10" claim is only real with a concrete scenario format. Starting definition (finalize in the plan):
+
+- **Scenario file** (`eval/scenarios.jsonl`), one per line:
+  `{"concept": "...", "initial_wrong_answer": "...", "expected_citation_span_id": "...", "target_check_id": "..."}`.
+- **Sim loop.** A scripted learner-sim replays `initial_wrong_answer`; the agent must re-explain; the sim
+  then answers correctly. **Pass = the agent reaches a correct check-answer within ≤ 3 re-explain turns
+  AND every citation shown resolves to a retrieved span.**
+- **Grader.** The "deterministic grounded grader" = exact/normalized match against the scenario's
+  `target_check_id` answer key + a citation-resolves check. No LLM-judge in the MVP.
+- **Target: ≥ 8/10 scenarios pass** on held-out `test` concepts (mirrors `specs/mission.md`).
+
+## Confidence bands — calibrated, not magic (gate)
+
+STOP < 0.60 / CONFIRM 0.60–0.85 / PROCEED > 0.85 are **starting points, not a settled signal.** Before
+relying on them: run retrieval on **5 known-good and 5 known-bad** queries against the *actual* index,
+record the scores, and set the bands from that distribution. Document the metric (cosine vs. dot-product,
+raw vs. normalized). An uncalibrated band makes "won't bluff" vibes-based.
+
+## Runtime-decision trace — the agenticity artifact (spec)
+
+The trace IS the agenticity proof, so it must be a real artifact, not a log dump:
+
+- **Format** (`traces/<session_id>.json`): per turn =
+  `{turn, observation, reasoning, action, tool_calls[], confidence}`, where
+  `action ∈ {explain, re_explain_differently, advance, refuse_escalate, stop}`.
+- **Render.** A small CLI/HTML panel pretty-prints the reasoning chain side-by-side with the chat —
+  **not** raw JSON on screen. This is the demo centerpiece (~2-hour build; schedule it, don't let it slip).
+- **Real, not decorated.** `action`/`reasoning` are captured from the model's actual tool-call/output via
+  a callback — never hand-written after the fact.
+
+## Allowed vs. forbidden imports (the `create_agent` boundary — review-blocker)
+
+To keep "no explicit LangGraph this week" honest and prevent accidental drift:
+
+- **Allowed:** `langchain`'s `create_agent`, tool definitions, message types; plain-Python state passed
+  through tool functions.
+- **Forbidden this week:** importing `langgraph.graph.StateGraph`, `langgraph.checkpoint.*`, or
+  `langgraph.interrupt` directly — that's hand-authoring a graph (the deferred layer). A direct import of
+  any of these in a PR is a reject.
+
+## Minimal refusal UX (won't-bluff, made demoable)
+
+On out-of-corpus / below-threshold the agent returns a learner-visible message —
+*"I can't find this in the course materials (retrieval score: 0.41). I've flagged it for a mentor."* —
+**and** appends a line to `review_queue.jsonl` (`{topic, score, timestamp}`). That's the whole refusal
+path: a real message + a real queue file, both demoable. No webhook / mentor-notification needed for the MVP.
 
 ## Deliberately deferred — and the trigger that earns each
 
