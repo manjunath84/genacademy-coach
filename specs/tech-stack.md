@@ -126,8 +126,11 @@ private-corpus trace leakage are unacceptable MVP dependencies.
 
 - **Allowed:** LangChain `create_agent`, tool definitions, message types, callbacks/streaming needed to
   capture trace events, and plain-Python state passed through tool functions.
-- **Forbidden this week:** direct imports of `langgraph.graph.StateGraph`, `langgraph.checkpoint.*`, or
-  `langgraph.interrupt`. Those are earned when explicit graph control becomes necessary.
+- **Forbidden this week:** direct imports from `langgraph.*`, including `langgraph.graph.*`,
+  `langgraph.prebuilt.*`, `langgraph.checkpoint.*`, `from langgraph.types import Command, interrupt`,
+  and `langgraph.func.*`. Current LangGraph docs show those as direct graph, prebuilt, checkpoint,
+  interrupt, or functional APIs; they are earned only when explicit graph control becomes necessary. The
+  MVP uses LangGraph transitively through LangChain `create_agent`.
 
 ## Minimal Refusal UX
 

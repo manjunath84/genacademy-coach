@@ -9,7 +9,8 @@ few-shots, or the demo script. The ingestion code indexes `notes/ transcripts/ s
 
 Filename rule before splitting: normalize to lowercase kebab-case and keep exactly one file per
 week/session source. Case variants or duplicate exports can double-count questions and break stable IDs
-across macOS/Linux.
+across macOS/Linux. The split script should enforce this rule and fail early on non-normalized or
+duplicate source filenames.
 
 NotebookLM exports, generated quizzes, and deep-note "Quiz Yourself" items are corpus-derived seed/dev
 material, not held-out eval. Keep them out of this folder; add a separate ignored drop-zone only when

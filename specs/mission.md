@@ -60,7 +60,9 @@ live humans for the MVP):
 
 - Run **N ≥ 10 scripted learner-simulation scenarios** over held-out **test** concepts. Each scenario
   starts from a wrong or partial answer; the tutor must drive the learner-sim to a check-answer within a
-  **step/time budget** (target ≈ under 10 minutes of interaction).
+  **step/time budget** (target ≈ under 10 minutes of interaction). Target N is ≥ 10; if fewer usable
+  held-out scenarios exist, report the actual N and failure modes honestly rather than padding the set.
+  Treat N < 10 as a smoke eval, not proof of the 8/10 target.
 - **Target: ≥ 8/10 scenarios pass.** *Pass* = the **deterministic grounded grader** marks the final
   check-answer correct **and** every citation shown resolves to a retrieved span.
 - **Supporting component metric:** item quality on the test set — answerability · citation support · no

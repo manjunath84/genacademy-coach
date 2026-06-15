@@ -18,7 +18,8 @@ know/struggled with (within a session), and **refuses to answer what it can't ci
 corpus (escalates to a mentor instead). One text-first engine: **teach** is the Week-3 MVP; **quiz**,
 **mock interview**, **admin upload**, and **ElevenLabs voice** are pull-ins only after the teach loop,
 eval, refusal path, and trace are working. Built on the author's Week-2 `genacademy-rag` retrieval
-system. Full design: `specs/` + `docs/architecture-diagrams.md`.
+system. Full design is mapped in §7, especially `specs/`, `docs/`, and
+`docs/superpowers/{specs,plans}/`.
 
 **Foundation — reuse `genacademy-rag`, do not reinvent.** The Coach is an agentic layer on top of the
 Week-2 `genacademy-rag` system, which already provides the embedder, Chroma index/schema, section-aware
@@ -51,9 +52,8 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   answer from model priors. The refusal path is load-bearing, not decorative.
 - **Confidence is a real signal, never an LLM self-rating.** Refuse/STOP is driven by retrieval
   similarity score + a citation-present check. The bands (STOP < 0.60 · CONFIRM 0.60–0.85 · PROCEED >
-  0.85) are seed values only. The MVP must calibrate against the actual index by `source_type` before
-  use; shared numeric bands are allowed only if the measured distributions support them (see
-  `specs/tech-stack.md`).
+  0.85) are seed values only; calibrate against the actual index before use (see
+  `specs/tech-stack.md` for the `source_type` protocol).
 - **Citations captured at retrieval, never reconstructed.** Every claim carries its source
   (`week · title · timestamp` / `chunk_index`). An answer that cites a source it didn't retrieve is a
   correctness bug.
@@ -73,10 +73,10 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - **Pure core / thin view.** All agent, retrieval, grading, and learner-profile logic lives in a
   testable core with **no** web-framework imports. A `from fastapi import` (or any HTTP/template import)
   inside the core is a reject.
-- **`create_agent` boundary (no accidental LangGraph).** Do not import `langgraph.graph.StateGraph`,
-  `langgraph.checkpoint.*`, or `langgraph.interrupt` directly this week — that's the deferred
-  explicit-graph layer. Such an import in a PR is a reject (full allowed/forbidden list in
-  `specs/tech-stack.md`).
+- **`create_agent` boundary (no accidental LangGraph).** Do not import `langgraph.*` directly this week
+  — graph APIs, prebuilt helpers, checkpointing, interrupts, and functional APIs are the deferred
+  explicit-graph layer. Such an import in a PR is a reject unless a written delta proves LangChain
+  `create_agent` cannot serve the need (full allowed/forbidden list in `specs/tech-stack.md`).
 - **Never invent facts or numbers the corpus doesn't support.** Faithfulness to retrieved context is the
   product.
 - **Reuse the Week-2 foundation (review-blocker).** Do not build a new chunker, embedder, vector schema,

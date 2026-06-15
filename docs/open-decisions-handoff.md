@@ -119,8 +119,8 @@ now lives in `docs/decisions.md`.
 - Corpus **consolidated** into `corpus/` with a leak-safe `eval-questions/` zone.
 - NotebookLM is **off the critical path** (corpus-derived → regenerable; can't be the held-out test).
 
-## G. Questions for Codex
-1. For **each** of the 6 decisions: agree or disagree with the recommendation, one paragraph of reasoning. Push hardest on **Decision 1** (retriever count) and **Decision 4** (trace artifact) — the two real trade-offs.
-2. **Decision 5:** is the proposed commitment enough to survive the judge test, or is there a sharper failure mode?
-3. What do these 6 decisions **miss**? What is the **single biggest risk** to shipping the Thursday teach-loop MVP?
-4. Anything **over-engineered** for a one-builder, one-week MVP that should be cut now?
+## G. Historical Codex consult status
+
+Completed on 2026-06-15. The six questions above were resolved into the canonical constitution files:
+`AGENTS.md`, `specs/*`, `docs/decisions.md`, and `docs/architecture-diagrams.md`. Treat this handoff as
+history; do not reopen these decisions unless a new finding is recorded in `docs/decisions.md`.
