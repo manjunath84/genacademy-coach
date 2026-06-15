@@ -55,6 +55,16 @@ so layout-heavy slides extract *out of order* — the classic thin, choppy-chunk
 preserves them (PPTX) beats the one that feels more "final" but discards them (PDF). Counter-case: a
 purely visual slide (big diagram, three words) — neither format helps; that needs image captioning.
 
+**Tested it the same day — and the premise didn't hold for my decks.** I chased the `.pptx` originals,
+then actually opened the notes: **0 notes on 113 slides** across the three Week 1 decks (one slide had
+notes, the rest blank). My instructors don't narrate in the notes pane — they talk to bullet slides and
+the explanation lives in the *session recording*. So the abstract principle held ("match the format to
+where the content actually is") but the concrete answer flipped: for *my* corpus the gold is the
+**transcript**, not the deck notes. PPTX still wins marginally on extraction cleanliness (structured
+text vs. PDF's x/y scramble), but it stopped being the headline. **Meta-lesson: verify the premise of
+your own recommendation against the real artifact before you build on it — a confident, well-reasoned
+call can still rest on an assumption that turns out false for your specific data.**
+
 ---
 
 > *Add new learnings at the top as they happen. Each one is a candidate LinkedIn post and a beat in the
