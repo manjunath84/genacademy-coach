@@ -47,6 +47,9 @@ eval/runs/
 .ipynb_checkpoints/
 scratch/
 
+# AI workflow runtime state (superpowers brainstorm / visual-companion) — never commit
+.superpowers/
+
 # OS / editor
 .DS_Store
 .idea/

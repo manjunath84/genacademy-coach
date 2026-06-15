@@ -9,17 +9,25 @@ Corpus = **the builder's own content** (own deep-notes + own transcripts + cours
 builder received as a student). No external dataset, no permission dependency. See
 [`../docs/build-learnings.md`](../docs/build-learnings.md) for why.
 
-## Drop-zones, by teaching value
+## Drop-zones, by retrieval priority
 
-Ranked by *where the actual explanation lives* — which, after we found the deck speaker-notes were empty
-(0 of 113 Week-1 slides), is **not** the slides.
+Ranked by the MVP teaching policy: use slides and handouts as the primary course artifacts, then use
+notes to fill gaps and transcripts as support/fallback. The earlier extraction learning still matters:
+deck speaker-notes were empty, so slide text may need support from handouts, notes, or transcripts.
 
 | Folder | What goes here | Tier | Why |
 |---|---|---|---|
-| `notes/` | The builder's own deep-notes `.md` (Lessons 1–5, 7, 8) | **1 — explanation** | Plain-English explanations the builder wrote — highest-quality teaching text. |
-| `transcripts/` | Session-recording transcripts (`.md`) | **1 — explanation** | The spoken narration the slides only gesture at. **The gold**, since deck notes are blank. |
-| `slides/` | Lecture decks — **`.pptx` preferred**, `.pdf` fallback | 2 — reference | Concept coverage + visuals; skeletal on explanation. Keep `.pptx` (cleaner extraction). |
-| `handouts/` | Reference PDFs/docs (Caching, LlamaIndex, Field Guide = L6, token-usage, guidebook) | 2 — reference | Topic depth on specific themes; the "agentic ops" cluster. |
+| `slides/` | Lecture decks — **`.pptx` preferred**, `.pdf` fallback | **1 — primary** | The official lesson spine and first source to cite when enough text is available. |
+| `handouts/` | Reference PDFs/docs (Caching, LlamaIndex, Field Guide = L6, token-usage, guidebook) | **1 — primary** | Deeper official/reference explanations; best source for topic depth. |
+| `notes/` | The builder's own deep-notes `.md` (Lessons 1–5, 7, 8) | 2 — gap fill | Plain-English explanations used when slides/handouts are thin. |
+| `transcripts/` | Session-recording transcripts (`.md`) | 3 — support/fallback | Spoken narration and examples; useful but noisy, so trim/tag filler at ingest. |
+
+## Eval-only drop-zone
+
+`eval-questions/` contains real student chat-question files for the held-out split. It is never indexed,
+never used for prompts or demos, and never mixed with NotebookLM or generated quiz seed material.
+Normalize filenames to lowercase kebab-case before the deterministic split so stable IDs do not depend on
+case-sensitive filesystem behavior.
 
 ## Naming & chunk convention
 
@@ -29,7 +37,7 @@ origin.
 
 ## Collection checklist (update as you gather)
 
-**Tier 1 — explanation (priority):**
+**Tier 2 — gap fill / Tier 3 — support:**
 - [x] `notes/` — own deep-notes for L1–5, 7, 8
 - [ ] `notes/` — Lesson 6 enters as the Field Guide **PDF** in `handouts/` (author a `.md` only if retrieval is weak)
 - [x] `transcripts/` — Week 1 · Session 1 (staged, cleaned from VTT)
@@ -44,7 +52,7 @@ origin.
 > ~171k words across 6 sessions. **Known item for build-time:** the first minutes of each session are
 > orientation/logistics (not teaching) — handle via section-tagging or trimming at chunking/eval, not now.
 
-**Tier 2 — reference (have):**
+**Tier 1 — primary official/reference material:**
 - [x] `slides/` — Week 1 Decks 1–3 (`.pptx`), Week 2 Sessions 1–2 (`.pdf`), Week 3 Session 1 (`.pdf`)
 - [x] `handouts/` — Caching, LlamaIndex, Field Guide (L6), Getting-Started Guidebook, token-usage best-practices
 

@@ -1,104 +1,96 @@
 # Architecture Decisions
 
-The load-bearing, **settled** decisions behind GenAcademy Coach — each with *why* and the *alternative
-we rejected*, so a coding agent (or a future contributor) doesn't re-litigate them. Self-contained: you
-don't need any external doc to understand these. The full long-form trail (every decision D1–D52, with
-the brainstorm context) lives in the Week-3 planning folder's decision log; the `(D##)` tags below map
-to it.
-
-> These are settled for the Week-3 build. Reopening one needs a new entry here + a note in the affected
-> spec — not a quiet change mid-build.
+The load-bearing, settled decisions behind GenAcademy Coach. Reopening one needs a new entry here plus
+a note in the affected spec. Status: pre-build, aligned to the Week-3 project handout on 2026-06-15.
 
 ---
 
-### AD-1 — Direction: an adaptive, grounded tutor on top of `genacademy-rag` (D1)
-**Decision.** Build a bring-your-own use case — an adaptive AI tutor — layered on the author's Week-2
-RAG system, rather than one of the handout's six pre-scoped use cases.
-**Why.** It compounds prior work (a visible build-in-public arc), targets the cohort's own pain, and —
-because it's bring-your-own — there's no handout solution kit to accidentally replicate (replication
-scores zero). Originality is structural.
-**Rejected.** 3E Code Review (clean eval but disconnected from the author's work); 3A Market Research
-(low ceiling); the content-pipeline slice (better *life* project, weaker *Week-3* agentic demo).
+### AD-1 - Direction: Adaptive, Grounded Tutor on `genacademy-rag`
+**Decision.** Build a bring-your-own adaptive AI tutor layered on the author's Week-2 `genacademy-rag`
+system.
+**Why.** It compounds prior work, targets a real cohort learning problem, and avoids replicating the
+handout's solution kits. The Week-2 foundation already provides retrieval, citation, refusal, provider,
+and eval machinery.
+**Rejected.** One of the six pre-scoped handout projects as the main project. ElevenLabs voice remains a
+pull-in idea, not the headline.
 
-### AD-2 — Headline = the adaptive teach loop; quiz + interview are modes (D47/D48)
-**Decision.** The Thursday MVP is the **teach loop** (explain → check → re-explain-a-different-way) with
-a within-session learner profile. Quiz and mock-interview are pull-in modes on the same engine.
-**Why.** Personalization is the differentiator and the emotional demo beat ("it explained it three ways
-until it clicked"); the re-explain branch is genuinely agentic (learner-dependent path).
-**Rejected.** Mock-interviewer-only or quiz-only as the headline — narrower story, and quiz alone risks
-looking like a "PDF→MCQ" wrapper.
+### AD-2 - MVP: Text Teach Loop First
+**Decision.** The Thursday MVP is the text teach loop: explain a concept, check understanding, and
+re-explain differently when the learner stumbles.
+**Why.** This is the clearest personalization beat and the strongest end-to-end task completion story.
+**Rejected.** Quiz-only, interview-only, admin-upload-first, or voice-first scope.
 
-### AD-3 — Framework: LangChain `create_agent` for the whole week (D44)
-**Decision.** Use `create_agent` for the entire Week-3 ship. Do **not** hand-author an explicit
+### AD-3 - Build Track: LangChain `create_agent` on LangGraph Runtime
+**Decision.** Use LangChain `create_agent` for the Week-3 build. Do not hand-author an explicit
 LangGraph graph this week.
-**Why.** `create_agent` is the standard agent entry point and is **built on LangGraph**, so the concepts
-(middleware, typed state, checkpointers, HITL interrupts) carry over. To be precise: graduating to an
-*explicit* LangGraph graph later **does require rewriting the agent setup** (different imports, state
-definition, tool-binding) — but the **tool definitions and grounding logic transfer unchanged**, so it's
-a contained migration, not a teardown. The MVP's state is within-session and its HITL is an escalation
-card (not a pause/resume), so the explicit-graph primitives aren't needed yet. Fastest path; matches the
-cohort `agentic_rag` reference.
-**Trigger to promote.** Cross-session memory, a real pause/resume interrupt, or auditable state
+**Why.** The handout's Track 2 is LangChain + LangGraph. Current LangChain docs describe `create_agent`
+as the agent harness and LangChain agents as built on LangGraph. That gives the project the required
+agent runtime while keeping MVP scope small.
+**Trigger to promote.** Cross-session memory, pause/resume human approval, or auditable state
 transitions becoming demo-core.
-**Rejected.** Explicit LangGraph from day 1 (slower ramp, eats failure-path polish) — unless *learning
-LangGraph* is itself a goal, which is a separate post-ship track.
+**Rejected.** Direct `StateGraph` from day 1.
 
-### AD-4 — Grounding: constrained one-span citation + real-signal confidence (D42/D43)
-**Decision.** Generated explanations/questions quote **one narrow retrieved span**; the answer cites the
-exact text + metadata (`week · title · timestamp`). Refuse/STOP is driven by a **real** signal —
-retrieval similarity score + a citation-present check — with bands STOP < 0.60 · CONFIRM 0.60–0.85 ·
-PROCEED > 0.85 — **calibrated against the real index before use** (5 known-good + 5 known-bad queries),
-not taken as given. MCQ grading is deterministic.
-**Why.** "Won't bluff" is the brand; it must be mechanical, not vibes. Citations captured at retrieval
-can't be hallucinated.
-**Rejected.** LLM **self-rated** confidence (uncalibrated, gameable) and an LLM-judge verifier in the
-MVP (defer to a later mode with calibration).
+### AD-4 - Retrieval: One Source-Prioritized Course Retriever
+**Decision.** Use one retriever over the extended Week-2 collection. Tag every chunk with `source_type`
+and prioritize slides/handouts for teaching, notes for gaps, transcripts as support/fallback.
+**Why.** One retriever reduces sparse-index and wrong-tool risk for the MVP. Source priority preserves
+the desired learning-material hierarchy without forcing the model to route among brittle tool buckets.
+**Trigger to split.** Add source-specific tools only if eval shows a measured recall gap the single
+retriever cannot solve through metadata/ranking.
+**Rejected.** Three separate `retrieve_lectures`, `retrieve_assignments`, and `retrieve_student_qa`
+tools. Those were tied to a CohortBrain partition that is not the MVP foundation.
 
-### AD-5 — Eval: item-quality on a hard-split, held-out test set (D40/D41)
-**Decision.** Evaluate **item quality** (answerability · unique-correct · distractor validity · citation
-support · no span-leakage), not just deterministic grading. Hard-split `student_questions.jsonl` into
-seed/dev/test **before any use**; the test split is frozen and never enters prompts/examples/demos.
-Enforcement protocol in `specs/tech-stack.md`.
-**Why.** Deterministic grading alone masks bad items. The original plan reused the questions as both
-seed and gold — a data-leak the review caught.
-**Rejected.** Grading-accuracy-only eval; using the same question pool for seeding and scoring.
+### AD-5 - Corpus and Eval Source
+**Decision.** Index local course corpus under `corpus/notes`, `corpus/slides`, `corpus/handouts`, and
+`corpus/transcripts`. Never index `corpus/eval-questions`.
+**Why.** The corpus is available locally and can be extended through the Week-2 ingestion path. Real
+student chat questions are the strongest held-out eval source because they were asked live and are not
+authored from the notes.
+**Rejected.** A nonexistent `student_questions.jsonl` as the binding eval source; CohortBrain as a
+required MVP dependency; NotebookLM exports as test data. NotebookLM or "Quiz Yourself" items may be
+dev/seed only.
 
-### AD-6 — Agenticity proof = a runtime-decision trace (D21/D46)
-**Decision.** The "is it really an agent?" defense is a **trace of model-chosen actions at runtime**
-(which retriever, re-explain vs advance vs refuse, retry/stop/escalate), not the mere existence of a
-branch in a diagram.
-**Why.** A hardcoded loop could fake any single branch; only the runtime trace shows the path is
-learner-dependent and unscripted. If the path is scripted, it's a workflow and we say so.
-**Rejected.** Claiming "agent" from architecture shape alone.
+### AD-6 - Grading: Deterministic Gate, LLM Judge as Audit
+**Decision.** The deterministic grounded grader is the pass/fail gate. The inherited Week-2 LLM judge is
+available only as a secondary faithfulness audit.
+**Why.** The MVP needs repeatable grading and a clear "won't bluff" boundary. Using the inherited judge
+as audit avoids throwing away Week-2 infrastructure while keeping pass/fail deterministic.
+**Rejected.** LLM self-ratings or LLM-judge pass/fail for the teach-loop MVP.
 
-### AD-7 — MINT restraint: no MCP, no A2A, no explicit LangGraph; 2–3 retriever tools (D30/D34/D39)
-**Decision.** One `create_agent` loop + **2–3 retriever tools** (lectures / assignments / student-qa)
-that the model routes across (docstrings = routing logic). No MCP, no A2A, no hand-authored graph.
-**Why.** Earn each layer. One corpus + a few read tools needs no protocol; the single-agent loop needs
-no A2A. Restraint is what a senior reaches for and what the lecturer rewards.
-**Rejected.** Multi-agent from day 1; an MCP server as a core dependency (optional flex at most).
+### AD-7 - Agenticity Proof: Model-Chosen Action + Strategy
+**Decision.** The `create_agent` loop must emit structured `next_action` and `strategy` values chosen
+from observations: `advance`, `re_explain_differently`, `drill`, `refuse_escalate`, or `stop`.
+**Why.** A hardcoded branch can fake a single demo. The judge-facing proof is two different learner
+answers producing different model-chosen strategies without changing Python control flow.
+**Rejected.** A Python state machine where `if wrong: re_explain()` is the core adaptation.
 
-### AD-8 — Track = a prompt-level style selector this week (D49)
-**Decision.** "No-code vs code-heavy" track is a **style/example selector** in the prompt (workflow
-analogies vs Python/LangGraph specifics), not a separate track-filtered corpus.
-**Why.** Keeps the author's track feature while avoiding the scope of corpus tagging + track-filtered
-retrieval in week one.
-**Rejected/Deferred.** Track-aware *retrieval* (corpus tagged by track) → pull-in.
+### AD-8 - Trace Artifact: Local First, LangSmith Optional
+**Decision.** The primary runtime trace is local JSON plus a CLI pretty print/screenshot. LangSmith is
+an optional companion when credentials are configured. A custom HTML viewer is deferred.
+**Why.** The trace is required to prove agenticity, but the proof cannot depend on external auth,
+network, or private-corpus trace exposure. LangSmith is useful for debugging and a polished backup.
+**Rejected.** HTML trace viewer as MVP-critical; LangSmith as the only proof artifact.
 
-### AD-9 — Corpus = CohortBrain processed data + curated handouts (D33/D45)
-**Decision.** Ground on the pre-segmented CohortBrain Week 1–2 data (lectures/assignments with metadata
-+ timestamps) plus curated handouts.
-**Why.** It arrives clean and citation-ready, which resolves the corpus-completeness/parsing risk.
-**Still open (pre-build task).** Confirm attribution/permission, pin a corpus version, spot-check vs
-authoritative sources. **No corpus is committed to this repo.**
-**Rejected/Deferred.** Layout-aware PDF re-ingestion (LlamaParse/LiteParse) — only if raw PDFs enter the
-corpus later.
+### AD-9 - State: Within-Session Profile
+**Decision.** Store learner style, switchable track lens, optional bridge source, known concepts,
+struggled concepts, coverage, turn budget, and transcript within the session.
+**Why.** The handout calls state one of the hard parts; this is enough to drive adaptation without
+pulling in durable memory infrastructure. Track is a teaching lens, not an identity: the same learner can
+ask for a no-code/low-code explanation, a code-heavy explanation, or a bridge for the same topic.
+**Rejected.** Cross-session memory in the MVP. Mem0 is a rollout pull-in.
 
-### AD-10 — Deferred pull-ins and their triggers (D9/D32/D27/D20/D51)
-**Decision.** Cross-session memory (Mem0), caching (L1/L4/L5) + model tiering, voice (ElevenLabs),
-multimodal slide questions, and cohort rollout (multi-user/auth/cost) are **kept on the roadmap but not
-built this week**.
-**Why.** Each is earned by a concrete trigger (see `specs/tech-stack.md` and `specs/roadmap.md`):
-cross-session memory at rollout; caching when multi-user cost matters; voice after the text engine
-ships; deployment as a post-Week-3 fast-follow so it doesn't eat the graded failure-path polish.
-**Rejected.** Shipping any of these inside the Week-3 window at the expense of the teach-loop MVP.
+### AD-10 - Human-in-the-Loop and Failure Path
+**Decision.** Low confidence, out-of-corpus questions, tool failure, and learner flags route to refusal
+plus a review-queue record. The demo must show at least one failure path.
+**Why.** The handout explicitly says a happy-path-only agent is unfinished. Won't-bluff refusal is also
+the product brand.
+**Rejected.** Silent fallback to model priors, fabricated citations, or webhook-heavy mentor workflows
+for the MVP.
+
+### AD-11 - Pull-Ins: Quiz, Interview, Admin Upload, ElevenLabs Voice
+**Decision.** Quiz, mock interview, admin upload, and ElevenLabs voice remain product ideas but are not
+MVP blockers. They start only after the teach loop, refusal/eval path, and trace work end-to-end.
+**Why.** This preserves the long-term cohort-product architecture while protecting the judged Thursday
+deliverable. Mock interview reuses the same grounded engine: ask open-ended questions, grade against
+cited expected points, follow up on gaps, and produce a strengths/weak-concepts report.
+**Rejected.** Starting any pull-in before the teach loop is demoable.

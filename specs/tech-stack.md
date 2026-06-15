@@ -1,115 +1,166 @@
 # Tech Stack
 
-The framework is the handout's **Track 2** (code-heavy). The discipline is **MINT** — earn each layer;
-default to the lightest tool and justify every step up.
+The framework is the handout's **Track 2**: LangChain + LangGraph, implemented with LangChain
+`create_agent` on its LangGraph-backed runtime. The discipline is **MINT**: earn each layer, default to
+the lightest tool that can pass the demo honestly, and keep the long-term cohort product extensible
+through clean metadata and adapter seams.
 
-## The stack (Week-3 MVP)
+## The Stack (Week-3 MVP)
 
 | Layer | Choice | Why |
 |---|---|---|
-| Agent | **LangChain `create_agent`** | Standard agent entry point; a model-chooses-tools loop. Built on LangGraph, so middleware, a typed state schema, checkpointers, and HITL-interrupt middleware are available later **without a rewrite**. Matches the cohort `agentic_rag` reference; fastest to ship. |
-| Generative call | **Nebius Token Factory** | Routes the `generate_check_item` call (rubric requires ≥1 Nebius call; the richest call to showcase). |
-| Retrieval | **2–3 retriever tools** over the corpus | Multi-tool router/decomposition: the model picks *which* corpus (lectures / assignments / student-qa) at runtime. Tool docstrings are the routing logic; a decomposition nudge in the system prompt buys planning with no planner node. |
-| Corpus | **CohortBrain processed data** + curated handouts | Pre-segmented Week 1–2 lectures/assignments with metadata + timestamps for citations. Attribution/permission to confirm before use; nothing committed to this repo. |
-| State | **Within-session learner profile** (in-memory) | `style · known[] · struggled[] · coverage · transcript`. Durable cross-session state = deferred. |
-| Grading | **Deterministic** where possible | MCQ grading is index-match (no model). Open-answer grading (interview pull-in) is grounded against the retrieved span. |
-| Eval | **Item-quality on a hard-split, held-out test set** | answerability · unique-correct · distractor validity · citation support · no span-leakage. Deterministic grading alone masks bad items. |
-| Build tooling | **Codex / Claude Code** | Vibe-coding; builder and reviewer are **different** models (AGENTS §2). |
+| Agent | **LangChain `create_agent`** | Official LangChain docs describe `create_agent` as a configurable agent harness composed from a model, tools, prompt, and middleware; LangChain agents are built on LangGraph. This satisfies the handout's LangChain + LangGraph track without hand-authoring a graph before the MVP earns it. |
+| Generative call | **Nebius Token Factory via Week-2 provider surface** | The handout requires at least one Nebius model call. The richest MVP use is `generate_check_item`, grounded in a retrieved span. |
+| Retrieval | **One source-prioritized course-corpus retriever** | One retriever over the extended Week-2 collection is more reliable than sparse source-specific tools. Every chunk carries `source_type`; slides and handouts are preferred, notes fill gaps, transcripts support/fallback. |
+| Corpus | **Local owned corpus in `corpus/`** | `notes/`, `slides/`, `handouts/`, and `transcripts/` are the indexable sources; `eval-questions/` is never indexed. Content stays local/gitignored. |
+| State | **Within-session learner profile** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, turn budget, and transcript. Cross-session state is deferred. |
+| Grading | **Deterministic grounded gate** | The MVP pass/fail decision uses normalized answer matching plus citation-resolves checks. The inherited LLM judge is a secondary faithfulness audit, not the gate. |
+| Trace | **Local JSON trace + CLI pretty print; LangSmith optional** | The local artifact proves agenticity without external auth/network risk. LangSmith tracing is useful when configured; custom HTML is deferred. |
+| Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
+| Build tooling | **Codex / Claude Code with gates** | Builder and reviewer are different models or contexts; no code until the implementation plan is approved. |
 
-## Binding guardrails (full text in `AGENTS.md` §3 — repeated here as stack constraints)
+## Handout Alignment
 
-- **Grounded-or-refuse**; confidence from **real signals** (retrieval similarity + citation-present),
-  never an LLM self-rating. Bands: STOP < 0.60 · CONFIRM 0.60–0.85 · PROCEED > 0.85.
-- **Citations captured at retrieval, never reconstructed.**
-- **Agenticity = runtime decisioning shown in a trace**, not a scripted loop.
-- **Pure core / thin view**: agent + retrieval + grading logic is testable with no web-framework imports.
+- **Agentic system, not one-shot RAG:** the model observes retrieval, grading, learner response, and
+  profile state before choosing `next_action` and `strategy`.
+- **State:** the within-session learner profile drives subsequent explanations and the session report.
+  Track is a switchable teaching lens (`low_code_no_code`, `code_heavy`, or bridge), not a permanent
+  persona.
+- **Tool calls:** retrieval, check-item generation, grading, profile/session updates, trace writing, and
+  mentor escalation.
+- **Human-in-the-loop:** out-of-corpus or low-confidence questions produce a learner-visible refusal and a
+  review-queue entry.
+- **Failure handling:** retry/tool validation, confidence thresholds, fallback source policy,
+  human escalation, and stop/progress guards.
+- **Nebius:** at least one provider call is routed through the inherited Week-2 provider path.
+- **LangChain + LangGraph:** `create_agent` gives the LangChain agent surface and LangGraph-backed
+  runtime; explicit `StateGraph` authoring is deferred until cross-session memory, pause/resume HITL, or
+  auditable state transitions become core.
 
-## Eval & data-split protocol (enforceable — `AGENTS.md` §2 gate 4)
+## Binding Guardrails (Review-Blockers)
 
-The held-out test set is only credible if leakage is *mechanically* prevented, not just promised:
+- **Grounded-or-refuse.** The tutor only teaches/asks/grades what it can cite from retrieved spans.
+- **Real confidence signal.** Refuse/STOP is driven by retrieval score plus citation-present checks,
+  never an LLM self-rating. Confidence calibration is measured by `source_type` for the MVP.
+- **Citations captured at retrieval.** Never reconstruct a citation after generation.
+- **Agenticity = runtime decisioning shown in a trace.** Python enforces safety; the model chooses
+  `advance`, `re_explain_differently`, `drill`, `refuse_escalate`, or `stop` plus a strategy.
+- **Pure core / thin view.** Agent, retrieval, grading, and learner-profile logic have no web-framework
+  imports.
+- **Reuse Week-2.** Do not rebuild the embedder, chunker, vector schema, refusal logic, provider wrapper,
+  or eval harness without a written delta versus `genacademy-rag`.
 
-- **Deterministic split, fixed seed.** A single `split_eval.py` derives seed/dev/test from
-  `student_questions.jsonl` with a hard-coded seed and week-stratification; re-running reproduces the
-  exact split.
-- **Commit the manifest, not the content.** Commit `eval/split_manifest.json` = per-split question
-  **IDs + a sha256 content checksum**, never answer text. The **test** content stays out of the indexed
-  corpus and is git-ignored.
-- **No-test-access rule.** The retriever index and every prompt / example / few-shot are built from
-  **seed/dev only**. Test items load **only** inside the eval runner — never the agent, a prompt, or the
-  demo.
-- **Leak check (CI / pre-commit).** `check_eval_leak.py` fails the build if any test ID or checksum
-  appears in the index, a prompt template, a few-shot example, or the demo script. Green is shown, not
-  asserted.
-- **Frozen test.** The regression/dev set may grow from learner-flagged items; the **test** split is
-  frozen — changing it requires a new manifest + a note in `docs/decisions.md`.
-- **Pre-build data audit (gate).** Before writing any prompt: `wc -l` each split, check **per-week**
-  counts, and confirm ≥ 10 eval scenarios can be drawn from `test` without replacement. If a week is too
-  thin, broaden stratification or lower N — never claim a number the data can't support.
+## Eval & Data-Split Protocol
 
-## Success-metric protocol — the eval scenario (lock before code)
+The held-out test set is only credible if leakage is mechanically prevented:
 
-The "8/10" claim is only real with a concrete scenario format. Starting definition (finalize in the plan):
+- **Source.** Test candidates come from real student chat-question files under `corpus/eval-questions/`.
+  These questions are corpus-independent and are never indexed.
+- **Dev/seed.** Optional NotebookLM exports or deep-note "Quiz Yourself" sets are corpus-derived and may
+  be used only for seed/dev scenarios. They must stay outside `corpus/eval-questions/`. NotebookLM is not
+  an MVP dependency.
+- **Deterministic split, fixed seed.** A single script derives seed/dev/test with stable IDs and
+  week/session stratification where the data supports it.
+- **Commit the manifest, not private content.** Commit split IDs and checksums, never private answer text.
+- **No-test-access rule.** Test content loads only inside eval; it never enters prompts, few-shots, the
+  retriever index, or the demo script.
+- **Leak check.** Fail the build if test IDs/checksums appear in index artifacts, prompts, examples, or
+  demo scripts. Also check semantic/verbatim overlap against transcripts before freezing test items.
+- **Frozen test.** Admin-authored, mentor-flagged, or learner-flagged items can grow dev/regression sets;
+  changing test requires a new manifest and a note in `docs/decisions.md`.
 
-- **Scenario file** (`eval/scenarios.jsonl`), one per line:
-  `{"concept": "...", "initial_wrong_answer": "...", "expected_citation_span_id": "...", "target_check_id": "..."}`.
-- **Sim loop.** A scripted learner-sim replays `initial_wrong_answer`; the agent must re-explain; the sim
-  then answers correctly. **Pass = the agent reaches a correct check-answer within ≤ 3 re-explain turns
-  AND every citation shown resolves to a retrieved span.**
-- **Grader.** The "deterministic grounded grader" = exact/normalized match against the scenario's
-  `target_check_id` answer key + a citation-resolves check. No LLM-judge in the MVP.
-- **Target: ≥ 8/10 scenarios pass** on held-out `test` concepts (mirrors `specs/mission.md`).
+## Success-Metric Protocol
 
-## Confidence bands — calibrated, not magic (gate)
+The "8/10" claim needs a reproducible scenario file:
 
-STOP < 0.60 / CONFIRM 0.60–0.85 / PROCEED > 0.85 are **starting points, not a settled signal.** Before
-relying on them: run retrieval on **5 known-good and 5 known-bad** queries against the *actual* index,
-record the scores, and set the bands from that distribution. Document the metric (cosine vs. dot-product,
-raw vs. normalized). An uncalibrated band makes "won't bluff" vibes-based.
+```json
+{"concept":"...","initial_wrong_answer":"...","expected_citation_span_id":"...","target_check_id":"..."}
+```
 
-## Runtime-decision trace — the agenticity artifact (spec)
+Pass criteria:
 
-The trace IS the agenticity proof, so it must be a real artifact, not a log dump:
+- The agent reaches a correct check-answer within the turn/time budget.
+- The deterministic grounded grader marks the final answer correct.
+- Every learner-visible citation resolves to a retrieved span.
+- The trace shows a model-chosen `next_action` and `strategy`, not a scripted branch.
 
-- **Format** (`traces/<session_id>.json`): per turn =
-  `{turn, observation, reasoning, action, tool_calls[], confidence}`, where
-  `action ∈ {explain, re_explain_differently, advance, refuse_escalate, stop}`.
-- **Render.** A small CLI/HTML panel pretty-prints the reasoning chain side-by-side with the chat —
-  **not** raw JSON on screen. This is the demo centerpiece (~2-hour build; schedule it, don't let it slip).
-- **Real, not decorated.** `action`/`reasoning` are captured from the model's actual tool-call/output via
-  a callback — never hand-written after the fact.
+Target: at least 8/10 held-out scenarios pass. If the real number is lower, report the real number and
+the failure modes.
 
-## Allowed vs. forbidden imports (the `create_agent` boundary — review-blocker)
+## Confidence Bands
 
-To keep "no explicit LangGraph this week" honest and prevent accidental drift:
+STOP < 0.60, CONFIRM 0.60-0.85, and PROCEED > 0.85 are starting points only. Before relying on them,
+run known-good and known-bad queries against the actual extended index, record scores by `source_type`,
+and set MVP bands from those distributions. The calibration is per-source analysis; shared numeric bands
+are acceptable only if the measured slide/handout/note/transcript distributions justify them. Source
+priority is ranking policy, not blind trust:
 
-- **Allowed:** `langchain`'s `create_agent`, tool definitions, message types; plain-Python state passed
-  through tool functions.
-- **Forbidden this week:** importing `langgraph.graph.StateGraph`, `langgraph.checkpoint.*`, or
-  `langgraph.interrupt` directly — that's hand-authoring a graph (the deferred layer). A direct import of
-  any of these in a PR is a reject.
+1. Prefer slides and handouts for teach explanations.
+2. Use notes when slides/handouts are thin.
+3. Use transcripts as support/fallback, especially for details not captured elsewhere.
+4. Refuse/escalate when no source provides a citeable span.
 
-## Minimal refusal UX (won't-bluff, made demoable)
+## Runtime-Decision Trace
 
-On out-of-corpus / below-threshold the agent returns a learner-visible message —
-*"I can't find this in the course materials (retrieval score: 0.41). I've flagged it for a mentor."* —
-**and** appends a line to `review_queue.jsonl` (`{topic, score, timestamp}`). That's the whole refusal
-path: a real message + a real queue file, both demoable. No webhook / mentor-notification needed for the MVP.
+Primary artifact: `traces/<session_id>.json` plus a CLI pretty printer/screenshot.
 
-## Deliberately deferred — and the trigger that earns each
+Per turn:
 
-| Deferred | Earned when |
+```json
+{
+  "turn": 3,
+  "observation": "learner confused attention with recurrence",
+  "next_action": "re_explain_differently",
+  "strategy": "contrastive_example",
+  "tool_calls": ["retrieve_course_corpus"],
+  "retrieved_citation_ids": ["week3-session1:chunk-42"],
+  "confidence": 0.84
+}
+```
+
+LangSmith is an optional companion when `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, and
+`LANGSMITH_PROJECT` are configured. It is not the only proof artifact because external auth/network and
+private-corpus trace leakage are unacceptable MVP dependencies.
+
+## Allowed vs. Forbidden Imports
+
+- **Allowed:** LangChain `create_agent`, tool definitions, message types, callbacks/streaming needed to
+  capture trace events, and plain-Python state passed through tool functions.
+- **Forbidden this week:** direct imports from `langgraph.*`, including `langgraph.graph.*`,
+  `langgraph.prebuilt.*`, `langgraph.checkpoint.*`, `from langgraph.types import Command, interrupt`,
+  and `langgraph.func.*`. Current LangGraph docs show those as direct graph, prebuilt, checkpoint,
+  interrupt, or functional APIs; they are earned only when explicit graph control becomes necessary. The
+  MVP uses LangGraph transitively through LangChain `create_agent`.
+
+## Minimal Refusal UX
+
+On out-of-corpus or below-threshold retrieval, the agent returns a learner-visible message and appends a
+line to `review_queue.jsonl`:
+
+```json
+{"topic":"...","score":0.41,"reason":"no supporting span","timestamp":"..."}
+```
+
+No webhook or mentor-notification system is required for the MVP.
+
+## Pull-Ins and Triggers
+
+| Pull-in / Deferred Layer | Earned when |
 |---|---|
-| **LangGraph** (explicit graph) | Cross-session memory or a real pause/resume HITL **interrupt** becomes demo-core, or state transitions must be auditable. `create_agent` covers the MVP. |
-| **MCP / A2A** | More tools/pipelines than one corpus + a few read tools (MCP); a genuine multi-agent split **across systems** (A2A). Neither applies now. |
-| **Mem0 cross-session memory** | The rollout — "remembers you across days" (semantic + episodic). |
-| **Caching (L1/L4/L5) + model tiering** | Cost/scale matters (multi-user). Trivial for one user now. |
-| **Layout-aware re-ingestion** (LlamaParse / LiteParse) | Raw PDFs with diagrams enter the corpus. CohortBrain data arrives pre-segmented, so not yet. |
-| **Voice (ElevenLabs) / multimodal** | After the text engine ships and demos end-to-end. |
+| **Quiz mode** | The teach loop, refusal path, eval split/leak check, and trace are demoable end-to-end. |
+| **Mock interview mode** | The shared engine is stable; open-answer grading has enough grounded scenarios. It asks open-ended questions, grades against cited expected points, follows up on gaps, and reports strengths/weak concepts. |
+| **Admin upload** | Low-priority pull-in after the MVP works; reuse Week-2 auth/upload machinery and keep `source_origin` metadata. |
+| **ElevenLabs voice** | Pull-in over the same text engine after text UX is reliable; text transcript remains source of truth. |
+| **Explicit LangGraph graph** | Cross-session memory, pause/resume HITL, or auditable state transitions become core. |
+| **MCP / A2A** | More than one system boundary or a genuine multi-agent split across systems appears. |
+| **Mem0 cross-session memory** | Cohort rollout needs "remembers you across days." |
+| **Caching + model tiering** | Multi-user cost/latency matters. |
+| **Layout-aware ingestion** | Raw diagram-heavy PDFs become central and Week-2 loaders are insufficient. |
 
-## Repo conventions (mirrors `genacademy-rag`)
+## Repo Conventions
 
 - `AGENTS.md` is the tool-neutral source of truth; `CLAUDE.md` is a thin mirror.
-- Pluggability via interface + config, not branching (`if provider == ...` scattered through logic is a
-  reject).
-- Reference API calls (LangChain / Nebius signatures, model IDs, embedding dimensions) are pasted
-  verbatim into the relevant spec, never reconstructed from memory.
+- The first implementation task is a read-only audit of `genacademy-rag` interfaces into a tiny adapter
+  spec.
+- Reference calls and current API facts are copied from official sources before use, not reconstructed
+  from memory.

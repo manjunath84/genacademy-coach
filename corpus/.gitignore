@@ -1,0 +1,7 @@
+# Never publish course material (AGENTS.md §5). Ignore ALL corpus content;
+# keep only folder structure, READMEs, .gitignore, and .gitkeep placeholders.
+*
+!*/
+!.gitignore
+!README.md
+!.gitkeep
