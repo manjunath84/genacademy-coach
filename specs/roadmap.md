@@ -46,11 +46,11 @@ style + per-track + voice/multimodal, deployed to the cohort.
 
 ## Risk caps
 
-- **Corpus attribution/permission.** Confirm CohortBrain license/attribution + pin a corpus version +
-  spot-check vs. authoritative sources **before** relying on the data. No corpus committed to the repo.
-  **Plan B (if permission is denied):** corpus = the builder's own 8 lesson deep-notes + the 2 Week-3
-  handout PDFs, manually chunked with `week · title · timestamp` headers (~300 segments — enough for a
-  teach-loop demo on 3–4 core concepts). A "no" must not be able to kill the project.
+- **Corpus — own content, no permission needed.** Primary corpus = the builder's own 8 lesson deep-notes
+  + the Week-3 handout PDFs, chunked with `week · title · section` headers (~300 segments — enough for
+  a teach-loop demo on 3–4 core concepts). **No external dataset dependency.** Corpus committed to
+  `.gitignore` (local only); never pushed to the repo. CohortBrain remains a future upgrade path if
+  attribution is later confirmed.
 - **Eval contamination.** Hard-split before any use; the **test** split is frozen and never enters
   prompts/examples/demos.
 - **"Is it really an agent?"** Mitigated by the runtime-decision trace — the re-explain / refuse branches
