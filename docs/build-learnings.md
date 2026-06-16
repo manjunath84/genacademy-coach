@@ -10,6 +10,104 @@
 
 ---
 
+## 2026-06-16 — Diagnostics should reuse the runtime's truth, not re-copy it
+
+**What I believed:** an eval diagnostic can compute its own score bands because the logic is tiny:
+`stop`, `confirm`, `proceed` from the same two thresholds.
+
+**What I found:** tiny duplicate logic is still duplicate logic on an honesty-critical surface. The teach
+runtime already had canonical `evidence_score` and `evidence_band` helpers. Re-implementing the same
+threshold checks in the eval script was correct today, but it created a future drift path: if the runtime
+threshold convention changed, the diagnostics could silently report a different band than the learner
+actually experienced.
+
+**Principle:** when a diagnostic explains what the product did, it should call the same code path the
+product uses. Diagnostics are not a second implementation; they are an instrument panel. Reuse the
+runtime's source of truth, then test the boundary values that make drift expensive.
+
+## 2026-06-16 — Redaction is stronger as an allow-list than a cleanup pass
+
+**What I believed:** avoiding raw eval text in outputs was mostly a matter of remembering not to print
+`question_text`.
+
+**What I found:** the safer design was to build diagnostics from an explicit allow-list projection:
+scenario IDs, source filenames, counts, retrieval scores, source types, actions, and reason codes. The
+tests then asserted that planted private-text keys do not cross the output boundary. That is much easier
+to reason about than trying to scrub a rich row after the fact.
+
+**Principle:** for private eval data, do not redact by subtraction. Emit by construction. Build the
+public artifact from only the fields that are safe to expose, and make the redaction boundary a testable
+contract.
+
+## 2026-06-16 — A working refusal path can hide a retrieval problem unless you count it
+
+**What I believed:** the teach loop was behaving safely because low-confidence items refused and
+escalated instead of bluffing.
+
+**What I found:** safe behavior and useful behavior are different bars. The live dev run showed the
+agent mostly did the right safety move, but the new diagnostics made the real next problem obvious:
+most scenarios had zero retrieval coverage, while the one teachable scenario failed on teaching-loop
+behavior. Without counts and reason codes, those would all collapse into "failed eval" and point in the
+wrong direction.
+
+**Principle:** refusal is not failure, but repeated refusal is a product signal. Separate "safe refusal",
+"retrieval coverage gap", and "teachable behavior failure" in the eval output so the next fix targets
+the right layer.
+
+## 2026-06-15 — A pivot can silently break the safeguard your old design depended on
+
+**What I believed:** switching my corpus to my own course notes was a clean win — owned beats borrowed,
+done. I'd already "fixed" eval contamination with a hard seed/dev/test split and felt good about it.
+
+**What I found:** the pivot quietly hollowed out that exact fix. The split was only contamination-safe
+because the *questions* (student Q&A) and the *corpus* (lectures) were separate artifacts. Once the corpus
+became my own notes and the natural eval questions lived in the "Quiz Yourself" sets *inside* those same
+notes, the answer span was in the index by construction — a "held-out" test set whose answers I retrieve
+from is not held out. Three earlier review passes never caught it because they all predated the pivot, and
+the file the whole protocol named — `student_questions.jsonl`, 973 rows — didn't even exist on disk. The
+real fix was already sitting there: ~100+ **real student chat-questions** people asked live in session are
+corpus-*independent*, so they're the leak-safe held-out set.
+
+**Principle:** when you change your data source, re-run the threat model your old design depended on. A
+safeguard that was sound under the old assumptions can be silently invalidated by the new ones — and a
+prior "looks fine" review expires the moment its premise moves. A held-out test set isn't held out if its
+answers live in the index you retrieve from.
+
+## 2026-06-15 — If a project builds on your prior work, make it a written contract, not a footnote
+
+**What I believed:** this was a fresh build that happened to reuse "the index format" from my Week-2 RAG
+app. That's literally how my own README put it: "reused the index format (no re-ingest)."
+
+**What I found:** the Week-2 repo wasn't a footnote — it was the whole foundation. It already shipped the
+embedder (`all-MiniLM-L6-v2`, 384-d), the Chroma schema, an A/B-tested chunker, the refusal/citation
+pipeline, the Nebius call, *and* a working eval harness (12-question gold set, recall/precision/MRR,
+refusal-correctness, an LLM-judge) plus the real student questions. "Reuse the index format" buried in one
+prose line is an instruction a reviewer — or me in three weeks — will cheerfully ignore and rebuild from
+scratch. I'd even written "no re-ingest" while planning to add 176k words of new transcripts that were
+never in that index.
+
+**Principle:** when you build on your own prior project, promote the dependency to a first-class written
+contract — a named foundation doc plus a "reuse, don't reinvent: no new chunker/embedder/eval-harness
+without a written delta" rule. And pin the inherited interfaces (audit them into an adapter spec) before
+you assume their signatures; "reuse X" is worthless if nobody knows X's actual API.
+
+## 2026-06-15 — A scattered corpus hides duplicates a filename check won't catch
+
+**What I believed:** my course corpus was basically "collected," and the copies floating around different
+folders were the same files.
+
+**What I found:** it was spread across four places (the project folder, my Week-2 `data/` dir, a
+`CuratedRAGMaterials/` folder, and seven lesson-note folders). When I pulled it into one gitignored
+`corpus/`, two chat-question files with the **same name** turned out to differ by content hash — one was
+the more complete version. A filename-based dedupe would have silently dropped the better copy. While
+consolidating I also gave the held-out eval questions their own `eval-questions/` zone that the ingestion
+step structurally skips, so "never index the test set" is the folder layout now, not something I remember.
+
+**Principle:** before you trust a corpus, pull it into one place and dedupe by **content hash, not
+filename** — same name doesn't mean same bytes. And when a boundary is correctness-critical (keeping the
+held-out test set out of the index), encode it in the directory structure so the pipeline can't cross it by
+accident.
+
 ## 2026-06-15 — A parser that works on five files can silently eat the sixth
 
 **What I believed:** my transcript cleaner ran cleanly on the first five session VTTs, so it was done.
