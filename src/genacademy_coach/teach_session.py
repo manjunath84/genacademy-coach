@@ -5,7 +5,12 @@ from typing import Any, Protocol
 from pydantic import ValidationError
 
 from genacademy_coach.escalation import append_review_queue
-from genacademy_coach.grounding import answer_grounded_in_spans
+from genacademy_coach.grounding import (
+    answer_grounded_in_spans,
+)
+from genacademy_coach.grounding import (
+    grade_understanding as grade_answer_understanding,
+)
 from genacademy_coach.teach_agent import build_coach_agent
 from genacademy_coach.teach_tools import TeachRuntime
 from genacademy_coach.teach_types import (
@@ -88,7 +93,17 @@ class CoachSession:
         return self._invoke_agent(f"Teach me this Gen Academy concept: {self.topic}")
 
     def respond(self, learner_answer: str) -> TeachSessionResult:
+        self._grade_current_check_answer(learner_answer)
         return self._invoke_agent(f"Learner answer to current check: {learner_answer}")
+
+    def _grade_current_check_answer(self, learner_answer: str) -> None:
+        if self.runtime.current_check is None:
+            return
+        self.runtime.last_grade = grade_answer_understanding(
+            learner_answer,
+            self.runtime.current_check,
+        )
+        self.profile.last_grade_correct = self.runtime.last_grade.correct
 
     def _invoke_agent(self, learner_input: str) -> TeachSessionResult:
         if self.profile.turn_count >= self.settings.max_teach_turns:
@@ -199,6 +214,15 @@ class CoachSession:
         *,
         previous_strategy: str | None,
     ) -> CoachAgentResponse:
+        if self._last_grade_is_incorrect() and self.runtime.last_spans:
+            if (
+                response.next_action != "re_explain_differently"
+                or response.strategy == previous_strategy
+            ):
+                return self._grounded_reexplain_response(
+                    previous_strategy=previous_strategy,
+                    cited_spans=self.runtime.last_spans,
+                )
         if response.next_action in {"refuse_escalate", "stop"}:
             return response
         if (

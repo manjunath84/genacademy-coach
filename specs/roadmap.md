@@ -33,18 +33,21 @@ exist at every step ("demo cannot fail").
   negative controls support a calibrated default of `0.40`; the held-out `test` split was not used.
 - **Calibration verification completed locally.** Full tests, ruff, diff whitespace check, live dev eval,
   and eval leak guard have been run on the calibration branch.
+- **Teach-loop behavior hardening first pass completed.** Session-boundary grading now runs before model
+  decisioning, incorrect grounded answers force `re_explain_differently` with a changed strategy, and
+  generated check-item rubrics are normalized so their expected answers satisfy deterministic grading.
 
 ### In Progress
 
-- **Teach-loop behavior hardening.** Live dev eval at the calibrated `0.40` threshold improved coverage
-  to `8/10` scenarios with spans and `3/10` overall pass rate. The current bottleneck is no longer
-  retrieval coverage; it is grading, strategy-change, and runtime-decision trace behavior on recovered
-  teachable scenarios.
+- **Citation-resolution hardening.** Live dev eval at the calibrated `0.40` threshold now reaches `6/10`
+  overall and `6/8` teachable pass rate. The current bottleneck is no longer retrieval coverage, grading,
+  strategy-change, or runtime-decision trace behavior; the remaining teachable failures are
+  `citation_ids_not_resolved=2`.
 
 ### Pending Before MVP Demo
 
-- Get a fresh different-model review of the threshold-calibration change before merge.
-- Merge calibration only if the grounded/refusal behavior remains safe.
+- Get a fresh different-model review of the behavior-hardening change before merge.
+- Fix the remaining citation-resolution failures or document why they are safe refusals for the MVP demo.
 - Capture a demo-ready runtime-decision trace showing at least one grounded teach path and one refusal or
   re-explain branch.
 - Keep the held-out `test` split unused until final evaluation/reporting.
@@ -70,9 +73,9 @@ The adaptive **teach loop**:
 - [ ] Final honest on-screen numbers; held-out `test` split remains untouched until final evaluation.
 
 **Build order status.** Foundation adapter, eval scaffolding, leak guard, teach-loop core, eval
-diagnostics, retrieval triage, and threshold calibration are complete. The active gate is teach-loop
-behavior hardening on recovered teachable scenarios. If behavior hardening does not produce a demoable
-path, cut every pull-in and harden refusal plus one re-explain branch.
+diagnostics, retrieval triage, threshold calibration, and the first behavior-hardening pass are complete.
+The active gate is citation-resolution hardening on the remaining recovered teachable scenarios. If this
+does not produce a demoable path, cut every pull-in and harden refusal plus one re-explain branch.
 
 ## PULL-IN (if time, in priority order — SHOULD)
 

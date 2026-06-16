@@ -102,6 +102,30 @@ Result:
   runtime-decision trace checks rather than retrieval coverage. See
   `docs/teach-loop-threshold-calibration.md`.
 
+## Behavior-Hardened Dev Eval
+
+Command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev-behavior-fixes.json
+```
+
+Result:
+
+- Overall: `6/10` passed, `pass_rate=0.6`.
+- Teachable subset: `6/8` passed, `teachable_pass_rate=0.75`.
+- Safe refusals: `2`.
+- Retrieval coverage: `8` scenarios with spans, `2` without spans.
+- Diagnostic reason counts: `citation_ids_not_resolved=2`, `safe_low_retrieval_refusal=2`.
+- The prior `grade_not_correct`, `missing_strategy_change`, and `missing_runtime_decision_trace`
+  bottlenecks are cleared on this dev run.
+- Remaining failure mode: two teachable scenarios reached `refuse_escalate` with no resolved final
+  citation IDs. This is the next hardening target before a demo-ready MVP trace.
+
 ## Review Notes
 
 - Builder did not self-approve.
