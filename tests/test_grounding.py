@@ -1,0 +1,85 @@
+from genacademy_coach.grounding import (
+    answer_grounded_in_spans,
+    evidence_band,
+    evidence_score,
+    grade_understanding,
+    require_citeable_spans,
+)
+from genacademy_coach.teach_types import CheckItem, RetrievedSpan
+
+
+def span(score: float = 0.9, text: str = "Attention focuses relevant context.") -> RetrievedSpan:
+    return RetrievedSpan(
+        chunk_id="note/attention::0",
+        doc_id="note/attention",
+        text=text,
+        score=score,
+        title="attention.md",
+        source_type="note",
+    )
+
+
+def test_evidence_band_uses_configured_thresholds():
+    assert evidence_band(0.50, stop_threshold=0.60, confirm_threshold=0.85) == "stop"
+    assert evidence_band(0.70, stop_threshold=0.60, confirm_threshold=0.85) == "confirm"
+    assert evidence_band(0.91, stop_threshold=0.60, confirm_threshold=0.85) == "proceed"
+
+
+def test_evidence_score_uses_top_retrieval_score():
+    assert evidence_score([span(0.50), span(0.91)]) == 0.91
+    assert evidence_score([]) == 0.0
+
+
+def test_require_citeable_spans_needs_score_and_text():
+    assert require_citeable_spans([span(0.91)], stop_threshold=0.60) == [span(0.91)]
+    assert require_citeable_spans([span(0.50)], stop_threshold=0.60) == []
+    assert require_citeable_spans([span(0.95, text="  ")], stop_threshold=0.60) == []
+
+
+def test_grade_understanding_is_keyword_based_and_citation_bound():
+    item = CheckItem(
+        question="What does attention do?",
+        expected_answer="It focuses relevant context.",
+        expected_keywords=["focuses", "context"],
+        citation_id="note/attention::0",
+    )
+
+    grade = grade_understanding("It focuses context for the model.", item)
+
+    assert grade.correct is True
+    assert grade.matched_keywords == ["focuses", "context"]
+    assert grade.missing_keywords == []
+    assert grade.citation_id == "note/attention::0"
+
+
+def test_grade_understanding_matches_multi_word_keywords():
+    item = CheckItem(
+        question="What does attention do?",
+        expected_answer="It focuses relevant context.",
+        expected_keywords=["relevant context"],
+        citation_id="note/attention::0",
+    )
+
+    grade = grade_understanding("It helps focus on relevant context.", item)
+
+    assert grade.correct is True
+    assert grade.matched_keywords == ["relevant context"]
+
+
+def test_grade_understanding_reports_missing_keywords():
+    item = CheckItem(
+        question="What does attention do?",
+        expected_answer="It focuses relevant context.",
+        expected_keywords=["focuses", "context"],
+        citation_id="note/attention::0",
+    )
+
+    grade = grade_understanding("It helps the model.", item)
+
+    assert grade.correct is False
+    assert grade.missing_keywords == ["focuses", "context"]
+
+
+def test_answer_grounded_in_spans_reuses_week2_faithfulness_fallback():
+    assert answer_grounded_in_spans("Attention focuses relevant context.", [span()])
+    assert not answer_grounded_in_spans("Attention stores long term customer profiles.", [span()])
