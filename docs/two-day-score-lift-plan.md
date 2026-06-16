@@ -37,6 +37,8 @@ Acceptance:
 - Dev eval remains redacted.
 - Held-out `test` split remains untouched.
 - If the fix works, teachable evidence should be `8/8`.
+- If the fix does not land cleanly, keep the `7/8` teachable baseline and explain the remaining
+  diagnostic directly in the demo.
 
 ### Day 1 Midday: Polish Adaptivity
 
@@ -62,6 +64,9 @@ Build only the smallest grounded quiz slice:
 - Write a local quiz trace.
 - Add focused tests for question shape, grading, and refusal.
 - Update README, roadmap, and demo docs.
+
+Quiz Mode still needs its own approved implementation plan and fresh-context review before code
+per AGENTS sections 2 and 8; this sequencing doc is not build approval.
 
 Hard stop:
 
