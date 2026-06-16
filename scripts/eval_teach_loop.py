@@ -3,14 +3,16 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from genacademy_coach.eval_io import read_eval_text
 from genacademy_coach.foundation import Foundation
+from genacademy_coach.grounding import evidence_band, evidence_score
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.teach_session import CoachSession
-from genacademy_coach.teach_types import LearnerProfile
+from genacademy_coach.teach_types import LearnerProfile, RetrievedSpan
 from genacademy_coach.trace import load_trace
 
 QUESTION_PREFIX_RE = re.compile(r"^\s*(?:[-*]|\d+[.)])\s*")
@@ -79,6 +81,98 @@ def reset_scenario_trace(settings: CoachSettings, session_id: str) -> None:
         trace_path.unlink()
 
 
+def count_source_types(spans: list[RetrievedSpan]) -> dict[str, int]:
+    counts = Counter(span.source_type or "unknown" for span in spans)
+    return {source_type: counts[source_type] for source_type in sorted(counts)}
+
+
+def diagnostic_reasons(row: dict[str, Any]) -> list[str]:
+    if row["safe_refusal"]:
+        return ["safe_low_retrieval_refusal"]
+
+    reasons = []
+    if not row["teachable"]:
+        reasons.append("low_retrieval_not_refused")
+    if row["teachable"] and not row["citations_resolve"]:
+        reasons.append("citation_ids_not_resolved")
+    if row["teachable"] and not row["re_explained_differently"]:
+        reasons.append("missing_strategy_change")
+    if row["teachable"] and not row["grade_correct"]:
+        reasons.append("grade_not_correct")
+    if row["teachable"] and not row["trace_has_runtime_decision"]:
+        reasons.append("missing_runtime_decision_trace")
+    if not reasons and not row["passed"]:
+        # Defensive for externally assembled rows; score_scenario classifies normal failures above.
+        reasons.append("unknown_eval_failure")
+    return reasons
+
+
+def diagnostic_scenario(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "scenario_id": row["scenario_id"],
+        "item_id": row["item_id"],
+        "source_file": row["source_file"],
+        "top_score": row["top_score"],
+        "retrieved_count": row["retrieved_count"],
+        "retrieved_source_types": row["retrieved_source_types"],
+        "final_next_action": row["final_next_action"],
+        "safe_refusal": row["safe_refusal"],
+        "diagnostic_reasons": row["diagnostic_reasons"],
+    }
+
+
+def build_diagnostics(
+    results: list[dict[str, Any]],
+    *,
+    stop_threshold: float,
+    confirm_threshold: float,
+) -> dict[str, Any]:
+    band_counts = {"stop": 0, "confirm": 0, "proceed": 0}
+    next_action_counts: Counter[str] = Counter()
+    reason_counts: Counter[str] = Counter()
+    eval_source_counts: Counter[str] = Counter()
+    low_retrieval_by_source: Counter[str] = Counter()
+    retrieved_source_counts: Counter[str] = Counter()
+    low_retrieval_scenarios = []
+    teachable_failures = []
+
+    for row in results:
+        band = evidence_band(
+            float(row["top_score"]),
+            stop_threshold=stop_threshold,
+            confirm_threshold=confirm_threshold,
+        )
+        band_counts[band] += 1
+        next_action_counts[str(row["final_next_action"] or "unknown")] += 1
+        eval_source_counts[str(row["source_file"])] += 1
+        if band == "stop":
+            low_retrieval_by_source[str(row["source_file"])] += 1
+            low_retrieval_scenarios.append(diagnostic_scenario(row))
+        if row["teachable"] and not row["passed"]:
+            teachable_failures.append(diagnostic_scenario(row))
+        reason_counts.update(row["diagnostic_reasons"])
+        retrieved_source_counts.update(row["retrieved_source_types"])
+
+    return {
+        "score_band_counts": band_counts,
+        "next_action_counts": dict(sorted(next_action_counts.items())),
+        "diagnostic_reason_counts": dict(sorted(reason_counts.items())),
+        "eval_source_file_counts": dict(sorted(eval_source_counts.items())),
+        "low_retrieval_by_eval_source_file": dict(
+            sorted(low_retrieval_by_source.items())
+        ),
+        "retrieved_source_type_counts": dict(sorted(retrieved_source_counts.items())),
+        "retrieval_coverage": {
+            "scenarios_with_spans": sum(1 for row in results if row["retrieved_count"]),
+            "scenarios_without_spans": sum(
+                1 for row in results if not row["retrieved_count"]
+            ),
+        },
+        "low_retrieval_scenarios": low_retrieval_scenarios,
+        "teachable_failures": teachable_failures,
+    }
+
+
 def score_scenario(
     *,
     settings: CoachSettings,
@@ -106,8 +200,9 @@ def score_scenario(
     )
     final = session.respond(expected_answer) if expected_answer else second
     retrieved_ids = {span.citation_id for span in session.runtime.last_spans}
+    retrieved_source_types = count_source_types(session.runtime.last_spans)
     citation_ids = final.response.citation_ids
-    top_score = max((span.score for span in session.runtime.last_spans), default=0.0)
+    top_score = evidence_score(session.runtime.last_spans)
     final_next_action = final.response.next_action
     citations_resolve = bool(citation_ids) and set(citation_ids).issubset(retrieved_ids)
     re_explained_differently = (
@@ -119,7 +214,7 @@ def score_scenario(
     teachable = top_score >= settings.stop_threshold
     safe_refusal = not teachable and final_next_action == "refuse_escalate"
     passed = citations_resolve and re_explained_differently and grade_correct and trace_has_decision
-    return {
+    row = {
         "scenario_id": scenario["scenario_id"],
         "item_id": scenario["item_id"],
         "source_file": scenario["source_file"],
@@ -132,9 +227,13 @@ def score_scenario(
         "teachable": teachable,
         "safe_refusal": safe_refusal,
         "top_score": top_score,
+        "retrieved_count": len(session.runtime.last_spans),
+        "retrieved_source_types": retrieved_source_types,
         "citation_ids": citation_ids,
         "final_next_action": final_next_action,
     }
+    row["diagnostic_reasons"] = diagnostic_reasons(row)
+    return row
 
 
 def main() -> None:
@@ -163,6 +262,11 @@ def main() -> None:
         "teachable_passed": teachable_passed,
         "teachable_pass_rate": teachable_passed / len(teachable) if teachable else 0.0,
         "safe_refusals": safe_refusals,
+        "diagnostics": build_diagnostics(
+            results,
+            stop_threshold=settings.stop_threshold,
+            confirm_threshold=settings.confirm_threshold,
+        ),
         "results": results,
     }
     if args.json_out is not None:
