@@ -73,10 +73,12 @@ def build_teach_tools(runtime: TeachRuntime):
         """Retrieve citeable Gen Academy course spans for the learner's current topic."""
         runtime.record_tool("retrieve_course_corpus")
         spans = [_span_from_row(row) for row in runtime.foundation.retrieve(query)]
-        runtime.last_spans = require_citeable_spans(
+        citeable_spans = require_citeable_spans(
             spans,
             stop_threshold=runtime.stop_threshold,
         )
+        if citeable_spans:
+            runtime.last_spans = citeable_spans
         rows = [
             {
                 "citation_id": span.citation_id,
@@ -86,7 +88,7 @@ def build_teach_tools(runtime: TeachRuntime):
                 "evidence_band": runtime.current_evidence_band(),
                 "text": span.text,
             }
-            for span in runtime.last_spans
+            for span in citeable_spans
         ]
         return json.dumps(rows, sort_keys=True)
 

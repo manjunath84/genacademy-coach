@@ -224,6 +224,13 @@ class CoachSession:
                     previous_strategy=previous_strategy,
                     cited_spans=self.runtime.last_spans,
                 )
+        if (
+            self._last_grade_is_correct()
+            and self.runtime.last_spans
+            and response.next_action in {"refuse_escalate", "stop"}
+            and not self._citations_resolve(response)
+        ):
+            return self._grounded_advance_response(cited_spans=self.runtime.last_spans)
         if response.next_action in {"refuse_escalate", "stop"}:
             return response
         if (
@@ -292,6 +299,12 @@ class CoachSession:
             f"[{citation_id}]" for citation_id in missing
         )
         return response.model_copy(update={"learner_message": learner_message})
+
+    def _citations_resolve(self, response: CoachAgentResponse) -> bool:
+        retrieved_ids = {span.citation_id for span in self.runtime.last_spans}
+        return bool(response.citation_ids) and set(response.citation_ids).issubset(
+            retrieved_ids
+        )
 
     def _last_grade_is_incorrect(self) -> bool:
         return self.runtime.last_grade is not None and not self.runtime.last_grade.correct

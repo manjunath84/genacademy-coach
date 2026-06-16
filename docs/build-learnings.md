@@ -10,6 +10,20 @@
 
 ---
 
+## 2026-06-16 — A failed follow-up retrieval should not erase the evidence you already earned
+
+**What I believed:** the remaining citation failures were just final-response formatting: the model ended
+with `refuse_escalate` and no citation IDs even though retrieval had found spans.
+
+**What I found:** there was a deeper state issue. In a multi-turn teach session, a later retrieval call can
+use a worse query than the initial topic query. The tool was replacing `last_spans` every time, so one bad
+follow-up retrieval could erase the citeable evidence the session had already earned. Python then had
+nothing stable to use for the grounded fallback.
+
+**Principle:** in an agent loop, distinguish "current tool call found nothing" from "the session has no
+evidence." Retrieval misses should be visible to the model, but they should not automatically wipe prior
+valid evidence for the same teaching session.
+
 ## 2026-06-16 — If the eval answers with your "expected answer" and still fails, your rubric is broken
 
 **What I believed:** the remaining teach-loop grading failures were likely model behavior: the tutor was

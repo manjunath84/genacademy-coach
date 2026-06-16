@@ -126,6 +126,28 @@ Result:
 - Remaining failure mode: two teachable scenarios reached `refuse_escalate` with no resolved final
   citation IDs. This is the next hardening target before a demo-ready MVP trace.
 
+## Citation-Hardened Dev Eval
+
+Command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev-citation-resolution.json
+```
+
+Result:
+
+- Overall: `8/10` passed, `pass_rate=0.8`.
+- Teachable subset: `8/8` passed, `teachable_pass_rate=1.0`.
+- Safe refusals: `2`.
+- Retrieval coverage: `8` scenarios with spans, `2` without spans.
+- Diagnostic reason counts: `safe_low_retrieval_refusal=2`.
+- There are no remaining teachable failures in this dev run; the two non-passing scenarios are safe
+  low-retrieval refusals.
+
 ## Review Notes
 
 - Builder did not self-approve.

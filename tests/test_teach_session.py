@@ -344,6 +344,41 @@ def test_session_grades_current_check_answer_before_agent_decides(tmp_path):
     assert '"correct":true' in agent.messages[0][0]["content"]
 
 
+@pytest.mark.parametrize("agent_action", ["refuse_escalate", "stop"])
+def test_session_uses_grounded_advance_after_correct_answer_when_agent_skips_citations(
+    tmp_path,
+    agent_action,
+):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="I cannot verify this.",
+            observation="agent tried to end without citing the retrieved span",
+            next_action=agent_action,
+            strategy="refusal" if agent_action == "refuse_escalate" else "summary",
+            citation_ids=[],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy", "contrastive_example"]),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.respond("It helps focus relevant context.")
+
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.correct is True
+    assert result.response.next_action == "advance"
+    assert result.response.citation_ids == ["note/attention::0"]
+    rows = load_trace(Path(result.trace_path))
+    assert rows[-1].next_action == "advance"
+
+
 @pytest.mark.parametrize("agent_action", ["advance", "stop", "refuse_escalate"])
 def test_session_forces_reexplain_after_wrong_answer_when_agent_skips_stumble_action(
     tmp_path,
