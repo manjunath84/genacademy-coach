@@ -89,11 +89,13 @@ the failure modes.
 
 ## Confidence Bands
 
-STOP < 0.60, CONFIRM 0.60-0.85, and PROCEED > 0.85 are starting points only. Before relying on them,
-run known-good and known-bad queries against the actual extended index, record scores by `source_type`,
-and set MVP bands from those distributions. The calibration is per-source analysis; shared numeric bands
-are acceptable only if the measured slide/handout/note/transcript distributions justify them. Source
-priority is ranking policy, not blind trust:
+STOP < 0.40, CONFIRM 0.40-0.85, and PROCEED > 0.85 are the current calibrated MVP bands. The initial
+`0.60` STOP seed threshold was too strict for the expanded Coach corpus; see
+`docs/teach-loop-threshold-calibration.md`. Before changing these values again, run known-good and
+known-bad queries against the actual extended index, record scores by `source_type`, and set MVP bands
+from those distributions. The calibration is per-source analysis; shared numeric bands are acceptable
+only if the measured slide/handout/note/transcript distributions justify them. Source priority is
+ranking policy, not blind trust:
 
 1. Prefer slides and handouts for teach explanations.
 2. Use notes when slides/handouts are thin.

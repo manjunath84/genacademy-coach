@@ -7,6 +7,8 @@ from pathlib import Path
 ALLOWED_SOURCE_TYPES = frozenset({"slide", "handout", "note", "transcript"})
 DEFAULT_SOURCE_PRIORITY = ("slide", "handout", "note", "transcript")
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_STOP_THRESHOLD = 0.40
+DEFAULT_CONFIRM_THRESHOLD = 0.85
 
 
 def _env_value(name: str, default: str | Path) -> str | Path:
@@ -46,8 +48,8 @@ class CoachSettings:
     retrieval_top_k: int = 5
     retrieval_candidate_k: int = 20
     source_priority: tuple[str, ...] = DEFAULT_SOURCE_PRIORITY
-    stop_threshold: float = 0.60
-    confirm_threshold: float = 0.85
+    stop_threshold: float = DEFAULT_STOP_THRESHOLD
+    confirm_threshold: float = DEFAULT_CONFIRM_THRESHOLD
     max_teach_turns: int = 4
 
     @classmethod
@@ -83,7 +85,17 @@ class CoachSettings:
             retrieval_top_k=int(os.environ.get("GENACADEMY_COACH_TOP_K", "5")),
             retrieval_candidate_k=int(os.environ.get("GENACADEMY_COACH_CANDIDATE_K", "20")),
             source_priority=_source_priority_from_env(),
-            stop_threshold=float(os.environ.get("GENACADEMY_COACH_STOP_THRESHOLD", "0.60")),
-            confirm_threshold=float(os.environ.get("GENACADEMY_COACH_CONFIRM_THRESHOLD", "0.85")),
+            stop_threshold=float(
+                os.environ.get(
+                    "GENACADEMY_COACH_STOP_THRESHOLD",
+                    str(DEFAULT_STOP_THRESHOLD),
+                )
+            ),
+            confirm_threshold=float(
+                os.environ.get(
+                    "GENACADEMY_COACH_CONFIRM_THRESHOLD",
+                    str(DEFAULT_CONFIRM_THRESHOLD),
+                )
+            ),
             max_teach_turns=int(os.environ.get("GENACADEMY_COACH_MAX_TURNS", "4")),
         )

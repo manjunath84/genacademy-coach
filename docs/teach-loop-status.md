@@ -80,6 +80,28 @@ Result:
   ingestion. The adapter preserves the globally top-scored candidate before thresholding; source-priority
   demotion remains a separate retrieval-quality signal. See `docs/teach-loop-retrieval-triage.md`.
 
+## Calibrated Threshold Eval
+
+Command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev-threshold-040.json
+```
+
+Result:
+
+- Overall: `3/10` passed, `pass_rate=0.3`.
+- Teachable subset: `3/8` passed, `teachable_pass_rate=0.375`.
+- Safe refusals: `2`.
+- Retrieval coverage: `8` scenarios with spans, `2` without spans.
+- Remaining failure mode: recovered teachable scenarios now fail mostly on grading, strategy-change, and
+  runtime-decision trace checks rather than retrieval coverage. See
+  `docs/teach-loop-threshold-calibration.md`.
+
 ## Review Notes
 
 - Builder did not self-approve.

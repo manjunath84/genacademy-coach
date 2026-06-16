@@ -1,0 +1,52 @@
+[
+  {
+    "id": "neg_cooking_001",
+    "category": "cooking",
+    "query": "How do I bake sourdough bread with rye flour?"
+  },
+  {
+    "id": "neg_travel_001",
+    "category": "travel",
+    "query": "What are the visa requirements for visiting Japan as a tourist?"
+  },
+  {
+    "id": "neg_gardening_001",
+    "category": "gardening",
+    "query": "How often should tomato plants be watered in a backyard garden?"
+  },
+  {
+    "id": "neg_home_repair_001",
+    "category": "home_repair",
+    "query": "How do I repair a leaking kitchen faucet?"
+  },
+  {
+    "id": "neg_history_001",
+    "category": "history",
+    "query": "What caused the fall of the Western Roman Empire?"
+  },
+  {
+    "id": "neg_finance_001",
+    "category": "personal_finance",
+    "query": "How does a fixed-rate mortgage amortization schedule work?"
+  },
+  {
+    "id": "neg_fitness_001",
+    "category": "fitness",
+    "query": "What is a beginner training plan for a half marathon?"
+  },
+  {
+    "id": "neg_first_aid_001",
+    "category": "first_aid",
+    "query": "What should I do for a mild ankle sprain?"
+  },
+  {
+    "id": "neg_chess_001",
+    "category": "chess",
+    "query": "What are the rules for castling in chess?"
+  },
+  {
+    "id": "neg_music_001",
+    "category": "music",
+    "query": "How do I tune an acoustic guitar by ear?"
+  }
+]
