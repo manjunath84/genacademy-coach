@@ -25,6 +25,10 @@ UNFAITHFUL_RESPONSE_REASON = "agent response was not faithful to retrieved citat
 FALLBACK_STRATEGIES = ("contrastive_example", "step_by_step", "summary")
 
 
+def _grounded_excerpt(span: Any) -> str:
+    return " ".join(span.text.split())[:700].rstrip()
+
+
 class AgentResponseError(RuntimeError):
     pass
 
@@ -97,6 +101,7 @@ class CoachSession:
         return self._invoke_agent(f"Learner answer to current check: {learner_answer}")
 
     def _grade_current_check_answer(self, learner_answer: str) -> None:
+        self.runtime.grade_locked = False
         if self.runtime.current_check is None:
             return
         self.runtime.last_grade = grade_answer_understanding(
@@ -104,6 +109,7 @@ class CoachSession:
             self.runtime.current_check,
         )
         self.profile.last_grade_correct = self.runtime.last_grade.correct
+        self.runtime.grade_locked = True
 
     def _invoke_agent(self, learner_input: str) -> TeachSessionResult:
         if self.profile.turn_count >= self.settings.max_teach_turns:
@@ -201,6 +207,7 @@ class CoachSession:
         )
         self.runtime.tool_calls.clear()
         self.runtime.escalation_queued = False
+        self.runtime.grade_locked = False
         return TeachSessionResult(
             session_id=self.session_id,
             profile=self.profile,
@@ -267,6 +274,22 @@ class CoachSession:
                 )
             if self._last_grade_is_correct():
                 return self._grounded_advance_response(cited_spans=cited_spans)
+            if (
+                self.runtime.current_check is not None
+                and response.next_action in {"advance", "drill"}
+            ):
+                check_span = retrieved_by_id.get(self.runtime.current_check.citation_id)
+                if check_span is None:
+                    return self._refusal_response(
+                        "grounded check citation was not present in retrieved spans",
+                        "I could not verify the check question against a retrieved course "
+                        "citation, so I am escalating this instead of asking it.",
+                        citation_ids=response.citation_ids,
+                    )
+                return self._grounded_teach_response(
+                    response=response,
+                    cited_span=check_span,
+                )
             return self._refusal_response(
                 UNFAITHFUL_RESPONSE_REASON,
                 "I could not verify that answer against the retrieved course citation text, so "
@@ -322,7 +345,7 @@ class CoachSession:
         strategy = next(
             item for item in FALLBACK_STRATEGIES if item != previous_strategy
         )
-        excerpt = " ".join(span.text.split())[:700].rstrip()
+        excerpt = _grounded_excerpt(span)
         return CoachAgentResponse(
             learner_message=f"{excerpt} [{span.citation_id}]",
             observation="grounded fallback after incorrect answer and unfaithful agent response",
@@ -342,13 +365,33 @@ class CoachSession:
         cited_spans: list[Any],
     ) -> CoachAgentResponse:
         span = cited_spans[0]
-        excerpt = " ".join(span.text.split())[:700].rstrip()
+        excerpt = _grounded_excerpt(span)
         return CoachAgentResponse(
             learner_message=f"{excerpt} [{span.citation_id}]",
             observation="grounded fallback after correct answer and unfaithful agent response",
             next_action="advance",
             strategy="summary",
             citation_ids=[span.citation_id],
+        )
+
+    def _grounded_teach_response(
+        self,
+        *,
+        response: CoachAgentResponse,
+        cited_span: Any,
+    ) -> CoachAgentResponse:
+        excerpt = _grounded_excerpt(cited_span)
+        return CoachAgentResponse(
+            learner_message=f"{excerpt} [{cited_span.citation_id}]",
+            observation="grounded fallback after initial unfaithful agent response",
+            next_action=response.next_action,
+            strategy=response.strategy,
+            citation_ids=[cited_span.citation_id],
+            check_question=(
+                self.runtime.current_check.question
+                if self.runtime.current_check is not None
+                else None
+            ),
         )
 
     def _refusal_response(

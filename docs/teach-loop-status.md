@@ -1,6 +1,7 @@
 # Teach Loop Status
 
-Status: implemented, live-verified, and reviewed by Gemini + Claude.
+Status: implemented and live-verified. Earlier teach-loop PRs were reviewed by Gemini/Claude; the
+latest demo-readiness fallback has Claude re-review fixes applied and still needs final approval/merge.
 
 ## Verification
 
@@ -17,6 +18,10 @@ Status: implemented, live-verified, and reviewed by Gemini + Claude.
 - `uv run pytest -q` after Claude follow-up fix: `77 passed, 2 warnings`.
 - `uv run python scripts/check_eval_leak.py` after Claude follow-up fix: passed; existing PDF extraction
   warnings were emitted.
+- `uv run pytest tests/test_teach_tools.py tests/test_teach_session.py -q` after PR #10 re-review
+  fix: `36 passed`.
+- `uv run pytest -q` after PR #10 re-review fix: `111 passed, 2 warnings`.
+- `uv run ruff check .` after PR #10 re-review fix: `All checks passed!`.
 
 ## Live Nebius Demo
 
@@ -147,6 +152,61 @@ Result:
 - Diagnostic reason counts: `safe_low_retrieval_refusal=2`.
 - There are no remaining teachable failures in this dev run; the two non-passing scenarios are safe
   low-retrieval refusals.
+
+## Demo-Ready Runtime Trace
+
+Grounded command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-grounded-harness-reviewfix-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Trace: `traces/demo-grounded-harness-reviewfix-20260616.jsonl`
+
+Redacted trace summary:
+
+- Turn 1: `drill`, strategy `short_drill`, evidence `0.711 confirm`, `faithfulness_ok=true`,
+  `retrieved_count=5`, tool calls include `retrieve_course_corpus` and `generate_check_item`.
+- Turn 2: `re_explain_differently`, strategy `contrastive_example`, evidence `0.753 confirm`,
+  `faithfulness_ok=true`, `retrieved_count=4`, tool calls include retrieval, grading, and profile update.
+- This run demonstrates a grounded teach turn plus a learner-dependent strategy change after a wrong
+  answer. The held-out `test` split was not used.
+- Latest review-fix dev eval is `7/10` overall and `7/8` teachable. The two non-teachable scenarios
+  remain safe low-retrieval refusals; one teachable scenario still failed with model-behavior diagnostics
+  (`citation_ids_not_resolved`, `missing_strategy_change`, `grade_not_correct`, and
+  `missing_runtime_decision_trace`).
+- A targeted grade-lock verification on the previously failing first dev scenario now passes with
+  `grade_correct=true` (`eval/runs/teach-loop-dev-demo-fallback-gradelock-scenario0.json`).
+- Claude re-review blocker fixed: generating a new check now clears the grade lock, and locked grades
+  are only reused when they match the active check citation.
+- MVP tradeoff: the safety fallback uses a bounded exact course-span excerpt instead of a polished
+  rewrite, prioritizing faithfulness over teaching style when the model's first wording fails grounding.
+
+Refusal command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-refusal-reviewfix-20260616 \
+    --topic "Gen Academy cafeteria menu" \
+    --style concise \
+    --track-lens low_code_no_code
+```
+
+Trace: `traces/demo-refusal-reviewfix-20260616.jsonl`
+
+Redacted trace summary:
+
+- Turn 1: `refuse_escalate`, strategy `refusal`, evidence `0.0 stop`, `faithfulness_ok=null`,
+  `retrieved_count=0`, tool calls include retrieval and mentor escalation.
+- `review_queue.jsonl` received exactly one row for the refusal session, preserving escalation
+  idempotency even when the model attempted the escalation tool more than once.
 
 ## Review Notes
 

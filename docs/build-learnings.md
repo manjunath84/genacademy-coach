@@ -10,6 +10,47 @@
 
 ---
 
+## 2026-06-16 — A lock without an identity is just stale state waiting to happen
+
+**What I believed:** once Python computed the canonical answer grade, a simple `grade_locked` flag was
+enough to stop later tool calls from overwriting it.
+
+**What I found:** the lock protected the old grade too broadly. In one agent turn, the runtime could
+grade check A, generate a new check B, then call the grading tool again. A bare boolean lock would return
+check A's grade while the active check was B.
+
+**Principle:** when you lock a correctness-critical signal, lock it to the object it belongs to. A guard
+should carry or verify identity, not just say "some value is locked." Clear the lock on ownership changes,
+and only reuse the locked value when its identifier still matches the active state.
+
+## 2026-06-16 — If Python computes the canonical grade, tool calls cannot be allowed to overwrite it
+
+**What I believed:** moving answer grading to the session boundary meant the eval's final grade was
+protected from model behavior.
+
+**What I found:** the agent still had access to the `grade_understanding` tool during the same turn. It
+could call that tool after Python had already graded the learner's answer, overwriting the canonical
+session-boundary grade and making a self-consistent expected answer appear incorrect in eval.
+
+**Principle:** when a safety-critical signal moves from model discretion into deterministic Python, lock
+that signal for the rest of the turn. Tools may report the canonical value, but they should not be able
+to replace it after the boundary has made the decision.
+
+## 2026-06-16 — Safe refusal is not always the best repair when evidence exists
+
+**What I believed:** the demo trace step would just record the already-hardened teach loop: retrieve,
+teach, stumble, re-explain, and refuse on out-of-corpus topics.
+
+**What I found:** the public demo topic had citeable evidence and a generated check item, but the model's
+first explanation failed the faithfulness check. The runtime did the safe thing and escalated, but that
+made the happy-path demo fail despite having enough course evidence to teach from. The right repair was
+not to loosen grounding; it was to reuse the retrieved span directly for a grounded first-turn fallback,
+the same way the later correct/wrong-answer fallbacks already do.
+
+**Principle:** when the model wording fails but retrieved evidence is valid, repair by narrowing to the
+evidence, not by relaxing the guardrail. Refusal is the right answer when evidence is missing; exact-span
+fallback is better when evidence is present and the model's phrasing is the weak link.
+
 ## 2026-06-16 — A failed follow-up retrieval should not erase the evidence you already earned
 
 **What I believed:** the remaining citation failures were just final-response formatting: the model ended
