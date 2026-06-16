@@ -84,8 +84,9 @@ exist at every step ("demo cannot fail").
 ### In Progress
 
 - **Grounded Quiz Mode planning.** The grade-boundary fix and same-topic lens-switch demo are captured.
-  The next pull-in is the smallest cited MCQ quiz slice, but only after a separate implementation plan
-  and review per the project gates. Memory is intentionally held as a later
+  A draft implementation plan for the smallest cited MCQ quiz slice now lives at
+  `docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`; no quiz code starts until that plan passes
+  fresh-context / different-model review. Memory is intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden source
   of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable memory
   later, unnecessary for the two-day demo.
@@ -95,7 +96,8 @@ exist at every step ("demo cannot fail").
 - Keep the held-out `test` split unused until final evaluation/reporting.
 - Decide whether to harden the remaining confirm-band refusal variance or explain it in the demo as a
   conservative escalation case.
-- Build grounded Quiz Mode only if the floor remains stable and its implementation plan passes review.
+- Review and approve the grounded Quiz Mode implementation plan before any quiz code starts.
+- Build grounded Quiz Mode only if the floor remains stable and the approved plan stays small.
 - If memory is pulled in after the demo floor is green, write a separate implementation plan that compares
   first-party persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
 - If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
