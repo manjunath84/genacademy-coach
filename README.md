@@ -5,9 +5,9 @@ own style, checks understanding, **re-explains a different way when they stumble
 know and struggled with (within a session), and **refuses to bluff** — it only teaches what it can cite
 from the course materials, and escalates the rest to a human mentor.
 
-> **Implementation status:** foundation adapter + eval guard slice implemented. The teach-loop agent is
-> still gated on an approved follow-up plan (see [`AGENTS.md`](AGENTS.md) §2, the gates). Private
-> during the build.
+> **Implementation status:** foundation adapter + eval guard slice implemented; teach-loop core and
+> local CLIs are implemented, live Nebius-verified, and Gemini/Claude-reviewed. Private corpus files
+> remain local-only; only the folder structure and leak checks are versioned/re-run during the build.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).

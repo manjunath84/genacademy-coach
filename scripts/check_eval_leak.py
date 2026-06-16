@@ -2,10 +2,8 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 
-from docx import Document as DocxDocument
-from pypdf import PdfReader
-
 from genacademy_coach.corpus import iter_indexable_files, load_corpus_document
+from genacademy_coach.eval_io import read_eval_text
 from genacademy_coach.eval_split import normalized_words, phrase_hashes
 from genacademy_coach.settings import CoachSettings
 
@@ -17,24 +15,6 @@ SCAN_GLOBS = [
     "src/**/*.py",
     "scripts/**/*.py",
 ]
-
-
-def read_eval_text(path: Path) -> str:
-    suffix = path.suffix.lower()
-    if suffix in {".md", ".txt"}:
-        return path.read_text(encoding="utf-8", errors="ignore")
-    if suffix == ".docx":
-        doc = DocxDocument(path)
-        paragraphs = [p.text for p in doc.paragraphs]
-        table_cells = [
-            cell.text for table in doc.tables for row in table.rows for cell in row.cells
-        ]
-        return "\n".join([*paragraphs, *table_cells])
-    if suffix == ".pdf":
-        reader = PdfReader(str(path))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
-    return ""
-
 
 def normalized_text(text: str) -> str:
     return " ".join(normalized_words(text))
