@@ -71,7 +71,7 @@ MVP demo. The next bottleneck is teach-loop behavior on recovered scenarios:
 
 ## Next Step
 
-Keep `0.40` as the calibrated default. The follow-up behavior-hardening run cleared the grading,
-strategy-change, and runtime-decision trace failures on the dev eval. The remaining teach-loop bottleneck
-is citation resolution on two recovered teachable scenarios. Do not lower the threshold further without
-adding stronger non-private negative controls and re-running calibration.
+Keep `0.40` as the calibrated default. Follow-up behavior and citation-resolution hardening cleared the
+teachable dev failures; the remaining non-passing dev scenarios are safe low-retrieval refusals. Do not
+lower the threshold further without adding stronger non-private negative controls and re-running
+calibration.

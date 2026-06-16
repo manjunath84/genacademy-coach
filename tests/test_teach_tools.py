@@ -22,6 +22,39 @@ class FakeFoundation:
         ]
 
 
+class SequentialFoundation:
+    provider = object()
+
+    def __init__(self):
+        self.calls = 0
+
+    def retrieve(self, query: str):
+        self.calls += 1
+        if self.calls == 1:
+            return [
+                {
+                    "chunk_id": "note/attention::0",
+                    "doc_id": "note/attention",
+                    "text": "Attention focuses relevant context.",
+                    "score": 0.91,
+                    "title": "attention.md",
+                    "source_type": "note",
+                    "page_or_section": None,
+                }
+            ]
+        return [
+            {
+                "chunk_id": "note/noisy::0",
+                "doc_id": "note/noisy",
+                "text": "Noisy low-confidence text.",
+                "score": 0.21,
+                "title": "noisy.md",
+                "source_type": "note",
+                "page_or_section": None,
+            }
+        ]
+
+
 def runtime(tmp_path) -> TeachRuntime:
     return TeachRuntime(
         session_id="abc",
@@ -45,6 +78,21 @@ def test_retrieve_tool_records_last_spans(tmp_path):
     assert rows[0]["citation_id"] == "note/attention::0"
     assert rows[0]["evidence_band"] == "proceed"
     assert active_runtime.last_spans[0].score == 0.91
+
+
+def test_retrieve_tool_keeps_previous_citeable_spans_on_later_retrieval_miss(tmp_path):
+    active_runtime = runtime(tmp_path)
+    active_runtime.foundation = SequentialFoundation()
+    retrieve_tool = next(
+        tool for tool in build_teach_tools(active_runtime) if tool.name == "retrieve_course_corpus"
+    )
+
+    first_payload = retrieve_tool.invoke({"query": "attention"})
+    second_payload = retrieve_tool.invoke({"query": "bad query"})
+
+    assert json.loads(first_payload)[0]["citation_id"] == "note/attention::0"
+    assert json.loads(second_payload) == []
+    assert active_runtime.last_spans[0].citation_id == "note/attention::0"
 
 
 def test_grade_tool_uses_current_check_item(tmp_path):
