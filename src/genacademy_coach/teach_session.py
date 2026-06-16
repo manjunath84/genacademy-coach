@@ -214,6 +214,7 @@ class CoachSession:
         *,
         previous_strategy: str | None,
     ) -> CoachAgentResponse:
+        # A wrong answer with citeable evidence must re-explain, even if the model tries to stop.
         if self._last_grade_is_incorrect() and self.runtime.last_spans:
             if (
                 response.next_action != "re_explain_differently"
@@ -230,11 +231,6 @@ class CoachSession:
             and previous_strategy is not None
             and response.strategy == previous_strategy
         ):
-            if self._last_grade_is_incorrect() and self.runtime.last_spans:
-                return self._grounded_reexplain_response(
-                    previous_strategy=previous_strategy,
-                    cited_spans=self.runtime.last_spans,
-                )
             return self._refusal_response(
                 "agent chose re_explain_differently without changing strategy",
                 "I could not produce a different strategy for the re-explanation, so I am "
