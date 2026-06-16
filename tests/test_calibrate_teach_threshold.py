@@ -136,6 +136,8 @@ def test_build_payload_recommends_lowest_threshold_that_blocks_controls(
             "all_negative_controls_stop": True,
         },
     ]
+    assert payload["positive_results"][0]["active_settings_band"] == "stop"
+    assert payload["negative_control_results"][0]["active_settings_band"] == "stop"
     assert "private seed question" not in serialized
     assert "private dev question" not in serialized
     assert "public unrelated control" not in serialized
@@ -161,3 +163,24 @@ def test_load_negative_controls_validates_required_fields(tmp_path):
     path.write_text(json.dumps([{"id": "missing-query", "category": "public"}]), encoding="utf-8")
     with pytest.raises(ValueError, match="id, category, and query"):
         module.load_negative_controls(path)
+
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": " neg_public_001 ",
+                    "category": " public ",
+                    "query": " public unrelated control ",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    controls = module.load_negative_controls(path)
+    assert controls == [
+        module.NegativeControl(
+            control_id="neg_public_001",
+            category="public",
+            query="public unrelated control",
+        )
+    ]

@@ -1,3 +1,5 @@
+"""Calibrate the teach-loop STOP threshold without emitting private eval text."""
+
 from __future__ import annotations
 
 import argparse
@@ -5,9 +7,7 @@ import importlib.util
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
-
-from genacademy_rag.core.types import RetrievedChunk
+from typing import Any, NamedTuple
 
 from genacademy_coach.foundation import Foundation
 from genacademy_coach.grounding import evidence_band
@@ -17,6 +17,12 @@ DEFAULT_NEGATIVE_CONTROLS_PATH = (
     Path(__file__).resolve().parents[1] / "eval" / "non_private_negative_controls.json"
 )
 DEFAULT_THRESHOLDS = tuple(round(value / 100, 2) for value in range(40, 61))
+
+
+class NegativeControl(NamedTuple):
+    control_id: str
+    category: str
+    query: str
 
 
 def load_diagnostics_module() -> Any:
@@ -44,7 +50,7 @@ def summarize_scores(scores: list[float]) -> dict[str, float | int]:
     return DIAGNOSTICS.summarize_scores(scores)
 
 
-def load_negative_controls(path: Path) -> list[dict[str, str]]:
+def load_negative_controls(path: Path) -> list[NegativeControl]:
     rows = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(rows, list) or not rows:
         raise ValueError("negative controls file must contain a non-empty JSON list")
@@ -60,7 +66,9 @@ def load_negative_controls(path: Path) -> list[dict[str, str]]:
             raise ValueError(
                 "negative controls require non-empty id, category, and query fields"
             )
-        controls.append({"id": control_id, "category": category, "query": query})
+        controls.append(
+            NegativeControl(control_id=control_id, category=category, query=query)
+        )
     return controls
 
 
@@ -71,23 +79,6 @@ def parse_thresholds(raw: str) -> tuple[float, ...]:
     return tuple(sorted(set(values)))
 
 
-def row_from_retrieved(item: RetrievedChunk) -> dict[str, Any]:
-    return {
-        "chunk_id": item.chunk.chunk_id,
-        "score": item.score,
-        "source_type": item.chunk.citation.source_type,
-    }
-
-
-def top_score(rows: list[dict[str, Any]]) -> float:
-    top = max(
-        rows,
-        key=lambda item: (float(item.get("score", 0.0)), str(item.get("chunk_id", ""))),
-        default=None,
-    )
-    return float(top["score"]) if top is not None else 0.0
-
-
 def score_query(
     *,
     retriever: Any,
@@ -95,12 +86,13 @@ def score_query(
     settings: CoachSettings,
 ) -> dict[str, Any]:
     raw = retriever.retrieve(query)
-    rows = [row_from_retrieved(item) for item in raw]
-    score = top_score(rows)
+    rows = [DIAGNOSTICS.row_from_retrieved(item) for item in raw]
+    top = DIAGNOSTICS.top_by_score(rows)
+    score = float(top["score"]) if top is not None else 0.0
     return {
         "raw_count": len(raw),
         "raw_top_score": score,
-        "raw_band": evidence_band(
+        "active_settings_band": evidence_band(
             score,
             stop_threshold=settings.stop_threshold,
             confirm_threshold=settings.confirm_threshold,
@@ -141,21 +133,21 @@ def score_negative_controls(
     *,
     retriever: Any,
     settings: CoachSettings,
-    controls: list[dict[str, str]],
+    controls: list[NegativeControl],
 ) -> list[dict[str, Any]]:
     results = []
     for control in controls:
         row = score_query(
             retriever=retriever,
-            query=control["query"],
+            query=control.query,
             settings=settings,
         )
         results.append(
             {
                 "kind": "negative_control",
-                "control_id": control["id"],
-                "category": control["category"],
-                "query_word_count": len(control["query"].split()),
+                "control_id": control.control_id,
+                "category": control.category,
+                "query_word_count": len(control.query.split()),
                 **row,
             }
         )
