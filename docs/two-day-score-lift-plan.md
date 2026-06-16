@@ -26,10 +26,11 @@ The score-lift strategy is to raise the floor first, then add one visible pull-i
 
 ## Reference-Informed Refinements
 
-Two external AI-tutor case studies were reviewed before finalizing the sequence:
-`tmp/How-I-built-an-AI-Teacher-with-Vector-Databases-and-ChatGPT-2026-06-16.md` and
-`tmp/How-to-Create-an-AI-Tutor-for-Your-Course-2026-06-16.md`. The useful move is to adopt the
-principles, not copy their product surfaces or implementation mechanics.
+Two external AI-tutor case studies were reviewed before finalizing the sequence: *How I Built an AI
+Teacher with Vector Databases and ChatGPT* (GKCS) and *How to Create an AI Tutor for Your Course*
+(M. Rota / Persona AI). The transcripts were reviewed locally and are not committed; they stay under the
+gitignored `tmp/` directory. The useful move is to adopt the principles, not copy their product surfaces
+or implementation mechanics.
 
 - Frame the teach loop as a low-stakes, within-session mastery loop. The learner can persist through
   grounded re-explanations until the concept clicks. Keep this separate from the eval numbers:
@@ -109,8 +110,9 @@ That is attractive because it makes personalization visible, but it is easy to i
   scripted workflow around the model, not an agent deciding from the learner's answer.
 - If this ever lands, add `hint` as a model-selectable `next_action` grounded in a retrieved span. Python
   should enforce only safety gates such as max-turn refusal/escalation, not the teaching path.
-- This is net-new scope: enum, prompt, grading flow, max-turn gate, tests, and a fresh runtime trace. It
-  competes directly with the grade fix and Quiz Mode.
+- This is net-new scope: enum, prompt, grading flow, wiring max-turn refusal/escalation to the existing
+  `max_teach_turns` setting, tests, and a fresh runtime trace. It competes directly with the grade fix
+  and Quiz Mode.
 
 Decision: defer unless the grading fix, lens-switch demo, and quiz slice are already green with time left.
 
@@ -126,7 +128,7 @@ Options checked on 2026-06-16:
 |---|---|---|
 | Existing within-session profile | Best for demo | Already implemented and guardrail-safe. Use it in the demo narrative before adding state. |
 | Tiny first-party persisted profile | Best future first step | A local opt-in JSON/SQLite profile for style and struggle tags would avoid provider lock-in, but still needs a plan, privacy boundary, and tests. |
-| LangMem | Promising later | Current docs use LangGraph store/checkpointer patterns. Good conceptual fit, but direct LangGraph store imports conflict with the MVP's "no explicit LangGraph" rule unless a written delta approves it. |
+| LangMem | Promising later | Memory tools persist through LangGraph's `BaseStore`, which would conflict with the MVP's "no explicit LangGraph" rule unless a written delta approves it. LangMem also has storage-agnostic functional primitives, so a future delta could adopt its extractors without taking the store path. |
 | Mem0 open source | Possible later | Can run self-hosted/local with extra components such as a vector store and local/provider LLM setup; stronger memory layer, but more infra than the two-day window needs. |
 | Zep Cloud | Future/provider option | Strong long-term memory/graph service, but it requires a cloud project/API key and adds privacy/provider review work. Not a free-local demo fit. |
 
