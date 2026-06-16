@@ -1413,6 +1413,7 @@ def test_ingest_and_retrieve_smoke_uses_week2_pipeline(tmp_path, monkeypatch):
     assert results[0]["source_type"] == "note"
     assert Path(foundation.chroma_dir).resolve().is_relative_to(settings.data_dir)
     assert Path(foundation.sqlite_path).resolve().is_relative_to(settings.data_dir)
+    assert not any((tmp_path / "week2").rglob("*"))
 
 
 def test_refuse_empty_extractions_blocks_zero_text_documents():
