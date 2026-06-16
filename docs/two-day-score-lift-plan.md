@@ -11,7 +11,8 @@ merged-main baseline is already demoable:
 - Teach-loop MVP is merged, reviewed, and live-verified.
 - Final dev eval is `7/10` overall and `7/8` teachable.
 - Two non-passing scenarios are safe low-retrieval refusals.
-- One teachable scenario has a remaining deterministic `grade_not_correct` diagnostic.
+- The original same-turn `grade_not_correct` diagnostic is fixed on the follow-up branch, but the latest
+  live dev eval still has one teachable failure from a separate confirm-band refusal path.
 
 The score-lift strategy is to raise the floor first, then add one visible pull-in.
 
@@ -19,18 +20,18 @@ The score-lift strategy is to raise the floor first, then add one visible pull-i
 
 | Rank | Move | Score lift | Risk | Why |
 |---|---|---|---|---|
-| 1 | Fix the remaining `grade_not_correct` diagnostic | High | Low | Could move teachable dev evidence from `7/8` to `8/8` without adding scope. |
+| 1 | Fix the same-turn grade-boundary overwrite | Done | Low | Original `grade_not_correct` scenario now passes; raw dev score stayed `7/8` because a different confirm-band refusal surfaced. |
 | 2 | Same-topic lens-switch demo | High | Very low | Makes "adaptive" visible using the existing engine: same concept, different teaching lenses. |
 | 3 | Grounded Quiz Mode | High | Low/medium | Adds a real second mode while reusing retrieval, citations, refusal, and deterministic grading. |
 | 4 | Mock interview | Highest ceiling | High | Strong agentic story, but open-answer grading and follow-up probing are risky in two days. Stretch only. |
 
-## Reference-Informed Refinements
+## External Examples Used As Scope Checks
 
-Two external AI-tutor case studies were reviewed before finalizing the sequence: *How I Built an AI
-Teacher with Vector Databases and ChatGPT* (GKCS) and *How to Create an AI Tutor for Your Course*
-(M. Rota / Persona AI). The transcripts were reviewed locally and are not committed; they stay under the
-gitignored `tmp/` directory. The useful move is to adopt the principles, not copy their product surfaces
-or implementation mechanics.
+Two public AI-tutor examples were used to pressure-test the sequence: *How I Built an AI Teacher with
+Vector Databases and ChatGPT* (GKCS) and *How to Create an AI Tutor for Your Course* (M. Rota / Persona
+AI). Local notes from that review are not committed; they stay under the gitignored `tmp/` directory. The
+point was to sharpen this project's own scope decisions, not to reuse another product's surface or
+implementation.
 
 - Frame the teach loop as a low-stakes, within-session mastery loop. The learner can persist through
   grounded re-explanations until the concept clicks. Keep this separate from the eval numbers:
@@ -49,7 +50,8 @@ or implementation mechanics.
 
 ### Day 1 Morning: Raise the Floor
 
-1. Diagnose and fix the remaining `grade_not_correct` dev failure.
+1. Diagnose and fix the same-turn grade-boundary overwrite behind the original `grade_not_correct` dev
+   failure.
 2. Rerun the redacted dev eval on `--split dev --limit 10`.
 3. Keep the two safe low-retrieval refusals framed as the refusal path working, not as product misses.
 
@@ -57,9 +59,9 @@ Acceptance:
 
 - Dev eval remains redacted.
 - Held-out `test` split remains untouched.
-- If the fix works, teachable evidence should be `8/8`.
-- If the fix does not land cleanly, keep the `7/8` teachable baseline and explain the remaining
-  diagnostic directly in the demo.
+- The original grade-boundary scenario passes after the fix.
+- If the live eval remains `7/8`, explain the remaining diagnostic directly in the demo instead of
+  forcing Python to override a model escalation.
 
 ### Day 1 Midday: Polish Adaptivity
 

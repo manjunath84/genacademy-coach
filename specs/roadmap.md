@@ -38,7 +38,8 @@ exist at every step ("demo cannot fail").
   generated check-item rubrics are normalized so their expected answers satisfy deterministic grading.
 - **Citation-resolution hardening completed on dev.** Correct-answer turns with citeable evidence no longer
   finish as uncited stop/refusal responses, and later low-confidence retrieval calls no longer erase prior
-  citeable evidence inside the same teach session. Live dev eval now has `8/8` teachable scenarios passing.
+  citeable evidence inside the same teach session. That branch's live dev eval reached `8/8` teachable
+  scenarios before later demo-readiness changes reset the honest merged-main baseline.
 - **Demo-ready runtime traces captured locally.** A grounded public-topic run now shows a cited teach turn
   followed by a learner-dependent `re_explain_differently` branch, and an out-of-corpus run shows
   `refuse_escalate` with one idempotent review-queue row.
@@ -46,19 +47,20 @@ exist at every step ("demo cannot fail").
   first-turn grounded fallback and review fixes for action preservation, refusal boundaries,
   citation/check alignment, and scoped locked session-boundary grading. Final merged-main dev eval is
   `7/10` overall and `7/8` teachable: two failures are safe low-retrieval refusals, and one teachable
-  scenario still has a deterministic grading diagnostic. Public-topic demo traces show a grounded teach
-  turn followed by a learner-dependent re-explain branch, plus a separate grounded refusal path.
+  scenario had a deterministic grading diagnostic later fixed by the grade-boundary branch. Public-topic
+  demo traces show a grounded teach turn followed by a learner-dependent re-explain branch, plus a
+  separate grounded refusal path.
 - **MVP demo packaging.** The teach-loop engine, refusal path, trace, redacted dev eval, and final
   merged-main numbers are captured in `README.md`, `docs/demo-and-deliverables.md`, and
   `docs/teach-loop-status.md` without using the held-out `test` split.
 - **Two-day score-lift strategy selected.** The final two-day plan is documented in
-  `docs/two-day-score-lift-plan.md`: fix the remaining deterministic grading diagnostic first, polish
-  same-topic lens switching second, and pull in grounded Quiz Mode only after the floor is stable.
-- **Reference-informed refinements documented.** Two local AI-tutor transcript references informed the
-  final demo plan: low-stakes within-session mastery framing, deterministic quiz criteria pinned from
-  cited spans, `review_queue.jsonl` plus redacted traces as the instructor-review surface, and
-  reproducibility via split manifests/checksums/idempotent ingest. The referenced transcript files remain
-  local-only under `tmp/`.
+  `docs/two-day-score-lift-plan.md`: start with the grade-boundary diagnostic, polish same-topic lens
+  switching second, and pull in grounded Quiz Mode only after the floor is stable.
+- **External tutor examples used as scope checks.** Two public AI-tutor examples were used to
+  pressure-test the final demo plan without treating them as templates: low-stakes within-session mastery
+  framing, deterministic quiz criteria pinned from cited spans, `review_queue.jsonl` plus redacted traces
+  as the instructor-review surface, and reproducibility via split manifests/checksums/idempotent ingest.
+  Local review notes remain uncommitted under gitignored `tmp/`.
 - **Memory options evaluated for roadmap, not implementation.** Cross-session memory remains a
   personalization pull-in, but the recommended sequence is provider-neutral: first consider a tiny
   first-party persisted profile for style/struggle tags, then compare LangMem, Mem0 open source, and Zep
@@ -67,20 +69,28 @@ exist at every step ("demo cannot fail").
   LangGraph's runtime. Direct `langgraph.*` graph/checkpointer/store code is reserved for a future delta
   that proves `create_agent` is no longer enough, such as durable cross-session memory, HITL interrupts,
   or multi-mode orchestration that cannot stay understandable as one agent loop.
+- **Same-turn grade-boundary overwrite fixed.** The teach session now preserves the session-boundary
+  grade for the learner's current answer even if the agent generates a new check and calls grading again
+  in the same turn. Regression tests cover both correct and incorrect boundary grades. Live dev eval shows
+  the original `grade_not_correct` scenario now passes; the overall dev score remains `7/10` and `7/8`
+  teachable because a different confirm-band scenario escalated before producing the expected re-explain
+  trace.
 
 ### In Progress
 
 - **Score-lift implementation prep.** The repo narrative is ready, but with two days left the active plan
-  is to improve the demo floor before recording: diagnose the remaining `grade_not_correct` dev failure,
-  capture a repeatable same-topic lens-switch demo, then build the smallest grounded Quiz Mode if the
-  first two steps stay green. Memory is intentionally held as a later personalization pull-in because it
-  adds persistence/privacy surface and must not become a hidden source of course facts. Explicit LangGraph
-  remains deferred for the same reason: useful for durable memory later, unnecessary for the two-day demo.
+  is to improve the demo floor before recording: decide whether to harden the remaining confirm-band
+  refusal variance or proceed to a repeatable same-topic lens-switch demo, then build the smallest
+  grounded Quiz Mode if the first two steps stay green. Memory is intentionally held as a later
+  personalization pull-in because it adds persistence/privacy surface and must not become a hidden source
+  of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable memory
+  later, unnecessary for the two-day demo.
 
 ### Pending Before MVP Demo
 
 - Keep the held-out `test` split unused until final evaluation/reporting.
-- Fix or explicitly explain the remaining `grade_not_correct` dev diagnostic.
+- Decide whether to harden the remaining confirm-band refusal variance or explain it in the demo as a
+  conservative escalation case.
 - Capture the same-topic lens-switch demo as a repeatable trace.
 - Build grounded Quiz Mode only if the floor remains stable.
 - If memory is pulled in after the demo floor is green, write a separate implementation plan that compares

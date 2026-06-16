@@ -18,6 +18,7 @@ from genacademy_coach.teach_types import (
     LearnerProfile,
     TeachSessionResult,
     TraceTurn,
+    UnderstandingGrade,
 )
 from genacademy_coach.trace import TraceWriter
 
@@ -98,7 +99,11 @@ class CoachSession:
 
     def respond(self, learner_answer: str) -> TeachSessionResult:
         self._grade_current_check_answer(learner_answer)
-        return self._invoke_agent(f"Learner answer to current check: {learner_answer}")
+        answer_grade = self.runtime.last_grade if self.runtime.grade_locked else None
+        return self._invoke_agent(
+            f"Learner answer to current check: {learner_answer}",
+            answer_grade=answer_grade,
+        )
 
     def _grade_current_check_answer(self, learner_answer: str) -> None:
         self.runtime.grade_locked = False
@@ -111,7 +116,12 @@ class CoachSession:
         self.profile.last_grade_correct = self.runtime.last_grade.correct
         self.runtime.grade_locked = True
 
-    def _invoke_agent(self, learner_input: str) -> TeachSessionResult:
+    def _invoke_agent(
+        self,
+        learner_input: str,
+        *,
+        answer_grade: UnderstandingGrade | None = None,
+    ) -> TeachSessionResult:
         if self.profile.turn_count >= self.settings.max_teach_turns:
             return self._write_result(
                 learner_input,
@@ -167,7 +177,14 @@ class CoachSession:
                     "I could not get a valid structured output from the tutor agent, so I am "
                     "escalating this instead of guessing.",
                 )
-        response = self._enforce_grounding(response, previous_strategy=previous_strategy)
+        response = self._enforce_grounding(
+            response,
+            previous_strategy=previous_strategy,
+            answer_grade=answer_grade,
+        )
+        if answer_grade is not None:
+            self.runtime.last_grade = answer_grade
+            self.profile.last_grade_correct = answer_grade.correct
         if response.next_action not in {"refuse_escalate", "stop"}:
             self.profile.previous_strategies.append(response.strategy)
         return self._write_result(learner_input, response)
@@ -220,9 +237,10 @@ class CoachSession:
         response: CoachAgentResponse,
         *,
         previous_strategy: str | None,
+        answer_grade: UnderstandingGrade | None = None,
     ) -> CoachAgentResponse:
         # A wrong answer with citeable evidence must re-explain, even if the model tries to stop.
-        if self._last_grade_is_incorrect() and self.runtime.last_spans:
+        if self._last_grade_is_incorrect(answer_grade) and self.runtime.last_spans:
             if (
                 response.next_action != "re_explain_differently"
                 or response.strategy == previous_strategy
@@ -232,7 +250,7 @@ class CoachSession:
                     cited_spans=self.runtime.last_spans,
                 )
         if (
-            self._last_grade_is_correct()
+            self._last_grade_is_correct(answer_grade)
             and self.runtime.last_spans
             and response.next_action in {"refuse_escalate", "stop"}
             and not self._citations_resolve(response)
@@ -267,12 +285,12 @@ class CoachSession:
             cited_spans = [retrieved_by_id[citation_id] for citation_id in response.citation_ids]
             if answer_grounded_in_spans(response.learner_message, cited_spans):
                 return response
-            if self._last_grade_is_incorrect():
+            if self._last_grade_is_incorrect(answer_grade):
                 return self._grounded_reexplain_response(
                     previous_strategy=previous_strategy,
                     cited_spans=cited_spans,
                 )
-            if self._last_grade_is_correct():
+            if self._last_grade_is_correct(answer_grade):
                 return self._grounded_advance_response(cited_spans=cited_spans)
             if (
                 self.runtime.current_check is not None
@@ -296,12 +314,12 @@ class CoachSession:
                 "I am escalating this to a mentor instead of guessing.",
                 citation_ids=response.citation_ids,
             )
-        if self._last_grade_is_incorrect() and self.runtime.last_spans:
+        if self._last_grade_is_incorrect(answer_grade) and self.runtime.last_spans:
             return self._grounded_reexplain_response(
                 previous_strategy=previous_strategy,
                 cited_spans=self.runtime.last_spans,
             )
-        if self._last_grade_is_correct() and self.runtime.last_spans:
+        if self._last_grade_is_correct(answer_grade) and self.runtime.last_spans:
             return self._grounded_advance_response(cited_spans=self.runtime.last_spans)
         return self._refusal_response(
             "agent response had no retrieved citation_ids",
@@ -329,11 +347,25 @@ class CoachSession:
             retrieved_ids
         )
 
-    def _last_grade_is_incorrect(self) -> bool:
-        return self.runtime.last_grade is not None and not self.runtime.last_grade.correct
+    def _effective_grade(
+        self,
+        answer_grade: UnderstandingGrade | None = None,
+    ) -> UnderstandingGrade | None:
+        return answer_grade if answer_grade is not None else self.runtime.last_grade
 
-    def _last_grade_is_correct(self) -> bool:
-        return self.runtime.last_grade is not None and self.runtime.last_grade.correct
+    def _last_grade_is_incorrect(
+        self,
+        answer_grade: UnderstandingGrade | None = None,
+    ) -> bool:
+        grade = self._effective_grade(answer_grade)
+        return grade is not None and not grade.correct
+
+    def _last_grade_is_correct(
+        self,
+        answer_grade: UnderstandingGrade | None = None,
+    ) -> bool:
+        grade = self._effective_grade(answer_grade)
+        return grade is not None and grade.correct
 
     def _grounded_reexplain_response(
         self,

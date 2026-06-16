@@ -10,6 +10,19 @@
 
 ---
 
+## 2026-06-16 — The boundary grade and the tool grade are not always the same thing
+
+**What I believed:** once the stale grade lock was fixed, the session's `last_grade` would reliably
+represent the learner's answer to the current check.
+
+**What I found:** in one turn, the session can grade the learner's answer to check A, then the agent can
+generate check B and call the grading tool again before the response is finalized. The tool-grade for B
+is a real tool result, but it must not replace the canonical boundary grade for the learner's answer to A.
+
+**Principle:** when a value drives workflow safety, preserve the value at the boundary where it was
+created. Tool calls inside the turn can generate useful observations, but they should not rewrite the
+decision signal for the user input that started the turn.
+
 ## 2026-06-16 — Personalization does not require rushing a memory stack
 
 **What I believed:** adding cross-session memory or explicit LangGraph orchestration might be the best
@@ -25,20 +38,20 @@ human-in-the-loop interrupts, but this project already gets the LangGraph runtim
 architecture trigger. Add memory only when there is a written privacy/deletion story and a reason
 `create_agent` can no longer keep the loop understandable.
 
-## 2026-06-16 — Copy the principle, not the product's mechanics
+## 2026-06-16 — Use examples to sharpen scope, not to borrow surfaces
 
-**What I believed:** the quickest score lift from external AI-tutor references might be a flashy feature
-like hint progression or a gradebook UI.
+**What I believed:** the quickest score lift after reviewing public AI-tutor examples might be a flashy
+feature like hint progression or a gradebook UI.
 
 **What I found:** the strongest low-risk ideas were reframes and reuse: low-stakes mastery framing,
 deterministic criteria for quizzes, the existing review queue as the instructor-review surface, and
-reproducibility through split manifests and source checksums. The risky part was copying mechanics too
-literally: a hardcoded "wrong once -> hint, wrong twice -> reveal" ladder would violate the agenticity
-guardrail because Python would be choosing the teaching path.
+reproducibility through split manifests and source checksums. The risky part was following another
+product's surface mechanics too literally: a hardcoded "wrong once -> hint, wrong twice -> reveal" ladder
+would violate the agenticity guardrail because Python would be choosing the teaching path.
 
-**Principle:** borrow the reference product's principle, not its surface area. In a time-boxed demo, raise
-the floor with honest framing and existing artifacts before adding scope; when adding teaching behavior,
-keep the choice model-decided and let Python enforce only safety gates.
+**Principle:** use external examples as a pressure test for your own priorities, not as a template. In a
+time-boxed demo, raise the floor with honest framing and existing artifacts before adding scope; when
+adding teaching behavior, keep the choice model-decided and let Python enforce only safety gates.
 
 ## 2026-06-16 — A lock without an identity is just stale state waiting to happen
 

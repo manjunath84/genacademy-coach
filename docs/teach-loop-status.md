@@ -274,8 +274,31 @@ Result:
 - Safe refusals: `2`.
 - Retrieval coverage: `8` scenarios with spans, `2` without spans.
 - Diagnostic reason counts: `safe_low_retrieval_refusal=2`, `grade_not_correct=1`.
-- Remaining teachable failure: one deterministic grading diagnostic; citations resolved and the runtime
-  decision trace was present for that scenario.
+- At this merged-main baseline, the remaining teachable failure was one deterministic grading diagnostic;
+  citations resolved and the runtime decision trace was present for that scenario. The follow-up
+  grade-boundary branch below fixes that original scenario.
+- The held-out `test` split was not used.
+
+Grade-boundary fix branch eval:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev-grade-boundary.json
+```
+
+Result:
+
+- Overall: `7/10` passed, `pass_rate=0.7`.
+- Teachable subset: `7/8` passed, `teachable_pass_rate=0.875`.
+- Safe refusals: `2`.
+- The original same-turn grade overwrite in scenario `63f1a9265ae5a29d:000` is fixed:
+  `grade_correct=true`, citations resolve, runtime decision trace is present, and the scenario passes.
+- The remaining teachable failure moved to scenario `63f1a9265ae5a29d:003`, where the live model chose
+  `refuse_escalate` in a confirm-band retrieval case before producing the expected re-explain trace.
+  That is a separate cautious-refusal / structured-output path, not the grade-boundary overwrite.
 - The held-out `test` split was not used.
 
 ## Review Notes
