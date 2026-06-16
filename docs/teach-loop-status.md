@@ -1,7 +1,7 @@
 # Teach Loop Status
 
-Status: implemented and live-verified. Earlier teach-loop PRs were reviewed by Gemini/Claude; the
-latest demo-readiness fallback has Claude re-review fixes applied and still needs final approval/merge.
+Status: implemented, reviewed, merged, and live-verified from `main`. Earlier teach-loop PRs were
+reviewed by Gemini/Claude; the final demo-readiness fallback landed in PR #10.
 
 ## Verification
 
@@ -22,6 +22,10 @@ latest demo-readiness fallback has Claude re-review fixes applied and still need
   fix: `36 passed`.
 - `uv run pytest -q` after PR #10 re-review fix: `111 passed, 2 warnings`.
 - `uv run ruff check .` after PR #10 re-review fix: `All checks passed!`.
+- Merged-main grounded demo on 2026-06-16: `demo-grounded-main-final-20260616`.
+- Merged-main refusal demo on 2026-06-16: `demo-refusal-main-final-20260616`.
+- Merged-main dev eval on 2026-06-16:
+  `eval/runs/teach-loop-dev-main-final-20260616.json` -> `7/10` overall, `7/8` teachable.
 
 ## Live Nebius Demo
 
@@ -207,6 +211,72 @@ Redacted trace summary:
   `retrieved_count=0`, tool calls include retrieval and mentor escalation.
 - `review_queue.jsonl` received exactly one row for the refusal session, preserving escalation
   idempotency even when the model attempted the escalation tool more than once.
+
+## Final Merged-Main Demo Evidence
+
+Grounded command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-grounded-main-final-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Trace: `traces/demo-grounded-main-final-20260616.jsonl`
+
+Redacted trace summary:
+
+- Turn 1: `drill`, strategy `short_drill`, evidence `0.711 confirm`, `faithfulness_ok=true`,
+  `retrieved_citation_count=5`, tool calls include retrieval and check generation.
+- Turn 2: `re_explain_differently`, strategy `contrastive_example`, evidence `0.819 confirm`,
+  `faithfulness_ok=true`, `retrieved_citation_count=5`, tool calls include retrieval, check generation,
+  and profile update.
+- This run demonstrates a grounded teach turn plus a learner-dependent strategy change after a wrong
+  answer. The held-out `test` split was not used.
+
+Refusal command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-refusal-main-final-20260616 \
+    --topic "Gen Academy cafeteria menu" \
+    --style concise \
+    --track-lens low_code_no_code
+```
+
+Trace: `traces/demo-refusal-main-final-20260616.jsonl`
+
+Redacted trace summary:
+
+- Turn 1: `refuse_escalate`, strategy `refusal`, evidence `0.0 stop`, `faithfulness_ok=null`,
+  `retrieved_citation_count=0`, tool calls include retrieval and mentor escalation.
+- `review_queue.jsonl` received exactly one row for this refusal session.
+
+Final merged-main dev eval command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev-main-final-20260616.json
+```
+
+Result:
+
+- Overall: `7/10` passed, `pass_rate=0.7`.
+- Teachable subset: `7/8` passed, `teachable_pass_rate=0.875`.
+- Safe refusals: `2`.
+- Retrieval coverage: `8` scenarios with spans, `2` without spans.
+- Diagnostic reason counts: `safe_low_retrieval_refusal=2`, `grade_not_correct=1`.
+- Remaining teachable failure: one deterministic grading diagnostic; citations resolved and the runtime
+  decision trace was present for that scenario.
+- The held-out `test` split was not used.
 
 ## Review Notes
 
