@@ -10,6 +10,20 @@
 
 ---
 
+## 2026-06-16 — If the eval answers with your "expected answer" and still fails, your rubric is broken
+
+**What I believed:** the remaining teach-loop grading failures were likely model behavior: the tutor was
+not choosing the right action, or the learner-answer grader was too strict.
+
+**What I found:** after moving grading into the session boundary, the eval still failed some "correct"
+turns. The answer being graded was the generated `expected_answer` itself, but some generated check items
+had `expected_keywords` that were not present in that expected answer. The model had produced an invalid
+rubric, and the deterministic grader correctly rejected it.
+
+**Principle:** when an eval uses generated rubrics, validate the rubric against itself before blaming the
+agent loop. A deterministic grader is only as good as the check item it receives; make the generator prove
+that its expected answer can satisfy its own keyword contract.
+
 ## 2026-06-16 — Diagnostics should reuse the runtime's truth, not re-copy it
 
 **What I believed:** an eval diagnostic can compute its own score bands because the logic is tiny:

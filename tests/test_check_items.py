@@ -3,6 +3,7 @@ import json
 import pytest
 
 from genacademy_coach.check_items import generate_check_item
+from genacademy_coach.grounding import grade_understanding
 from genacademy_coach.teach_types import RetrievedSpan
 
 
@@ -54,3 +55,33 @@ def test_generate_check_item_rejects_empty_keywords():
 
     with pytest.raises(ValueError, match="expected_keywords"):
         generate_check_item(provider, span())
+
+
+def test_generate_check_item_filters_keywords_missing_from_expected_answer():
+    provider = FakeProvider(
+        {
+            "question": "What does attention help the model do?",
+            "expected_answer": "Focus on relevant context.",
+            "expected_keywords": ["focus", "token prediction", "context"],
+        }
+    )
+
+    item = generate_check_item(provider, span())
+
+    assert item.expected_keywords == ["focus", "context"]
+    assert grade_understanding(item.expected_answer, item).correct is True
+
+
+def test_generate_check_item_derives_keywords_when_provider_keywords_do_not_match_answer():
+    provider = FakeProvider(
+        {
+            "question": "What does attention help the model do?",
+            "expected_answer": "Focus on relevant context.",
+            "expected_keywords": ["token prediction"],
+        }
+    )
+
+    item = generate_check_item(provider, span())
+
+    assert item.expected_keywords == ["focus", "relevant", "context"]
+    assert grade_understanding(item.expected_answer, item).correct is True

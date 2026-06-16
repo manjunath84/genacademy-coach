@@ -309,6 +309,77 @@ def test_session_uses_grounded_advance_fallback_after_correct_answer(tmp_path):
     assert rows[-1].faithfulness_ok is True
 
 
+def test_session_grades_current_check_answer_before_agent_decides(tmp_path):
+    class CapturingAgent:
+        def __init__(self):
+            self.messages = []
+
+        def invoke(self, messages):
+            self.messages.append(messages)
+            return CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="learner answered the grounded check correctly",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=["note/attention::0"],
+            )
+
+    agent = CapturingAgent()
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.respond("It helps focus relevant context.")
+
+    assert result.response.next_action == "advance"
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.correct is True
+    assert '"correct":true' in agent.messages[0][0]["content"]
+
+
+@pytest.mark.parametrize("agent_action", ["advance", "stop", "refuse_escalate"])
+def test_session_forces_reexplain_after_wrong_answer_when_agent_skips_stumble_action(
+    tmp_path,
+    agent_action,
+):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention highlights relevant context. [note/attention::0]",
+            observation="agent did not react to the incorrect grade",
+            next_action=agent_action,
+            strategy="summary",
+            citation_ids=["note/attention::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.respond("It stores long term customer profiles.")
+
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.correct is False
+    assert result.response.next_action == "re_explain_differently"
+    assert result.response.strategy != "analogy"
+    assert result.response.citation_ids == ["note/attention::0"]
+    rows = load_trace(Path(result.trace_path))
+    assert rows[-1].next_action == "re_explain_differently"
+
+
 def test_session_rejects_re_explain_with_same_strategy(tmp_path):
     agent = StaticAgentPort(
         CoachAgentResponse(
