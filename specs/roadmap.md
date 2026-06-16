@@ -48,17 +48,22 @@ exist at every step ("demo cannot fail").
   `7/10` overall and `7/8` teachable: two failures are safe low-retrieval refusals, and one teachable
   scenario still has a deterministic grading diagnostic. Public-topic demo traces show a grounded teach
   turn followed by a learner-dependent re-explain branch, plus a separate grounded refusal path.
+- **MVP demo packaging.** The teach-loop engine, refusal path, trace, redacted dev eval, and final
+  merged-main numbers are captured in `README.md`, `docs/demo-and-deliverables.md`, and
+  `docs/teach-loop-status.md` without using the held-out `test` split.
 
 ### In Progress
 
-- **MVP demo packaging.** The teach-loop engine, refusal path, trace, redacted dev eval, and final
-  merged-main numbers are captured. The next work is packaging the CLI evidence into the final demo/readme
-  narrative without using the held-out `test` split.
+- **External submission packaging.** The repo narrative is ready. The remaining work is outside the
+  codebase: record the <=5-minute video, create the Google Doc from the prepared outline, and decide when
+  to make the repository public.
 
 ### Pending Before MVP Demo
 
 - Keep the held-out `test` split unused until final evaluation/reporting.
-- Package the final demo/readme narrative around the captured merged-main numbers and traces.
+- Record the <=5-minute video from `docs/demo-and-deliverables.md`.
+- Create the Google Doc submission from the prepared outline and evidence table.
+- Flip the repo public at submission time if required.
 
 ## Teach-Loop MVP
 
@@ -83,9 +88,9 @@ The adaptive **teach loop**:
 
 **Build order status.** Foundation adapter, eval scaffolding, leak guard, teach-loop core, eval
 diagnostics, retrieval triage, threshold calibration, behavior hardening, and citation-resolution
-hardening are complete on the dev split. Demo trace capture and honest dev-eval reporting are complete on
-merged `main`; the active gate is packaging the demo/readme narrative while keeping the held-out `test`
-split untouched until final evaluation.
+hardening are complete on the dev split. Demo trace capture, honest dev-eval reporting, and repo
+demo/readme packaging are complete on merged `main`; the active gate is external submission packaging
+while keeping the held-out `test` split untouched until final evaluation.
 
 ## PULL-IN (if time, in priority order — SHOULD)
 

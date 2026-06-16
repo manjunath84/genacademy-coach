@@ -5,9 +5,11 @@ own style, checks understanding, **re-explains a different way when they stumble
 know and struggled with (within a session), and **refuses to bluff** — it only teaches what it can cite
 from the course materials, and escalates the rest to a human mentor.
 
-> **Implementation status:** foundation adapter + eval guard slice implemented; teach-loop core and
-> local CLIs are implemented, live Nebius-verified, and Gemini/Claude-reviewed. Private corpus files
-> remain local-only; only the folder structure and leak checks are versioned/re-run during the build.
+> **Implementation status:** teach-loop MVP implemented, merged, live Nebius-verified, and reviewed by
+> separate Gemini/Claude contexts. The final merged-main evidence is `7/10` on the dev eval and `7/8`
+> on teachable scenarios, with two safe low-retrieval refusals and one remaining deterministic grading
+> diagnostic. Private corpus files remain local-only; only structure, redacted diagnostics, and leak
+> checks are versioned.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
@@ -35,6 +37,9 @@ low-code/no-code explanation, a code-heavy explanation, or a bridge between them
 - [`specs/roadmap.md`](specs/roadmap.md) — Thursday MVP → pull-ins → north star (MUST vs SHOULD)
 - [`AGENTS.md`](AGENTS.md) — the working agreement every build agent follows
 - [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) — the agentic flow, visualized
+- [`docs/demo-and-deliverables.md`](docs/demo-and-deliverables.md) — final demo script, evidence, and
+  submission checklist
+- [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted live trace and eval evidence
 
 ## Build track
 
@@ -53,3 +58,41 @@ Built on `genacademy-rag` (*GenAcademy Compass*) — the compounding arc, made c
   transcripts support/fallback.
 - **New:** the adaptive **teach loop** + **within-session learner profile** — the agentic layer Week 2
   didn't have.
+
+## Current Demo Evidence
+
+Final merged-main evidence was captured on 2026-06-16 without using the held-out `test` split:
+
+- Grounded teach trace: `traces/demo-grounded-main-final-20260616.jsonl`
+  - Turn 1: `drill`, strategy `short_drill`, evidence `0.711 confirm`, faithful.
+  - Turn 2: `re_explain_differently`, strategy `contrastive_example`, evidence `0.819 confirm`,
+    faithful.
+- Refusal trace: `traces/demo-refusal-main-final-20260616.jsonl`
+  - `refuse_escalate`, evidence `0.0 stop`, exactly one review-queue row.
+- Dev eval artifact: `eval/runs/teach-loop-dev-main-final-20260616.json`
+  - `7/10` overall, `7/8` teachable, `2` safe low-retrieval refusals.
+  - Remaining failure: one deterministic `grade_not_correct` diagnostic, with citations resolved and a
+    runtime-decision trace present.
+
+Run the same public-topic demo locally:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Run the redacted dev eval:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev.json
+```
+
+Do not run or tune against `--split test` until final evaluation/reporting.

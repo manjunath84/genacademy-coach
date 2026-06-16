@@ -18,11 +18,61 @@ moment. Use this exact phrasing in the Google Doc opening and the video's first 
 |---|---|---|
 | 0:00–0:30 | Hook (above) + "this is Week 3 of my agentic-AI arc, built on my Week-2 RAG." | The human story |
 | 0:30–1:00 | "Before the code — here's what I **cut** and why." (show `roadmap.md` cut list) | Initiative + scope discipline |
-| 1:00–2:30 | **Teach loop:** learner says "I don't get attention" → retrieves span → explains with an analogy → check-question → learner half-right → **re-explains differently, same citation** → it clicks. Show the **local JSON/CLI trace** side-by-side; show LangSmith only if already configured. | The agenticity proof |
-| 2:30–3:15 | **Deliberate failure:** out-of-corpus question → **refuses + escalation card** + a line in `review_queue.jsonl`. | Won't-bluff brand |
-| 3:15–4:00 | **Honest eval:** "Here's my held-out test set, the split, what passed and what didn't." Say the real fraction. | Technical thinking + integrity |
+| 1:00–2:30 | **Teach loop:** topic `agent harness` → retrieves citeable course evidence → explains → asks a grounded check → learner gives a wrong answer → **re-explains differently**. Show `traces/demo-grounded-main-final-20260616.jsonl`: turn 1 `drill`, turn 2 `re_explain_differently`, both faithful. | The agenticity proof |
+| 2:30–3:15 | **Deliberate failure:** out-of-corpus topic `Gen Academy cafeteria menu` → **refuses + escalation queue row**. Show `traces/demo-refusal-main-final-20260616.jsonl` and the single matching review-queue row. | Won't-bluff brand |
+| 3:15–4:00 | **Honest eval:** "I did not touch the held-out test split. On the redacted dev eval, merged `main` is `7/10` overall and `7/8` teachable. Two failures are safe refusals; one teachable scenario still has a deterministic grading diagnostic." | Technical thinking + integrity |
 | 4:00–4:45 | **Standout move:** same learner asks for the same concept through two teaching lenses — low-code/no-code workflow explanation, then code-heavy Python/LangGraph explanation. | Creativity + personalization |
 | 4:45–5:00 | "Next: quiz, interview, admin upload, and voice — same engine, after the text tutor works." + architecture thumbnail. | Forward momentum |
+
+## Exact evidence to show
+
+Use these artifacts in the video and written submission. They are redacted metadata surfaces; do not paste
+private eval questions or raw corpus snippets.
+
+| Moment | Artifact | What to say |
+|---|---|---|
+| Grounded teach loop | `traces/demo-grounded-main-final-20260616.jsonl` | "The model chose `drill`, then after the learner's wrong answer chose `re_explain_differently`; Python only enforced grounding and safety." |
+| Refusal path | `traces/demo-refusal-main-final-20260616.jsonl` + `review_queue.jsonl` | "No citeable course material means refusal and one mentor-review queue row, not a model-prior answer." |
+| Honest eval | `eval/runs/teach-loop-dev-main-final-20260616.json` | "`7/10` dev scenarios passed, `7/8` teachable scenarios passed, with two safe refusals and one grading diagnostic left." |
+| Safety guard | `scripts/check_eval_leak.py` output in `docs/teach-loop-status.md` | "The held-out `test` split stays frozen and unused; leak checks pass locally." |
+| Scope discipline | `specs/roadmap.md` | "Quiz, interview, admin upload, and voice were intentionally kept as pull-ins until the teach loop worked." |
+
+## Commands for the recording
+
+Grounded demo:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-grounded-main-final-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Refusal demo:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-refusal-main-final-20260616 \
+    --topic "Gen Academy cafeteria menu" \
+    --style concise \
+    --track-lens low_code_no_code
+```
+
+Dev eval:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py \
+    --split dev \
+    --limit 10 \
+    --json-out eval/runs/teach-loop-dev-main-final-20260616.json
+```
+
+Do not run `--split test` for demo preparation.
 
 ## Google Doc outline (the human-reasoning version)
 
@@ -35,8 +85,10 @@ moment. Use this exact phrasing in the Google Doc opening and the video's first 
 4. **The eval-honesty fix** (½ p) — "my first design reused the same questions for seed and test — a
    classic leak; here's how I caught it and the hard-split protocol I built." (show `split_manifest.json`)
 5. **What I built** (2 p) — architecture, code snippets, prompt samples.
-6. **Honest numbers** (½ p) — the eval results. If it's 6/10, say 6/10 and why.
-7. **What I learned** (½ p) — e.g. "if I did Week 3 again, I'd define the local trace artifact on day 1."
+6. **Honest numbers** (½ p) — `7/10` dev, `7/8` teachable, two safe refusals, one grading diagnostic,
+   held-out `test` split untouched.
+7. **What I learned** (½ p) — use `docs/build-learnings.md`: eval splits must be frozen, diagnostics
+   should reuse runtime truth, and locks need identity, not only a boolean.
 
 > **Make the builder's voice visible** (the review's weakest-scoring dimension, "human-reasoning
 > legibility"): include the wrong turns, the "I tried X, it was too slow," and the option-vs-option
@@ -59,7 +111,7 @@ moment. Use this exact phrasing in the Google Doc opening and the video's first 
 |---|---|---|
 | Consistency | Week 3 compounds Week 2: Week 2 built grounded RAG; Week 3 adds agentic teaching, state, failure handling, and HITL. | `docs/genacademy-rag-foundation.md`, `AGENTS.md` |
 | Creativity | Same learner can switch teaching lenses for one topic: low-code/no-code workflow mental model, code-heavy Python/LangGraph detail, or bridge between them. | teach-loop trace + demo script |
-| Execution | Live teach loop with refusal, escalation, and trace, not a static prompt demo. | `traces/<session_id>.json`, `review_queue.jsonl`, eval output |
+| Execution | Live teach loop with refusal, escalation, and trace, not a static prompt demo. | `traces/demo-grounded-main-final-20260616.jsonl`, `traces/demo-refusal-main-final-20260616.jsonl`, `review_queue.jsonl` |
 | Technical thinking | Held-out chat-question eval, citation-resolves checks, deterministic grader, and calibrated retrieval thresholds. | `specs/tech-stack.md`, `docs/decisions.md` |
 | Initiative | The project shows reviewed trade-offs: one retriever, JSON/CLI trace, text-first MVP, and quiz/interview/admin/voice as pull-ins. | `docs/decisions.md`, `specs/roadmap.md` |
 
@@ -78,11 +130,11 @@ different `next_action` + `strategy` without changing Python control flow.
 
 | Requirement | Status | Action |
 |---|---|---|
-| Google Doc (overview, datasets, prompts, iterations, learnings) | ❌ not created | Build the skeleton **now** from the outline above; paste prompts as you write them |
-| Datasets | ⚠️ local/private corpus staged | Describe `corpus/notes`, `corpus/slides`, `corpus/handouts`, `corpus/transcripts`, and the never-indexed `corpus/eval-questions` test source |
-| Prompts used during vibe-coding | ⚠️ capture as you go | Keep a running `docs/prompts.md` during the build |
-| Iterations tried | ⚠️ reframe | The board worklog → a "what I tried and changed" narrative |
-| Learnings | ⚠️ reframe | `decisions.md` → a narrative section in the Doc |
-| ≤5-min video | ❌ not created | Use the script above (not the stale archive §9) |
+| Google Doc (overview, datasets, prompts, iterations, learnings) | ⚠️ repo narrative ready, external Doc not created | Use the outline and exact evidence above; keep private corpus/eval text out |
+| Datasets | ✅ narrative ready | Describe `corpus/notes`, `corpus/slides`, `corpus/handouts`, `corpus/transcripts`, and the never-indexed `corpus/eval-questions` test source |
+| Prompts used during vibe-coding | ⚠️ not packaged as a standalone prompt appendix | Pull from the chat/worklog if required; do not invent missing prompts |
+| Iterations tried | ✅ narrative ready | Use `docs/teach-loop-status.md`, `docs/build-learnings.md`, and the PR sequence from roadmap |
+| Learnings | ✅ narrative ready | Use `docs/build-learnings.md` plus `docs/decisions.md` |
+| ≤5-min video | ⚠️ script ready, video not recorded | Use the script and commands above |
 | GitHub | ✅ private repo | Flip to public at submission (`gh repo edit --visibility public`) |
 | Architecture diagram | ✅ `docs/architecture-diagrams.md` | Export Diagram 2 (teach loop) to PNG/SVG for the Doc/video |
