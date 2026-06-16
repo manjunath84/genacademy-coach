@@ -28,7 +28,8 @@ One agent engine, three modes that share it:
 
 The differentiator is **personalization** (never the same answer to everyone) on top of a **won't-bluff**
 grounding discipline. Track is a teaching lens, not a learner identity: the same learner can ask for a
-low-code/no-code explanation, a code-heavy explanation, or a bridge between them for the same topic.
+low-code/no-code workflow lens, a code-heavy implementation lens, or a bridge between them for the same
+topic.
 
 ## The constitution
 
@@ -74,6 +75,11 @@ Final merged-main evidence was captured on 2026-06-16 without using the held-out
     faithful.
 - Refusal trace: `traces/demo-refusal-main-final-20260616.jsonl`
   - `refuse_escalate`, evidence `0.0 stop`, exactly one review-queue row.
+- Same-topic lens-switch traces:
+  - `traces/demo-lens-low-code-20260616.jsonl`: same topic through the `low_code_no_code` lens; turns
+    stayed grounded (`0.711` / `0.753 confirm`) and faithful.
+  - `traces/demo-lens-code-heavy-20260616.jsonl`: same topic through the `code_heavy` lens; turns stayed
+    grounded (`0.711` / `0.753 confirm`) and faithful.
 - Dev eval artifact: `eval/runs/teach-loop-dev-main-final-20260616.json`
   - `7/10` overall, `7/8` teachable, `2` safe low-retrieval refusals.
   - Follow-up grade-boundary run fixes the original same-turn grade overwrite; latest dev evidence still
@@ -84,6 +90,26 @@ Run the same public-topic demo locally:
 ```bash
 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
   uv run python scripts/run_teach_demo.py \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Switch only the teaching lens for the same public topic:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-lens-low-code-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens low_code_no_code \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-lens-code-heavy-20260616 \
     --topic "agent harness" \
     --style analogy \
     --track-lens code_heavy \

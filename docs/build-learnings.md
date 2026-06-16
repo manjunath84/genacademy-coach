@@ -10,6 +10,22 @@
 
 ---
 
+## 2026-06-16 — A demo can prove adaptivity without adding a new feature
+
+**What I believed:** making personalization visible might require cross-session memory, a new hint action,
+or another mode.
+
+**What I found:** the existing track-lens field was already enough to show the same learner asking for
+the same concept through different teaching lenses. The safer demo move was to capture two grounded
+traces with the same topic and answer, then show that only the lens changed while retrieval, citations,
+grading, and re-explanation still worked.
+
+**Principle:** before adding state or new control flow, look for a traceable behavior the system already
+has. In a short demo window, the strongest personalization proof is often controlled contrast: keep the
+inputs constant, change one learner preference, and show the runtime evidence.
+
+---
+
 ## 2026-06-16 — The boundary grade and the tool grade are not always the same thing
 
 **What I believed:** once the stale grade lock was fixed, the session's `last_grade` would reliably

@@ -75,13 +75,17 @@ exist at every step ("demo cannot fail").
   the original `grade_not_correct` scenario now passes; the overall dev score remains `7/10` and `7/8`
   teachable because a different confirm-band scenario escalated before producing the expected re-explain
   trace.
+- **Same-topic lens-switch demo captured.** Two live Nebius traces use the same public demo topic and
+  learner answer while switching only the teaching lens: `demo-lens-low-code-20260616` and
+  `demo-lens-code-heavy-20260616`. Both stay grounded in the confirm band, cite retrieved spans, and
+  re-explain after the same wrong answer. The trace artifacts remain gitignored; docs record only
+  redacted metadata.
 
 ### In Progress
 
-- **Score-lift implementation prep.** The repo narrative is ready, but with two days left the active plan
-  is to improve the demo floor before recording: decide whether to harden the remaining confirm-band
-  refusal variance or proceed to a repeatable same-topic lens-switch demo, then build the smallest
-  grounded Quiz Mode if the first two steps stay green. Memory is intentionally held as a later
+- **Grounded Quiz Mode planning.** The grade-boundary fix and same-topic lens-switch demo are captured.
+  The next pull-in is the smallest cited MCQ quiz slice, but only after a separate implementation plan
+  and review per the project gates. Memory is intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden source
   of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable memory
   later, unnecessary for the two-day demo.
@@ -91,8 +95,7 @@ exist at every step ("demo cannot fail").
 - Keep the held-out `test` split unused until final evaluation/reporting.
 - Decide whether to harden the remaining confirm-band refusal variance or explain it in the demo as a
   conservative escalation case.
-- Capture the same-topic lens-switch demo as a repeatable trace.
-- Build grounded Quiz Mode only if the floor remains stable.
+- Build grounded Quiz Mode only if the floor remains stable and its implementation plan passes review.
 - If memory is pulled in after the demo floor is green, write a separate implementation plan that compares
   first-party persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
 - If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
