@@ -11,7 +11,7 @@ def test_teach_loop_settings_default_under_repo_root(tmp_path, monkeypatch):
     settings = CoachSettings.from_env()
 
     assert settings.trace_dir == tmp_path / "traces"
-    assert settings.stop_threshold == 0.60
+    assert settings.stop_threshold == 0.40
     assert settings.confirm_threshold == 0.85
     assert settings.max_teach_turns == 4
 

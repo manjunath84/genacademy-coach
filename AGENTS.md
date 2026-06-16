@@ -51,9 +51,9 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   Low retrieval confidence → "I can't find this in the course materials" + escalate. It does **not**
   answer from model priors. The refusal path is load-bearing, not decorative.
 - **Confidence is a real signal, never an LLM self-rating.** Refuse/STOP is driven by retrieval
-  similarity score + a citation-present check. The bands (STOP < 0.60 · CONFIRM 0.60–0.85 · PROCEED >
-  0.85) are seed values only; calibrate against the actual index before use (see
-  `specs/tech-stack.md` for the `source_type` protocol).
+  similarity score + a citation-present check. The current calibrated MVP bands are STOP < 0.40 ·
+  CONFIRM 0.40–0.85 · PROCEED > 0.85; recalibrate against the actual index before changing them (see
+  `specs/tech-stack.md` and `docs/teach-loop-threshold-calibration.md`).
 - **Citations captured at retrieval, never reconstructed.** Every claim carries its source
   (`week · title · timestamp` / `chunk_index`). An answer that cites a source it didn't retrieve is a
   correctness bug.

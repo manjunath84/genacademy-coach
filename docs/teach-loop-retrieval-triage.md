@@ -101,9 +101,12 @@ This does not mean lowering the threshold blindly is safe. Negative controls sti
 STOP. Initial redacted controls showed unrelated course-policy queries in the `0.22-0.38` range, while
 many plausible course queries landed in the `0.40-0.60` range.
 
-## Recommended Next Step
+## Follow-Up
 
-Calibrate `stop_threshold` on seed/dev retrieval diagnostics before changing runtime behavior:
+Calibration completed in `docs/teach-loop-threshold-calibration.md`; the default Coach STOP threshold is
+now `0.40`.
+
+Original calibration steps:
 
 1. Run `scripts/diagnose_teach_retrieval.py` on `seed` and `dev`.
 2. Add a small, non-private negative-control set for clearly out-of-corpus topics.
@@ -114,5 +117,4 @@ Calibrate `stop_threshold` on seed/dev retrieval diagnostics before changing run
 6. If many plausible course questions still cluster below the chosen threshold, improve query rewriting
    or retrieval before lowering the threshold further.
 
-Candidate direction from this triage: evaluate `0.40-0.55` as the calibration range, with evidence from
-negative controls and the seed/dev split. Do not touch the held-out `test` split for tuning.
+The held-out `test` split was not used for tuning.
