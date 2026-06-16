@@ -1,7 +1,8 @@
 # Two-Day Score-Lift Plan
 
-Status: proposed next build sequence for the final two days before demo. This plan reflects the
-second-opinion strategy review after PR #10 and keeps the held-out `test` split untouched.
+Status: active final-two-day sequence. The grade-boundary fix and same-topic lens-switch evidence are
+captured; the next pull-in is grounded Quiz Mode only after its own implementation plan and review. The
+held-out `test` split remains untouched.
 
 ## Goal
 
@@ -20,8 +21,8 @@ The score-lift strategy is to raise the floor first, then add one visible pull-i
 
 | Rank | Move | Score lift | Risk | Why |
 |---|---|---|---|---|
-| 1 | Fix the same-turn grade-boundary overwrite | Done | Low | Original `grade_not_correct` scenario now passes; raw dev score stayed `7/8` because a different confirm-band refusal surfaced. |
-| 2 | Same-topic lens-switch demo | High | Very low | Makes "adaptive" visible using the existing engine: same concept, different teaching lenses. |
+| 1 | Fix the same-turn grade-boundary overwrite | Done | Low | Original `grade_not_correct` scenario now passes; raw teachable dev score stayed `7/8` because a different confirm-band refusal surfaced. |
+| 2 | Same-topic lens-switch demo | Done | Very low | Makes "adaptive" visible using the existing engine: same concept, different teaching lenses. |
 | 3 | Grounded Quiz Mode | High | Low/medium | Adds a real second mode while reusing retrieval, citations, refusal, and deterministic grading. |
 | 4 | Mock interview | Highest ceiling | High | Strong agentic story, but open-answer grading and follow-up probing are risky in two days. Stretch only. |
 
@@ -74,6 +75,8 @@ Acceptance:
 - The demo uses the existing teach-loop engine.
 - No new corpus tagging or track-aware retriever is required.
 - The artifact is easy to show in the video.
+- Captured on 2026-06-16 as `demo-lens-low-code-20260616` and `demo-lens-code-heavy-20260616`; both
+  runs stayed in the confirm band, cited retrieved spans, and re-explained after the same wrong answer.
 
 ### Day 1 Afternoon: Pull In Quiz Mode
 
@@ -134,9 +137,9 @@ Options checked on 2026-06-16:
 | Mem0 open source | Possible later | Can run self-hosted/local with extra components such as a vector store and local/provider LLM setup; stronger memory layer, but more infra than the two-day window needs. |
 | Zep Cloud | Future/provider option | Strong long-term memory/graph service, but it requires a cloud project/API key and adds privacy/provider review work. Not a free-local demo fit. |
 
-Decision: keep cross-session memory in the roadmap, but do not build it before the grading fix, lens-switch
-demo, and Quiz Mode. If memory becomes the next pull-in, start with a first-party persisted profile plan;
-compare LangMem/Mem0/Zep during that plan instead of wiring a provider directly.
+Decision: keep cross-session memory in the roadmap, but do not build it before Quiz Mode. If memory
+becomes the next pull-in, start with a first-party persisted profile plan; compare LangMem/Mem0/Zep
+during that plan instead of wiring a provider directly.
 
 ## Considered: Explicit LangGraph
 

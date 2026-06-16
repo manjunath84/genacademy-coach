@@ -23,7 +23,7 @@ first 10 seconds.
 | 1:00–2:30 | **Teach loop:** topic `agent harness` → retrieves citeable course evidence → explains → asks a grounded check → learner gives a wrong answer → **re-explains differently**. Show `traces/demo-grounded-main-final-20260616.jsonl`: turn 1 `drill`, turn 2 `re_explain_differently`, both faithful. | The agenticity proof |
 | 2:30–3:15 | **Deliberate failure:** out-of-corpus topic `Gen Academy cafeteria menu` → **refuses + escalation queue row**. Show `traces/demo-refusal-main-final-20260616.jsonl` and the single matching review-queue row. | Won't-bluff brand |
 | 3:15–4:00 | **Honest eval:** "I did not touch the held-out test split. On the redacted dev eval, the latest evidence is `7/10` overall and `7/8` teachable. Two failures are safe refusals; the original grade-boundary bug is fixed, and the remaining teachable variance is a conservative escalation case." | Technical thinking + integrity |
-| 4:00–4:45 | **Standout move:** same learner asks for the same concept through two teaching lenses — low-code/no-code workflow explanation, then code-heavy Python/LangGraph explanation. | Creativity + personalization |
+| 4:00–4:45 | **Standout move:** same learner asks for the same concept through two teaching lenses — low-code/no-code workflow explanation, then code-heavy implementation lens. Show `demo-lens-low-code-20260616` and `demo-lens-code-heavy-20260616`, both grounded and faithful. | Creativity + personalization |
 | 4:45–5:00 | "Next: quiz, interview, admin upload, and voice — same engine, after the text tutor works." + architecture thumbnail. | Forward momentum |
 
 ## Exact evidence to show
@@ -36,6 +36,7 @@ private eval questions or raw corpus snippets.
 | Grounded teach loop | `traces/demo-grounded-main-final-20260616.jsonl` | "The model chose `drill`, then after the learner's wrong answer chose `re_explain_differently`; Python only enforced grounding and safety." |
 | Refusal path | `traces/demo-refusal-main-final-20260616.jsonl` + `review_queue.jsonl` | "No citeable course material means refusal and one mentor-review queue row, not a model-prior answer." |
 | Honest eval | `eval/runs/teach-loop-dev-main-final-20260616.json` + `eval/runs/teach-loop-dev-grade-boundary.json` | "`7/10` dev scenarios passed, `7/8` teachable scenarios passed, with two safe refusals. The grade-boundary bug is fixed; one conservative escalation variance remains." |
+| Same-topic lens switch | `traces/demo-lens-low-code-20260616.jsonl` + `traces/demo-lens-code-heavy-20260616.jsonl` | "The topic and learner answer stay constant; only the track lens changes. Both runs cite evidence and re-explain after the same wrong answer. The grounding metadata stays stable as the control; the on-screen explanation is what changes by lens." |
 | Safety guard | `scripts/check_eval_leak.py` output in `docs/teach-loop-status.md` | "The held-out `test` split stays frozen and unused; leak checks pass locally." |
 | Scope discipline | `specs/roadmap.md` | "Quiz, interview, admin upload, and voice were intentionally kept as pull-ins until the teach loop worked." |
 | Instructor review | `review_queue.jsonl` + redacted traces | "The failure path already creates the human-review surface; no admin UI is needed for the demo." |
@@ -47,8 +48,9 @@ With two days left, the demo can improve more by raising the floor than by addin
 current plan is captured in `docs/two-day-score-lift-plan.md`:
 
 1. Fix or explain the remaining teachable dev diagnostic.
-2. Capture a same-topic lens-switch demo before any larger pull-in.
-3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable.
+2. Capture a same-topic lens-switch demo before any larger pull-in. Done: both lens traces are captured.
+3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable and an implementation
+   plan passes review.
 4. Treat cross-session memory as a personalization roadmap item, not a two-day build item. The safe next
    memory step is a separate plan comparing first-party persisted profile, LangMem, Mem0 open source, and
    Zep Cloud after the core floor is green.
@@ -82,6 +84,26 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
     --topic "Gen Academy cafeteria menu" \
     --style concise \
     --track-lens low_code_no_code
+```
+
+Same-topic lens switch:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-lens-low-code-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens low_code_no_code \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-lens-code-heavy-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
 ```
 
 Dev eval:
@@ -122,7 +144,7 @@ Do not run `--split test` for demo preparation.
 
 | # | Move | Effort | Payoff |
 |---|---|---|---|
-| S1 | Same learner switches track lens for one concept: low-code/no-code, then code-heavy | ~10 min prompt change | Creativity + "actually adapts" |
+| S1 | Same learner switches track lens for one concept: low-code/no-code workflow, then code-heavy implementation | ~10 min prompt change | Creativity + "actually adapts" |
 | S2 | Honest eval numbers on screen — show the failures and why | ~0 build | Technical thinking + integrity |
 | S3 | "What I cut and why" — 30-sec scope-cut narrative | ~0 build | Initiative + human reasoning |
 | S4 | Corpus version-pin + SHA shown in the demo UI | ~1 hr | Technical thinking + reproducibility |
@@ -134,7 +156,7 @@ Do not run `--split test` for demo preparation.
 | Criterion | What to show | Repo proof |
 |---|---|---|
 | Consistency | Week 3 compounds Week 2: Week 2 built grounded RAG; Week 3 adds agentic teaching, state, failure handling, and HITL. | `docs/genacademy-rag-foundation.md`, `AGENTS.md` |
-| Creativity | Same learner can switch teaching lenses for one topic: low-code/no-code workflow mental model, code-heavy Python/LangGraph detail, or bridge between them. | teach-loop trace + demo script |
+| Creativity | Same learner can switch teaching lenses for one topic: low-code/no-code workflow mental model, code-heavy implementation detail, or bridge between them. | teach-loop trace + demo script |
 | Execution | Live teach loop with refusal, escalation, and trace, not a static prompt demo. | `traces/demo-grounded-main-final-20260616.jsonl`, `traces/demo-refusal-main-final-20260616.jsonl`, `review_queue.jsonl` |
 | Technical thinking | Held-out chat-question eval, citation-resolves checks, deterministic grader, and calibrated retrieval thresholds. | `specs/tech-stack.md`, `docs/decisions.md` |
 | Initiative | The project shows reviewed trade-offs: one retriever, JSON/CLI trace, text-first MVP, and quiz/interview/admin/voice as pull-ins. | `docs/decisions.md`, `specs/roadmap.md` |

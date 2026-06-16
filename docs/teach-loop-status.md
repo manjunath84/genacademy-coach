@@ -301,6 +301,80 @@ Result:
   That is a separate cautious-refusal / structured-output path, not the grade-boundary overwrite.
 - The held-out `test` split was not used.
 
+## Same-Topic Lens-Switch Demo Evidence
+
+The same public demo topic and learner answer were run through two track lenses on 2026-06-16. CLI stdout
+was kept local; the committed docs record only trace IDs and redacted metadata.
+
+Low-code/no-code command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-lens-low-code-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens low_code_no_code \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Trace: `traces/demo-lens-low-code-20260616.jsonl`
+
+Redacted input metadata:
+
+- Topic: `agent harness`
+- Style: `analogy`
+- Track lens: `low_code_no_code`
+- Learner answer: same public wrong-answer probe used for the code-heavy run.
+
+Redacted trace summary:
+
+- Turn 1: `drill`, strategy `short_drill`, evidence `0.711 confirm`, `faithfulness_ok=true`,
+  `retrieved_citation_count=5`, tool calls include retrieval and check generation.
+- Turn 2: `re_explain_differently`, strategy `contrastive_example`, evidence `0.753 confirm`,
+  `faithfulness_ok=true`, `retrieved_citation_count=4`, tool calls include retrieval, check generation,
+  grading, and profile update.
+
+Code-heavy command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-lens-code-heavy-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Trace: `traces/demo-lens-code-heavy-20260616.jsonl`
+
+Redacted input metadata:
+
+- Topic: `agent harness`
+- Style: `analogy`
+- Track lens: `code_heavy`
+- Learner answer: same public wrong-answer probe used for the low-code/no-code run.
+
+Redacted trace summary:
+
+- Turn 1: `drill`, strategy `analogy`, evidence `0.711 confirm`, `faithfulness_ok=true`,
+  `retrieved_citation_count=5`, tool calls include retrieval and check generation.
+- Turn 2: `re_explain_differently`, strategy `contrastive_example`, evidence `0.753 confirm`,
+  `faithfulness_ok=true`, `retrieved_citation_count=4`, tool calls include retrieval, check generation,
+  grading, and profile update.
+
+Both traces use the same topic, style, and learner answer; only the teaching lens changes. The held-out
+`test` split was not used.
+
+Note on what the metadata shows: the runtime metadata is intentionally near-identical across the two
+lenses: same evidence band, citation counts, grading path, and re-explain decision. That is the control:
+it shows the grounding floor is lens-invariant. The personalization is carried by the generated
+explanation text, which stays local/redacted and is shown live in the video, not by these metadata fields.
+The one metadata field that changes is turn-1 `strategy` (`short_drill` vs `analogy`), which is the
+model's own chosen teaching strategy. `strategy` is distinct from the `--style` input flag; in the
+code-heavy run the chosen strategy happens to share the `analogy` name with the requested style.
+
 ## Review Notes
 
 - Builder did not self-approve.
