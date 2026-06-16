@@ -123,6 +123,9 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   handling, state, eval split, the three modes, HITL, roadmap — visualized.
 - `docs/decisions.md` — the load-bearing architecture decisions (settled choices · why · rejected
   alternatives), self-contained in this repo.
+- `docs/build-learnings.md` — non-obvious build decisions + build-in-public log (format: belief → finding
+  → principle, newest first). Read before planning: the log captures the *surprise*, `decisions.md`
+  captures the *settled choice*.
 - *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
   board, the option scorecards, and the improvements ledger — the long-form trail behind
   `docs/decisions.md`. Historical `D##` labels live only in that archive; settled decisions in this
