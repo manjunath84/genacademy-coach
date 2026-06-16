@@ -60,6 +60,9 @@ Built on `genacademy-rag` (*GenAcademy Compass*) — the compounding arc, made c
   transcripts support/fallback.
 - **New:** the adaptive **teach loop** + **within-session learner profile** — the agentic layer Week 2
   didn't have.
+- **Deferred deliberately:** cross-session memory and explicit LangGraph orchestration. They are useful
+  personalization architecture, but this demo keeps memory within the session and uses LangChain
+  `create_agent` on LangGraph's runtime until durable memory or HITL earns a separate plan.
 
 ## Current Demo Evidence
 

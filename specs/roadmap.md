@@ -54,13 +54,28 @@ exist at every step ("demo cannot fail").
 - **Two-day score-lift strategy selected.** The final two-day plan is documented in
   `docs/two-day-score-lift-plan.md`: fix the remaining deterministic grading diagnostic first, polish
   same-topic lens switching second, and pull in grounded Quiz Mode only after the floor is stable.
+- **Reference-informed refinements documented.** Two local AI-tutor transcript references informed the
+  final demo plan: low-stakes within-session mastery framing, deterministic quiz criteria pinned from
+  cited spans, `review_queue.jsonl` plus redacted traces as the instructor-review surface, and
+  reproducibility via split manifests/checksums/idempotent ingest. The referenced transcript files remain
+  local-only under `tmp/`.
+- **Memory options evaluated for roadmap, not implementation.** Cross-session memory remains a
+  personalization pull-in, but the recommended sequence is provider-neutral: first consider a tiny
+  first-party persisted profile for style/struggle tags, then compare LangMem, Mem0 open source, and Zep
+  Cloud under a separate approved plan.
+- **Explicit LangGraph evaluated and deferred.** The project already uses LangChain `create_agent` on
+  LangGraph's runtime. Direct `langgraph.*` graph/checkpointer/store code is reserved for a future delta
+  that proves `create_agent` is no longer enough, such as durable cross-session memory, HITL interrupts,
+  or multi-mode orchestration that cannot stay understandable as one agent loop.
 
 ### In Progress
 
 - **Score-lift implementation prep.** The repo narrative is ready, but with two days left the active plan
   is to improve the demo floor before recording: diagnose the remaining `grade_not_correct` dev failure,
   capture a repeatable same-topic lens-switch demo, then build the smallest grounded Quiz Mode if the
-  first two steps stay green.
+  first two steps stay green. Memory is intentionally held as a later personalization pull-in because it
+  adds persistence/privacy surface and must not become a hidden source of course facts. Explicit LangGraph
+  remains deferred for the same reason: useful for durable memory later, unnecessary for the two-day demo.
 
 ### Pending Before MVP Demo
 
@@ -68,6 +83,10 @@ exist at every step ("demo cannot fail").
 - Fix or explicitly explain the remaining `grade_not_correct` dev diagnostic.
 - Capture the same-topic lens-switch demo as a repeatable trace.
 - Build grounded Quiz Mode only if the floor remains stable.
+- If memory is pulled in after the demo floor is green, write a separate implementation plan that compares
+  first-party persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
+- If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
+  current pure-core / thin-view boundary.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
 - Create the Google Doc submission from the prepared outline and evidence table.
 - Flip the repo public at submission time if required.
@@ -111,12 +130,15 @@ is a Day-2 stretch only if quiz is already green.
 3. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
 4. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth
 5. **Track-aware retrieval** — corpus tagged by track
-6. **Cross-session memory** — Mem0 (semantic + episodic): "remembers you across days"
-7. **Caching (L1/L4/L5) + model tiering**
-8. **Multimodal slide questions**
-9. **Cohort rollout** — multi-user / auth / per-user cost caps
-10. **Flashcards / mind-map artifacts**
-11. **GraphRAG** (course knowledge graph)
+6. **Cross-session memory** — evaluate first-party persisted profile, LangMem, Mem0 open source, and Zep
+   Cloud; memory may personalize style/struggle history, but course facts still require citations
+7. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
+   coordination outgrow `create_agent`
+8. **Caching (L1/L4/L5) + model tiering**
+9. **Multimodal slide questions**
+10. **Cohort rollout** — multi-user / auth / per-user cost caps
+11. **Flashcards / mind-map artifacts**
+12. **GraphRAG** (course knowledge graph)
 
 ## NORTH STAR (not this week)
 
@@ -137,8 +159,13 @@ style + per-track + voice/multimodal, deployed to the cohort.
   `test` split for calibration.
 - **Scope vs. one week.** Teach loop is the committed MVP; everything else is a pull-in. **Don't start a
   pull-in until the MVP demos end-to-end.**
+- **Memory privacy.** Cross-session memory can store learner preferences and struggle patterns, not raw
+  private corpus/eval text or uncited course claims. Provider-backed memory needs an explicit privacy and
+  deletion story before implementation.
+- **LangGraph scope.** Direct graph/checkpointer/store imports are future architecture, not demo polish.
+  They need a written delta against the current `create_agent` boundary before code.
 
 ## Cut order if slipping (cut from the left; never cut the last two)
 
-voice → admin upload → multimodal → flashcards → caching → track-aware retrieval → interview → quiz →
+voice → explicit LangGraph → cross-session memory → admin upload → multimodal → flashcards → caching → track-aware retrieval → interview → quiz →
 **never** the grounded **teach loop** → **never** the **refusal / eval / trace** path.
