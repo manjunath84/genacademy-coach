@@ -522,6 +522,116 @@ def test_session_grades_current_check_answer_before_agent_decides(tmp_path):
     assert '"correct":true' in agent.messages[0][0]["content"]
 
 
+def test_session_preserves_boundary_grade_when_agent_switches_check_in_turn(tmp_path):
+    class SwitchingCheckAgent:
+        def __init__(self):
+            self.runtime = None
+
+        def invoke(self, messages):
+            assert self.runtime is not None
+            assert '"correct":true' in messages[0]["content"]
+            self.runtime.current_check = CheckItem(
+                question="What do tools let an agent do?",
+                expected_answer="Tools let an agent act outside the model.",
+                expected_keywords=["agent act"],
+                citation_id="note/tools::0",
+            )
+            self.runtime.grade_locked = False
+            self.runtime.last_grade = UnderstandingGrade(
+                correct=False,
+                matched_keywords=[],
+                missing_keywords=["agent act"],
+                citation_id="note/tools::0",
+            )
+            self.runtime.profile.last_grade_correct = False
+            self.runtime.record_tool("generate_check_item")
+            self.runtime.record_tool("grade_understanding")
+            return CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="agent generated the next check before finishing this response",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=["note/attention::0"],
+            )
+
+    agent = SwitchingCheckAgent()
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    agent.runtime = session.runtime
+    session.runtime.last_spans = [cited_span(), other_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.respond("It helps focus relevant context.")
+
+    assert result.response.next_action == "advance"
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.correct is True
+    assert session.runtime.last_grade.citation_id == "note/attention::0"
+    assert session.profile.last_grade_correct is True
+
+
+def test_session_preserves_incorrect_boundary_grade_when_agent_switches_check_in_turn(
+    tmp_path,
+):
+    class SwitchingCheckAgent:
+        def __init__(self):
+            self.runtime = None
+
+        def invoke(self, messages):
+            assert self.runtime is not None
+            assert '"correct":false' in messages[0]["content"]
+            self.runtime.current_check = CheckItem(
+                question="What do tools let an agent do?",
+                expected_answer="Tools let an agent act outside the model.",
+                expected_keywords=["agent act"],
+                citation_id="note/tools::0",
+            )
+            self.runtime.grade_locked = False
+            self.runtime.last_grade = UnderstandingGrade(
+                correct=True,
+                matched_keywords=["agent act"],
+                missing_keywords=[],
+                citation_id="note/tools::0",
+            )
+            self.runtime.profile.last_grade_correct = True
+            self.runtime.record_tool("generate_check_item")
+            self.runtime.record_tool("grade_understanding")
+            return CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="agent generated the next check before finishing this response",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=["note/attention::0"],
+            )
+
+    agent = SwitchingCheckAgent()
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    agent.runtime = session.runtime
+    session.runtime.last_spans = [cited_span(), other_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.respond("It stores customer profiles.")
+
+    assert result.response.next_action == "re_explain_differently"
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.correct is False
+    assert session.runtime.last_grade.citation_id == "note/attention::0"
+    assert session.profile.last_grade_correct is False
+
+
 @pytest.mark.parametrize("agent_action", ["refuse_escalate", "stop"])
 def test_session_uses_grounded_advance_after_correct_answer_when_agent_skips_citations(
     tmp_path,

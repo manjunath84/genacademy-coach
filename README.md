@@ -6,10 +6,10 @@ know and struggled with (within a session), and **refuses to bluff** — it only
 from the course materials, and escalates the rest to a human mentor.
 
 > **Implementation status:** teach-loop MVP implemented, merged, live Nebius-verified, and reviewed by
-> separate Gemini/Claude contexts. The final merged-main evidence is `7/10` on the dev eval and `7/8`
-> on teachable scenarios, with two safe low-retrieval refusals and one remaining deterministic grading
-> diagnostic. Private corpus files remain local-only; only structure, redacted diagnostics, and leak
-> checks are versioned.
+> separate Gemini/Claude contexts. The latest dev evidence remains `7/10` on the dev eval and `7/8`
+> on teachable scenarios, with two safe low-retrieval refusals. The original same-turn grading overwrite
+> is fixed; the remaining live-run variance is a confirm-band refusal/structured-output path. Private
+> corpus files remain local-only; only structure, redacted diagnostics, and leak checks are versioned.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
@@ -76,8 +76,8 @@ Final merged-main evidence was captured on 2026-06-16 without using the held-out
   - `refuse_escalate`, evidence `0.0 stop`, exactly one review-queue row.
 - Dev eval artifact: `eval/runs/teach-loop-dev-main-final-20260616.json`
   - `7/10` overall, `7/8` teachable, `2` safe low-retrieval refusals.
-  - Remaining failure: one deterministic `grade_not_correct` diagnostic, with citations resolved and a
-    runtime-decision trace present.
+  - Follow-up grade-boundary run fixes the original same-turn grade overwrite; latest dev evidence still
+    has one teachable failure from a separate confirm-band refusal path.
 
 Run the same public-topic demo locally:
 

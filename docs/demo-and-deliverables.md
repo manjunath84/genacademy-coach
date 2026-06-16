@@ -22,7 +22,7 @@ first 10 seconds.
 | 0:30–1:00 | "Before the code — here's what I **cut** and why." (show `roadmap.md` cut list) | Initiative + scope discipline |
 | 1:00–2:30 | **Teach loop:** topic `agent harness` → retrieves citeable course evidence → explains → asks a grounded check → learner gives a wrong answer → **re-explains differently**. Show `traces/demo-grounded-main-final-20260616.jsonl`: turn 1 `drill`, turn 2 `re_explain_differently`, both faithful. | The agenticity proof |
 | 2:30–3:15 | **Deliberate failure:** out-of-corpus topic `Gen Academy cafeteria menu` → **refuses + escalation queue row**. Show `traces/demo-refusal-main-final-20260616.jsonl` and the single matching review-queue row. | Won't-bluff brand |
-| 3:15–4:00 | **Honest eval:** "I did not touch the held-out test split. On the redacted dev eval, merged `main` is `7/10` overall and `7/8` teachable. Two failures are safe refusals; one teachable scenario still has a deterministic grading diagnostic." | Technical thinking + integrity |
+| 3:15–4:00 | **Honest eval:** "I did not touch the held-out test split. On the redacted dev eval, the latest evidence is `7/10` overall and `7/8` teachable. Two failures are safe refusals; the original grade-boundary bug is fixed, and the remaining teachable variance is a conservative escalation case." | Technical thinking + integrity |
 | 4:00–4:45 | **Standout move:** same learner asks for the same concept through two teaching lenses — low-code/no-code workflow explanation, then code-heavy Python/LangGraph explanation. | Creativity + personalization |
 | 4:45–5:00 | "Next: quiz, interview, admin upload, and voice — same engine, after the text tutor works." + architecture thumbnail. | Forward momentum |
 
@@ -35,7 +35,7 @@ private eval questions or raw corpus snippets.
 |---|---|---|
 | Grounded teach loop | `traces/demo-grounded-main-final-20260616.jsonl` | "The model chose `drill`, then after the learner's wrong answer chose `re_explain_differently`; Python only enforced grounding and safety." |
 | Refusal path | `traces/demo-refusal-main-final-20260616.jsonl` + `review_queue.jsonl` | "No citeable course material means refusal and one mentor-review queue row, not a model-prior answer." |
-| Honest eval | `eval/runs/teach-loop-dev-main-final-20260616.json` | "`7/10` dev scenarios passed, `7/8` teachable scenarios passed, with two safe refusals and one grading diagnostic left." |
+| Honest eval | `eval/runs/teach-loop-dev-main-final-20260616.json` + `eval/runs/teach-loop-dev-grade-boundary.json` | "`7/10` dev scenarios passed, `7/8` teachable scenarios passed, with two safe refusals. The grade-boundary bug is fixed; one conservative escalation variance remains." |
 | Safety guard | `scripts/check_eval_leak.py` output in `docs/teach-loop-status.md` | "The held-out `test` split stays frozen and unused; leak checks pass locally." |
 | Scope discipline | `specs/roadmap.md` | "Quiz, interview, admin upload, and voice were intentionally kept as pull-ins until the teach loop worked." |
 | Instructor review | `review_queue.jsonl` + redacted traces | "The failure path already creates the human-review surface; no admin UI is needed for the demo." |
@@ -46,7 +46,7 @@ private eval questions or raw corpus snippets.
 With two days left, the demo can improve more by raising the floor than by adding flashy scope. The
 current plan is captured in `docs/two-day-score-lift-plan.md`:
 
-1. Fix or explain the remaining `grade_not_correct` dev diagnostic.
+1. Fix or explain the remaining teachable dev diagnostic.
 2. Capture a same-topic lens-switch demo before any larger pull-in.
 3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable.
 4. Treat cross-session memory as a personalization roadmap item, not a two-day build item. The safe next
@@ -55,9 +55,9 @@ current plan is captured in `docs/two-day-score-lift-plan.md`:
 5. Treat mock interview as a Day-2 stretch only; skip voice, explicit LangGraph, GraphRAG, multimodal, and
    admin upload for this demo window.
 
-If the grading fix lands, say the score honestly: "raw dev eval improved from the merged-main baseline,
-and the two safe refusals are the refusal path doing its job." If it does not land, keep the existing
-`7/10` and `7/8` numbers and explain the remaining diagnostic directly.
+The grading fix landed for the original scenario, but the raw dev eval stayed at `7/10` and `7/8`
+because a different confirm-band scenario escalated. Say that directly: "the deterministic grade-boundary
+bug is fixed; the remaining variance is the tutor being conservative when evidence is marginal."
 
 ## Commands for the recording
 
@@ -108,8 +108,8 @@ Do not run `--split test` for demo preparation.
 4. **The eval-honesty fix** (½ p) — "my first design reused the same questions for seed and test — a
    classic leak; here's how I caught it and the hard-split protocol I built." (show `split_manifest.json`)
 5. **What I built** (2 p) — architecture, code snippets, prompt samples.
-6. **Honest numbers** (½ p) — `7/10` dev, `7/8` teachable, two safe refusals, one grading diagnostic,
-   held-out `test` split untouched.
+6. **Honest numbers** (½ p) — `7/10` dev, `7/8` teachable, two safe refusals, one conservative
+   escalation variance, held-out `test` split untouched.
 7. **What I learned** (½ p) — use `docs/build-learnings.md`: eval splits must be frozen, diagnostics
    should reuse runtime truth, and locks need identity, not only a boolean.
 
