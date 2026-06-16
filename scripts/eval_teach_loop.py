@@ -9,9 +9,10 @@ from typing import Any
 
 from genacademy_coach.eval_io import read_eval_text
 from genacademy_coach.foundation import Foundation
+from genacademy_coach.grounding import evidence_band, evidence_score
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.teach_session import CoachSession
-from genacademy_coach.teach_types import LearnerProfile
+from genacademy_coach.teach_types import LearnerProfile, RetrievedSpan
 from genacademy_coach.trace import load_trace
 
 QUESTION_PREFIX_RE = re.compile(r"^\s*(?:[-*]|\d+[.)])\s*")
@@ -80,17 +81,9 @@ def reset_scenario_trace(settings: CoachSettings, session_id: str) -> None:
         trace_path.unlink()
 
 
-def count_source_types(spans: list[Any]) -> dict[str, int]:
-    counts = Counter(str(span.source_type) for span in spans)
+def count_source_types(spans: list[RetrievedSpan]) -> dict[str, int]:
+    counts = Counter(span.source_type or "unknown" for span in spans)
     return {source_type: counts[source_type] for source_type in sorted(counts)}
-
-
-def score_band(top_score: float, *, stop_threshold: float, confirm_threshold: float) -> str:
-    if top_score < stop_threshold:
-        return "stop"
-    if top_score < confirm_threshold:
-        return "confirm"
-    return "proceed"
 
 
 def diagnostic_reasons(row: dict[str, Any]) -> list[str]:
@@ -109,6 +102,7 @@ def diagnostic_reasons(row: dict[str, Any]) -> list[str]:
     if row["teachable"] and not row["trace_has_runtime_decision"]:
         reasons.append("missing_runtime_decision_trace")
     if not reasons and not row["passed"]:
+        # Defensive for externally assembled rows; score_scenario classifies normal failures above.
         reasons.append("unknown_eval_failure")
     return reasons
 
@@ -139,18 +133,23 @@ def build_diagnostics(
     eval_source_counts: Counter[str] = Counter()
     low_retrieval_by_source: Counter[str] = Counter()
     retrieved_source_counts: Counter[str] = Counter()
+    low_retrieval_scenarios = []
+    teachable_failures = []
 
     for row in results:
-        band = score_band(
+        band = evidence_band(
             float(row["top_score"]),
             stop_threshold=stop_threshold,
             confirm_threshold=confirm_threshold,
         )
         band_counts[band] += 1
-        next_action_counts[str(row["final_next_action"])] += 1
+        next_action_counts[str(row["final_next_action"] or "unknown")] += 1
         eval_source_counts[str(row["source_file"])] += 1
         if band == "stop":
             low_retrieval_by_source[str(row["source_file"])] += 1
+            low_retrieval_scenarios.append(diagnostic_scenario(row))
+        if row["teachable"] and not row["passed"]:
+            teachable_failures.append(diagnostic_scenario(row))
         reason_counts.update(row["diagnostic_reasons"])
         retrieved_source_counts.update(row["retrieved_source_types"])
 
@@ -169,16 +168,8 @@ def build_diagnostics(
                 1 for row in results if not row["retrieved_count"]
             ),
         },
-        "low_retrieval_scenarios": [
-            diagnostic_scenario(row)
-            for row in results
-            if row["top_score"] < stop_threshold
-        ],
-        "teachable_failures": [
-            diagnostic_scenario(row)
-            for row in results
-            if row["teachable"] and not row["passed"]
-        ],
+        "low_retrieval_scenarios": low_retrieval_scenarios,
+        "teachable_failures": teachable_failures,
     }
 
 
@@ -211,7 +202,7 @@ def score_scenario(
     retrieved_ids = {span.citation_id for span in session.runtime.last_spans}
     retrieved_source_types = count_source_types(session.runtime.last_spans)
     citation_ids = final.response.citation_ids
-    top_score = max((span.score for span in session.runtime.last_spans), default=0.0)
+    top_score = evidence_score(session.runtime.last_spans)
     final_next_action = final.response.next_action
     citations_resolve = bool(citation_ids) and set(citation_ids).issubset(retrieved_ids)
     re_explained_differently = (

@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+from genacademy_coach.grounding import evidence_band
 from genacademy_coach.teach_types import (
     CheckItem,
     CoachAgentResponse,
@@ -19,6 +22,28 @@ def load_eval_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def diagnostic_row(**overrides):
+    row = {
+        "scenario_id": "item-a:000",
+        "item_id": "item-a",
+        "source_file": "week1-chat.docx",
+        "passed": True,
+        "citations_resolve": True,
+        "re_explained_differently": True,
+        "grade_correct": True,
+        "trace_has_runtime_decision": True,
+        "teachable": True,
+        "safe_refusal": False,
+        "top_score": 0.72,
+        "retrieved_count": 1,
+        "retrieved_source_types": {"handout": 1},
+        "citation_ids": ["handout/attention::0"],
+        "final_next_action": "advance",
+    }
+    row.update(overrides)
+    return row
 
 
 def test_load_manifest_items_filters_split(tmp_path):
@@ -279,3 +304,81 @@ def test_build_diagnostics_reports_redacted_low_retrieval_and_source_coverage():
     ]
     assert diagnostics["teachable_failures"][0]["scenario_id"] == "item-a:001"
     assert "question_text" not in diagnostics["low_retrieval_scenarios"][0]
+
+
+@pytest.mark.parametrize(
+    ("row", "expected"),
+    [
+        (
+            diagnostic_row(
+                passed=False,
+                teachable=False,
+                safe_refusal=True,
+                top_score=0.0,
+                retrieved_count=0,
+                retrieved_source_types={},
+                citation_ids=[],
+                final_next_action="refuse_escalate",
+            ),
+            ["safe_low_retrieval_refusal"],
+        ),
+        (
+            diagnostic_row(passed=False, teachable=False, top_score=0.0),
+            ["low_retrieval_not_refused"],
+        ),
+        (
+            diagnostic_row(passed=False, citations_resolve=False, citation_ids=[]),
+            ["citation_ids_not_resolved"],
+        ),
+        (
+            diagnostic_row(passed=False, re_explained_differently=False),
+            ["missing_strategy_change"],
+        ),
+        (
+            diagnostic_row(passed=False, grade_correct=False),
+            ["grade_not_correct"],
+        ),
+        (
+            diagnostic_row(passed=False, trace_has_runtime_decision=False),
+            ["missing_runtime_decision_trace"],
+        ),
+        (
+            diagnostic_row(passed=False),
+            ["unknown_eval_failure"],
+        ),
+    ],
+)
+def test_diagnostic_reasons_covers_reason_taxonomy(row, expected):
+    module = load_eval_module()
+
+    assert module.diagnostic_reasons(row) == expected
+
+
+def test_build_diagnostics_uses_canonical_evidence_band_boundaries():
+    module = load_eval_module()
+    rows = [
+        diagnostic_row(scenario_id="item-a:000", top_score=0.59),
+        diagnostic_row(scenario_id="item-a:001", top_score=0.60),
+        diagnostic_row(scenario_id="item-a:002", top_score=0.85),
+    ]
+    for row in rows:
+        row["diagnostic_reasons"] = module.diagnostic_reasons(row)
+
+    diagnostics = module.build_diagnostics(
+        rows,
+        stop_threshold=0.60,
+        confirm_threshold=0.85,
+    )
+
+    expected_counts = {"stop": 0, "confirm": 0, "proceed": 0}
+    for row in rows:
+        band = evidence_band(
+            row["top_score"],
+            stop_threshold=0.60,
+            confirm_threshold=0.85,
+        )
+        expected_counts[band] += 1
+    assert diagnostics["score_band_counts"] == expected_counts
+    assert [row["scenario_id"] for row in diagnostics["low_retrieval_scenarios"]] == [
+        "item-a:000"
+    ]
