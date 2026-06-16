@@ -10,6 +10,19 @@
 
 ---
 
+## 2026-06-16 — A lock without an identity is just stale state waiting to happen
+
+**What I believed:** once Python computed the canonical answer grade, a simple `grade_locked` flag was
+enough to stop later tool calls from overwriting it.
+
+**What I found:** the lock protected the old grade too broadly. In one agent turn, the runtime could
+grade check A, generate a new check B, then call the grading tool again. A bare boolean lock would return
+check A's grade while the active check was B.
+
+**Principle:** when you lock a correctness-critical signal, lock it to the object it belongs to. A guard
+should carry or verify identity, not just say "some value is locked." Clear the lock on ownership changes,
+and only reuse the locked value when its identifier still matches the active state.
+
 ## 2026-06-16 — If Python computes the canonical grade, tool calls cannot be allowed to overwrite it
 
 **What I believed:** moving answer grading to the session boundary meant the eval's final grade was

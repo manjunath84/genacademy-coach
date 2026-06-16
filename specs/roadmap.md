@@ -47,14 +47,14 @@ exist at every step ("demo cannot fail").
 
 - **Demo-readiness fallback review.** The current branch adds the first-turn grounded fallback needed for
   a clean public demo trace and applies Claude review fixes for action preservation, refusal boundaries,
-  citation/check alignment, and locked session-boundary grading. The latest full dev eval on this branch
-  is `7/10` overall and `7/8` teachable: two failures are safe low-retrieval refusals, and one teachable
-  scenario still has model-behavior diagnostics. It still needs final review/merge before honest
-  reporting.
+  citation/check alignment, and scoped locked session-boundary grading. The latest full dev eval on this
+  branch is `7/10` overall and `7/8` teachable: two failures are safe low-retrieval refusals, and one
+  teachable scenario still has model-behavior diagnostics. Claude's re-review blocker has been fixed
+  locally; final approval/merge is still pending before honest reporting.
 
 ### Pending Before MVP Demo
 
-- Get final review/approval of the demo-readiness fallback fixes before merge.
+- Get final approval of the demo-readiness fallback fixes before merge.
 - Capture final honest on-screen numbers from the merged branch.
 - Keep the held-out `test` split unused until final evaluation/reporting.
 
@@ -81,8 +81,8 @@ The adaptive **teach loop**:
 **Build order status.** Foundation adapter, eval scaffolding, leak guard, teach-loop core, eval
 diagnostics, retrieval triage, threshold calibration, behavior hardening, and citation-resolution
 hardening are complete on the dev split. Demo trace capture is complete locally on the current branch; the
-active gate is review/merge for the first-turn grounding fallback, then final honest reporting from the
-merged branch while keeping the held-out `test` split untouched until final evaluation.
+active gate is final approval/merge for the first-turn grounding fallback, then final honest reporting
+from the merged branch while keeping the held-out `test` split untouched until final evaluation.
 
 ## PULL-IN (if time, in priority order — SHOULD)
 

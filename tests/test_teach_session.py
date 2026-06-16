@@ -375,6 +375,38 @@ def test_grounded_teach_fallback_uses_span_that_matches_current_check(tmp_path):
     assert result.response.check_question == "What does attention help with?"
 
 
+def test_grounded_teach_fallback_refuses_when_check_span_not_retrieved(tmp_path):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Customer profiles persist long term. [note/tools::0]",
+            observation="agent cited a span but the active check citation was not retrieved",
+            next_action="drill",
+            strategy="analogy",
+            citation_ids=["note/tools::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [other_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.start()
+
+    queue_text = (tmp_path / "review_queue.jsonl").read_text(encoding="utf-8")
+    assert result.response.next_action == "refuse_escalate"
+    assert result.response.observation == (
+        "grounded check citation was not present in retrieved spans"
+    )
+    assert "note/tools::0" in queue_text
+    assert "grounded check citation was not present in retrieved spans" in queue_text
+
+
 def test_session_uses_grounded_reexplain_fallback_after_wrong_answer(tmp_path):
     agent = StaticAgentPort(
         CoachAgentResponse(

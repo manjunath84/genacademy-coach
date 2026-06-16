@@ -1,7 +1,7 @@
 # Teach Loop Status
 
 Status: implemented and live-verified. Earlier teach-loop PRs were reviewed by Gemini/Claude; the
-latest demo-readiness fallback has Claude review fixes applied and still needs final review/merge.
+latest demo-readiness fallback has Claude re-review fixes applied and still needs final approval/merge.
 
 ## Verification
 
@@ -18,6 +18,10 @@ latest demo-readiness fallback has Claude review fixes applied and still needs f
 - `uv run pytest -q` after Claude follow-up fix: `77 passed, 2 warnings`.
 - `uv run python scripts/check_eval_leak.py` after Claude follow-up fix: passed; existing PDF extraction
   warnings were emitted.
+- `uv run pytest tests/test_teach_tools.py tests/test_teach_session.py -q` after PR #10 re-review
+  fix: `36 passed`.
+- `uv run pytest -q` after PR #10 re-review fix: `111 passed, 2 warnings`.
+- `uv run ruff check .` after PR #10 re-review fix: `All checks passed!`.
 
 ## Live Nebius Demo
 
@@ -179,6 +183,8 @@ Redacted trace summary:
   `missing_runtime_decision_trace`).
 - A targeted grade-lock verification on the previously failing first dev scenario now passes with
   `grade_correct=true` (`eval/runs/teach-loop-dev-demo-fallback-gradelock-scenario0.json`).
+- Claude re-review blocker fixed: generating a new check now clears the grade lock, and locked grades
+  are only reused when they match the active check citation.
 - MVP tradeoff: the safety fallback uses a bounded exact course-span excerpt instead of a polished
   rewrite, prioritizing faithfulness over teaching style when the model's first wording fails grounding.
 

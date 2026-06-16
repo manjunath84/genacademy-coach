@@ -104,13 +104,19 @@ def build_teach_tools(runtime: TeachRuntime):
             runtime.foundation.provider,
             span_by_id[citation_id],
         )
+        runtime.grade_locked = False
         return runtime.current_check.model_dump_json()
 
     @tool
     def grade_understanding(answer: str) -> str:
         """Grade the learner answer against the current grounded check item."""
         runtime.record_tool("grade_understanding")
-        if runtime.grade_locked and runtime.last_grade is not None:
+        if (
+            runtime.grade_locked
+            and runtime.last_grade is not None
+            and runtime.current_check is not None
+            and runtime.last_grade.citation_id == runtime.current_check.citation_id
+        ):
             return runtime.last_grade.model_dump_json()
         if runtime.current_check is None:
             return json.dumps({"error": "no current check item"})
