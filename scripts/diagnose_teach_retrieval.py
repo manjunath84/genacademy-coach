@@ -20,6 +20,7 @@ from genacademy_coach.settings import CoachSettings
 
 
 def load_scenarios(settings: CoachSettings, *, split: str, limit: int) -> list[dict[str, str]]:
+    # Keep this diagnostic next to eval_teach_loop.py; both share the same scenario loader.
     script_path = Path(__file__).with_name("eval_teach_loop.py")
     spec = importlib.util.spec_from_file_location("eval_teach_loop", script_path)
     if spec is None or spec.loader is None:
