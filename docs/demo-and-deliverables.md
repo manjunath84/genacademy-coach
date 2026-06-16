@@ -49,8 +49,8 @@ current plan is captured in `docs/two-day-score-lift-plan.md`:
 
 1. Fix or explain the remaining teachable dev diagnostic.
 2. Capture a same-topic lens-switch demo before any larger pull-in. Done: both lens traces are captured.
-3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable and an implementation
-   plan passes review.
+3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable. Draft plan:
+   `docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`; implement only after review approval.
 4. Treat cross-session memory as a personalization roadmap item, not a two-day build item. The safe next
    memory step is a separate plan comparing first-party persisted profile, LangMem, Mem0 open source, and
    Zep Cloud after the core floor is green.

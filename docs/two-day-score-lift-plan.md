@@ -1,8 +1,8 @@
 # Two-Day Score-Lift Plan
 
 Status: active final-two-day sequence. The grade-boundary fix and same-topic lens-switch evidence are
-captured; the next pull-in is grounded Quiz Mode only after its own implementation plan and review. The
-held-out `test` split remains untouched.
+captured; the grounded Quiz Mode implementation plan is drafted for review before code. The held-out
+`test` split remains untouched.
 
 ## Goal
 
@@ -92,8 +92,10 @@ Build only the smallest grounded quiz slice:
 - Add focused tests for question shape, grading, and refusal.
 - Update README, roadmap, and demo docs.
 
-Quiz Mode still needs its own approved implementation plan and fresh-context review before code
-per AGENTS sections 2 and 8; this sequencing doc is not build approval.
+Quiz Mode has its own draft implementation plan at
+`docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`. That plan still needs fresh-context /
+different-model review before implementation per AGENTS sections 2 and 8; this sequencing doc is not
+build approval.
 
 Hard stop:
 
