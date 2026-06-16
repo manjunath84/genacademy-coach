@@ -73,7 +73,12 @@ Result:
 - Overall: `1/10` passed, `pass_rate=0.1`.
 - Teachable subset: `1/1` passed, `teachable_pass_rate=1.0`.
 - Safe refusals: `9`.
-- Failure mode: scenarios `000` through `008` had `top_score=0.0`, were below the STOP threshold, and refused/escalated without leaking raw private question text.
+- Initial failure mode: scenarios `000` through `008` had post-filter `top_score=0.0`, were below the
+  STOP threshold, and refused/escalated without leaking raw private question text.
+- Follow-up retrieval triage: raw retrieval returned candidates for every dev scenario; the low-coverage
+  symptom came from top cosine scores below the initial `0.60` STOP threshold, not from missing
+  ingestion. The adapter preserves the globally top-scored candidate before thresholding; source-priority
+  demotion remains a separate retrieval-quality signal. See `docs/teach-loop-retrieval-triage.md`.
 
 ## Review Notes
 
