@@ -267,6 +267,11 @@ class CoachSession:
                 )
             if self._last_grade_is_correct():
                 return self._grounded_advance_response(cited_spans=cited_spans)
+            if self.runtime.current_check is not None:
+                return self._grounded_teach_response(
+                    response=response,
+                    cited_spans=cited_spans,
+                )
             return self._refusal_response(
                 UNFAITHFUL_RESPONSE_REASON,
                 "I could not verify that answer against the retrieved course citation text, so "
@@ -349,6 +354,29 @@ class CoachSession:
             next_action="advance",
             strategy="summary",
             citation_ids=[span.citation_id],
+        )
+
+    def _grounded_teach_response(
+        self,
+        *,
+        response: CoachAgentResponse,
+        cited_spans: list[Any],
+    ) -> CoachAgentResponse:
+        span = cited_spans[0]
+        excerpt = " ".join(span.text.split())[:700].rstrip()
+        return CoachAgentResponse(
+            learner_message=f"{excerpt} [{span.citation_id}]",
+            observation="grounded fallback after initial unfaithful agent response",
+            next_action=(
+                response.next_action if response.next_action in {"advance", "drill"} else "drill"
+            ),
+            strategy=response.strategy,
+            citation_ids=[span.citation_id],
+            check_question=(
+                self.runtime.current_check.question
+                if self.runtime.current_check is not None
+                else None
+            ),
         )
 
     def _refusal_response(

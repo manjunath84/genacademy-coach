@@ -229,6 +229,42 @@ def test_session_rejects_unfaithful_cited_answer(tmp_path):
     assert rows[0].faithfulness_ok is False
 
 
+def test_session_uses_grounded_teach_fallback_for_initial_unfaithful_explanation(
+    tmp_path,
+):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention stores long term customer profiles. [note/attention::0]",
+            observation="agent tried to teach with unsupported text",
+            next_action="drill",
+            strategy="analogy",
+            citation_ids=["note/attention::0"],
+            check_question="Made up check?",
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.start()
+
+    assert result.response.next_action == "drill"
+    assert result.response.strategy == "analogy"
+    assert result.response.citation_ids == ["note/attention::0"]
+    assert result.response.check_question == "What does attention help with?"
+    assert "Attention highlights relevant context" in result.response.learner_message
+    assert not (tmp_path / "review_queue.jsonl").exists()
+    rows = load_trace(Path(result.trace_path))
+    assert rows[0].faithfulness_ok is True
+
+
 def test_session_uses_grounded_reexplain_fallback_after_wrong_answer(tmp_path):
     agent = StaticAgentPort(
         CoachAgentResponse(

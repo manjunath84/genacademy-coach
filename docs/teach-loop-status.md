@@ -1,6 +1,7 @@
 # Teach Loop Status
 
-Status: implemented, live-verified, and reviewed by Gemini + Claude.
+Status: implemented and live-verified. Earlier teach-loop PRs were reviewed by Gemini/Claude; the
+latest demo-readiness fallback still needs a fresh review before merge.
 
 ## Verification
 
@@ -147,6 +148,53 @@ Result:
 - Diagnostic reason counts: `safe_low_retrieval_refusal=2`.
 - There are no remaining teachable failures in this dev run; the two non-passing scenarios are safe
   low-retrieval refusals.
+
+## Demo-Ready Runtime Trace
+
+Grounded command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-grounded-harness-fallback-20260616 \
+    --topic "agent harness" \
+    --style analogy \
+    --track-lens code_heavy \
+    --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Trace: `traces/demo-grounded-harness-fallback-20260616.jsonl`
+
+Redacted trace summary:
+
+- Turn 1: `drill`, strategy `short_drill`, evidence `0.711 confirm`, `faithfulness_ok=true`,
+  `retrieved_count=5`, tool calls include `retrieve_course_corpus` and `generate_check_item`.
+- Turn 2: `re_explain_differently`, strategy `contrastive_example`, evidence `0.753 confirm`,
+  `faithfulness_ok=true`, `retrieved_count=4`, tool calls include retrieval, grading, and profile update.
+- This run demonstrates a grounded teach turn plus a learner-dependent strategy change after a wrong
+  answer. The held-out `test` split was not used.
+- Post-fallback dev eval remains `8/10` overall and `8/8` teachable with only
+  `safe_low_retrieval_refusal=2` (`eval/runs/teach-loop-dev-demo-fallback.json`).
+
+Refusal command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_teach_demo.py \
+    --session-id demo-refusal-20260616 \
+    --topic "Gen Academy cafeteria menu" \
+    --style concise \
+    --track-lens low_code_no_code
+```
+
+Trace: `traces/demo-refusal-20260616.jsonl`
+
+Redacted trace summary:
+
+- Turn 1: `refuse_escalate`, strategy `refusal`, evidence `0.0 stop`, `faithfulness_ok=null`,
+  `retrieved_count=0`, tool calls include retrieval and mentor escalation.
+- `review_queue.jsonl` received exactly one row for the refusal session, preserving escalation
+  idempotency even when the model attempted the escalation tool more than once.
 
 ## Review Notes
 
