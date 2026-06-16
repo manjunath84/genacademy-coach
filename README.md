@@ -40,6 +40,8 @@ low-code/no-code explanation, a code-heavy explanation, or a bridge between them
 - [`docs/demo-and-deliverables.md`](docs/demo-and-deliverables.md) — final demo script, evidence, and
   submission checklist
 - [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted live trace and eval evidence
+- [`docs/two-day-score-lift-plan.md`](docs/two-day-score-lift-plan.md) — final score-lift sequence:
+  grading diagnostic, lens-switch demo, then grounded Quiz Mode
 
 ## Build track
 

@@ -37,6 +37,21 @@ private eval questions or raw corpus snippets.
 | Safety guard | `scripts/check_eval_leak.py` output in `docs/teach-loop-status.md` | "The held-out `test` split stays frozen and unused; leak checks pass locally." |
 | Scope discipline | `specs/roadmap.md` | "Quiz, interview, admin upload, and voice were intentionally kept as pull-ins until the teach loop worked." |
 
+## Two-Day Score-Lift Plan
+
+With two days left, the demo can improve more by raising the floor than by adding flashy scope. The
+current plan is captured in `docs/two-day-score-lift-plan.md`:
+
+1. Fix or explain the remaining `grade_not_correct` dev diagnostic.
+2. Capture a same-topic lens-switch demo before any larger pull-in.
+3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable.
+4. Treat mock interview as a Day-2 stretch only; skip voice, memory, GraphRAG, multimodal, and admin
+   upload for this demo window.
+
+If the grading fix lands, say the score honestly: "raw dev eval improved from the merged-main baseline,
+and the two safe refusals are the refusal path doing its job." If it does not land, keep the existing
+`7/10` and `7/8` numbers and explain the remaining diagnostic directly.
+
 ## Commands for the recording
 
 Grounded demo:

@@ -51,16 +51,23 @@ exist at every step ("demo cannot fail").
 - **MVP demo packaging.** The teach-loop engine, refusal path, trace, redacted dev eval, and final
   merged-main numbers are captured in `README.md`, `docs/demo-and-deliverables.md`, and
   `docs/teach-loop-status.md` without using the held-out `test` split.
+- **Two-day score-lift strategy selected.** The final two-day plan is documented in
+  `docs/two-day-score-lift-plan.md`: fix the remaining deterministic grading diagnostic first, polish
+  same-topic lens switching second, and pull in grounded Quiz Mode only after the floor is stable.
 
 ### In Progress
 
-- **External submission packaging.** The repo narrative is ready. The remaining work is outside the
-  codebase: record the <=5-minute video, create the Google Doc from the prepared outline, and decide when
-  to make the repository public.
+- **Score-lift implementation prep.** The repo narrative is ready, but with two days left the active plan
+  is to improve the demo floor before recording: diagnose the remaining `grade_not_correct` dev failure,
+  capture a repeatable same-topic lens-switch demo, then build the smallest grounded Quiz Mode if the
+  first two steps stay green.
 
 ### Pending Before MVP Demo
 
 - Keep the held-out `test` split unused until final evaluation/reporting.
+- Fix or explicitly explain the remaining `grade_not_correct` dev diagnostic.
+- Capture the same-topic lens-switch demo as a repeatable trace.
+- Build grounded Quiz Mode only if the floor remains stable.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
 - Create the Google Doc submission from the prepared outline and evidence table.
 - Flip the repo public at submission time if required.
@@ -89,10 +96,15 @@ The adaptive **teach loop**:
 **Build order status.** Foundation adapter, eval scaffolding, leak guard, teach-loop core, eval
 diagnostics, retrieval triage, threshold calibration, behavior hardening, and citation-resolution
 hardening are complete on the dev split. Demo trace capture, honest dev-eval reporting, and repo
-demo/readme packaging are complete on merged `main`; the active gate is external submission packaging
-while keeping the held-out `test` split untouched until final evaluation.
+demo/readme packaging are complete on merged `main`; the active gate is the two-day score-lift sequence:
+grading diagnostic, lens-switch demo, then grounded Quiz Mode if stable. The held-out `test` split stays
+untouched until final evaluation.
 
 ## PULL-IN (if time, in priority order — SHOULD)
+
+**Two-day priority.** Do not pull in features straight down this list blindly. For the final demo window,
+the chosen order is: stabilize teachable eval -> lens-switch demo -> grounded Quiz Mode. Mock interview
+is a Day-2 stretch only if quiz is already green.
 
 1. **Quiz mode** — adaptive MCQ, deterministic grading
 2. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
