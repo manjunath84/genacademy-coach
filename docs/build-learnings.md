@@ -10,6 +10,36 @@
 
 ---
 
+## 2026-06-16 — Personalization does not require rushing a memory stack
+
+**What I believed:** adding cross-session memory or explicit LangGraph orchestration might be the best
+way to make the tutor feel more personalized in the final demo.
+
+**What I found:** the current within-session learner profile already proves personalization without new
+persistence risk. LangMem, Mem0, and Zep are credible future options, but each adds a privacy/provider or
+state-management surface. Explicit LangGraph is also real architecture, especially for durable memory and
+human-in-the-loop interrupts, but this project already gets the LangGraph runtime through LangChain
+`create_agent`.
+
+**Principle:** in a two-day demo window, show the personalization you already have and document the next
+architecture trigger. Add memory only when there is a written privacy/deletion story and a reason
+`create_agent` can no longer keep the loop understandable.
+
+## 2026-06-16 — Copy the principle, not the product's mechanics
+
+**What I believed:** the quickest score lift from external AI-tutor references might be a flashy feature
+like hint progression or a gradebook UI.
+
+**What I found:** the strongest low-risk ideas were reframes and reuse: low-stakes mastery framing,
+deterministic criteria for quizzes, the existing review queue as the instructor-review surface, and
+reproducibility through split manifests and source checksums. The risky part was copying mechanics too
+literally: a hardcoded "wrong once -> hint, wrong twice -> reveal" ladder would violate the agenticity
+guardrail because Python would be choosing the teaching path.
+
+**Principle:** borrow the reference product's principle, not its surface area. In a time-boxed demo, raise
+the floor with honest framing and existing artifacts before adding scope; when adding teaching behavior,
+keep the choice model-decided and let Python enforce only safety gates.
+
 ## 2026-06-16 — A lock without an identity is just stale state waiting to happen
 
 **What I believed:** once Python computed the canonical answer grade, a simple `grade_locked` flag was

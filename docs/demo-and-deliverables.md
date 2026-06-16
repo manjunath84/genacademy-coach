@@ -10,7 +10,9 @@ pre-build adversarial review; the demo script supersedes the stale §9 in the br
 > **"It explained attention three different ways until it clicked — and refused to answer what it couldn't cite."**
 
 "Three different ways" = personalization, concrete and demoable. "Refused to answer" = the integrity
-moment. Use this exact phrasing in the Google Doc opening and the video's first 10 seconds.
+moment. The framing is a low-stakes mastery loop: the learner can keep trying while every teaching move
+stays grounded in cited course evidence. Use this exact phrasing in the Google Doc opening and the video's
+first 10 seconds.
 
 ## 5-minute video script (builder-thinking-forward)
 
@@ -36,6 +38,8 @@ private eval questions or raw corpus snippets.
 | Honest eval | `eval/runs/teach-loop-dev-main-final-20260616.json` | "`7/10` dev scenarios passed, `7/8` teachable scenarios passed, with two safe refusals and one grading diagnostic left." |
 | Safety guard | `scripts/check_eval_leak.py` output in `docs/teach-loop-status.md` | "The held-out `test` split stays frozen and unused; leak checks pass locally." |
 | Scope discipline | `specs/roadmap.md` | "Quiz, interview, admin upload, and voice were intentionally kept as pull-ins until the teach loop worked." |
+| Instructor review | `review_queue.jsonl` + redacted traces | "The failure path already creates the human-review surface; no admin UI is needed for the demo." |
+| Reproducibility | `eval/split_manifest.json` + source checksums | "Same split, same source hashes, same ingest path. I did not tune on the held-out test split." |
 
 ## Two-Day Score-Lift Plan
 
@@ -45,8 +49,11 @@ current plan is captured in `docs/two-day-score-lift-plan.md`:
 1. Fix or explain the remaining `grade_not_correct` dev diagnostic.
 2. Capture a same-topic lens-switch demo before any larger pull-in.
 3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable.
-4. Treat mock interview as a Day-2 stretch only; skip voice, memory, GraphRAG, multimodal, and admin
-   upload for this demo window.
+4. Treat cross-session memory as a personalization roadmap item, not a two-day build item. The safe next
+   memory step is a separate plan comparing first-party persisted profile, LangMem, Mem0 open source, and
+   Zep Cloud after the core floor is green.
+5. Treat mock interview as a Day-2 stretch only; skip voice, explicit LangGraph, GraphRAG, multimodal, and
+   admin upload for this demo window.
 
 If the grading fix lands, say the score honestly: "raw dev eval improved from the merged-main baseline,
 and the two safe refusals are the refusal path doing its job." If it does not land, keep the existing
@@ -95,8 +102,9 @@ Do not run `--split test` for demo preparation.
    personalization, not content."
 2. **Options I considered** (½ p) — the scorecard from `genacademy-coach-brainstorm-options.md`; why the
    adaptive tutor beat the mock-interviewer on *genuine agentic behavior* (what the rubric weights).
-3. **Hard trade-offs** (1 p) — why I kept quiz, interview, admin upload, and ElevenLabs voice as
-   pull-ins; why `create_agent` on LangGraph's runtime won for a Thursday ship. (show the cut list)
+3. **Hard trade-offs** (1 p) — why I kept quiz, interview, memory, admin upload, and ElevenLabs voice as
+   pull-ins; why `create_agent` on LangGraph's runtime won for a Thursday ship instead of adding an
+   explicit graph/checkpointer/store layer. (show the cut list)
 4. **The eval-honesty fix** (½ p) — "my first design reused the same questions for seed and test — a
    classic leak; here's how I caught it and the hard-split protocol I built." (show `split_manifest.json`)
 5. **What I built** (2 p) — architecture, code snippets, prompt samples.
@@ -119,6 +127,7 @@ Do not run `--split test` for demo preparation.
 | S3 | "What I cut and why" — 30-sec scope-cut narrative | ~0 build | Initiative + human reasoning |
 | S4 | Corpus version-pin + SHA shown in the demo UI | ~1 hr | Technical thinking + reproducibility |
 | S5 | Flagged-item → review queue, captured live during the eval run | ~1 hr | HITL + realness |
+| S6 | Memory roadmap slide: within-session now, persisted profile later, LangMem/Mem0/Zep after review | ~0 build | Personalization ambition without demo risk |
 
 ## Builder-of-the-Week Alignment
 
