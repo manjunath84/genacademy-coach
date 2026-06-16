@@ -10,6 +10,19 @@
 
 ---
 
+## 2026-06-16 — If Python computes the canonical grade, tool calls cannot be allowed to overwrite it
+
+**What I believed:** moving answer grading to the session boundary meant the eval's final grade was
+protected from model behavior.
+
+**What I found:** the agent still had access to the `grade_understanding` tool during the same turn. It
+could call that tool after Python had already graded the learner's answer, overwriting the canonical
+session-boundary grade and making a self-consistent expected answer appear incorrect in eval.
+
+**Principle:** when a safety-critical signal moves from model discretion into deterministic Python, lock
+that signal for the rest of the turn. Tools may report the canonical value, but they should not be able
+to replace it after the boundary has made the decision.
+
 ## 2026-06-16 — Safe refusal is not always the best repair when evidence exists
 
 **What I believed:** the demo trace step would just record the already-hardened teach loop: retrieve,

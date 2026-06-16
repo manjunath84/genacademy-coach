@@ -38,6 +38,7 @@ class TeachRuntime:
     last_spans: list[RetrievedSpan] = field(default_factory=list)
     current_check: CheckItem | None = None
     last_grade: UnderstandingGrade | None = None
+    grade_locked: bool = False
     tool_calls: list[str] = field(default_factory=list)
     escalation_queued: bool = False
 
@@ -109,6 +110,8 @@ def build_teach_tools(runtime: TeachRuntime):
     def grade_understanding(answer: str) -> str:
         """Grade the learner answer against the current grounded check item."""
         runtime.record_tool("grade_understanding")
+        if runtime.grade_locked and runtime.last_grade is not None:
+            return runtime.last_grade.model_dump_json()
         if runtime.current_check is None:
             return json.dumps({"error": "no current check item"})
         runtime.last_grade = grade_answer_understanding(answer, runtime.current_check)

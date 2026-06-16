@@ -45,14 +45,16 @@ exist at every step ("demo cannot fail").
 
 ### In Progress
 
-- **Demo-readiness fallback review.** The dev teach-loop eval remains `8/10` overall and `8/8` teachable,
-  with the remaining two failures classified as safe low-retrieval refusals. The current branch adds the
-  first-turn grounded fallback needed for a clean public demo trace; it still needs fresh review/merge
-  before final honest reporting.
+- **Demo-readiness fallback review.** The current branch adds the first-turn grounded fallback needed for
+  a clean public demo trace and applies Claude review fixes for action preservation, refusal boundaries,
+  citation/check alignment, and locked session-boundary grading. The latest full dev eval on this branch
+  is `7/10` overall and `7/8` teachable: two failures are safe low-retrieval refusals, and one teachable
+  scenario still has model-behavior diagnostics. It still needs final review/merge before honest
+  reporting.
 
 ### Pending Before MVP Demo
 
-- Get a fresh different-model review of the demo-readiness fallback before merge.
+- Get final review/approval of the demo-readiness fallback fixes before merge.
 - Capture final honest on-screen numbers from the merged branch.
 - Keep the held-out `test` split unused until final evaluation/reporting.
 
@@ -79,8 +81,8 @@ The adaptive **teach loop**:
 **Build order status.** Foundation adapter, eval scaffolding, leak guard, teach-loop core, eval
 diagnostics, retrieval triage, threshold calibration, behavior hardening, and citation-resolution
 hardening are complete on the dev split. Demo trace capture is complete locally on the current branch; the
-active gate is review/merge for the first-turn grounding fallback, then final honest reporting while
-keeping the held-out `test` split untouched until final evaluation.
+active gate is review/merge for the first-turn grounding fallback, then final honest reporting from the
+merged branch while keeping the held-out `test` split untouched until final evaluation.
 
 ## PULL-IN (if time, in priority order — SHOULD)
 

@@ -1,7 +1,7 @@
 import json
 
 from genacademy_coach.teach_tools import TeachRuntime, build_teach_tools
-from genacademy_coach.teach_types import CheckItem, LearnerProfile
+from genacademy_coach.teach_types import CheckItem, LearnerProfile, UnderstandingGrade
 
 
 class FakeFoundation:
@@ -112,6 +112,32 @@ def test_grade_tool_uses_current_check_item(tmp_path):
 
     assert row["correct"] is True
     assert active_runtime.last_grade is not None
+    assert active_runtime.last_grade.correct is True
+
+
+def test_grade_tool_preserves_locked_boundary_grade(tmp_path):
+    active_runtime = runtime(tmp_path)
+    active_runtime.current_check = CheckItem(
+        question="What does attention do?",
+        expected_answer="Focuses context.",
+        expected_keywords=["focuses", "context"],
+        citation_id="note/attention::0",
+    )
+    active_runtime.last_grade = UnderstandingGrade(
+        correct=True,
+        matched_keywords=["focuses", "context"],
+        missing_keywords=[],
+        citation_id="note/attention::0",
+    )
+    active_runtime.grade_locked = True
+    grade_tool = next(
+        tool for tool in build_teach_tools(active_runtime) if tool.name == "grade_understanding"
+    )
+
+    payload = grade_tool.invoke({"answer": "It stores customer profiles."})
+    row = json.loads(payload)
+
+    assert row["correct"] is True
     assert active_runtime.last_grade.correct is True
 
 

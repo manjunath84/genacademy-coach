@@ -10,6 +10,7 @@ from genacademy_coach.teach_session import (
     CoachSession,
     LangChainAgentPort,
     StaticAgentPort,
+    _grounded_excerpt,
 )
 from genacademy_coach.teach_types import (
     CheckItem,
@@ -52,6 +53,17 @@ def cited_span() -> RetrievedSpan:
     )
 
 
+def other_span() -> RetrievedSpan:
+    return RetrievedSpan(
+        chunk_id="note/tools::0",
+        doc_id="note/tools",
+        text="Tools let an agent act outside the model.",
+        score=0.88,
+        title="tools.md",
+        source_type="note",
+    )
+
+
 def check_item() -> CheckItem:
     return CheckItem(
         question="What does attention help with?",
@@ -63,6 +75,17 @@ def check_item() -> CheckItem:
 
 def test_fallback_strategies_are_valid_strategy_literals():
     assert set(FALLBACK_STRATEGIES).issubset(set(get_args(Strategy)))
+
+
+def test_grounded_excerpt_bounds_and_normalizes_whitespace():
+    span = cited_span().model_copy(update={"text": ("  word\t\n" * 200).strip()})
+
+    excerpt = _grounded_excerpt(span)
+
+    assert len(excerpt) <= 700
+    assert "\n" not in excerpt
+    assert "\t" not in excerpt
+    assert "  " not in excerpt
 
 
 def test_session_start_writes_trace_with_retrieval_evidence(tmp_path):
@@ -263,6 +286,93 @@ def test_session_uses_grounded_teach_fallback_for_initial_unfaithful_explanation
     assert not (tmp_path / "review_queue.jsonl").exists()
     rows = load_trace(Path(result.trace_path))
     assert rows[0].faithfulness_ok is True
+
+
+def test_session_refuses_initial_unfaithful_cited_answer_without_grounded_check(
+    tmp_path,
+):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention stores long term customer profiles. [note/attention::0]",
+            observation="agent tried to teach with unsupported text",
+            next_action="drill",
+            strategy="analogy",
+            citation_ids=["note/attention::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+
+    result = session.start()
+
+    assert result.response.next_action == "refuse_escalate"
+    assert "retrieved course citation text" in result.response.learner_message.lower()
+    assert (tmp_path / "review_queue.jsonl").exists()
+
+
+def test_session_does_not_coerce_initial_reexplain_into_drill(tmp_path):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention stores long term customer profiles. [note/attention::0]",
+            observation="agent picked a re-explanation without a learner stumble",
+            next_action="re_explain_differently",
+            strategy="contrastive_example",
+            citation_ids=["note/attention::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.start()
+
+    assert result.response.next_action == "refuse_escalate"
+    assert result.response.next_action != "drill"
+    assert (tmp_path / "review_queue.jsonl").exists()
+
+
+def test_grounded_teach_fallback_uses_span_that_matches_current_check(tmp_path):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Tools store long term customer profiles. [note/tools::0]",
+            observation="agent cited a different retrieved span than the check item",
+            next_action="drill",
+            strategy="analogy",
+            citation_ids=["note/tools::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [other_span(), cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.start()
+
+    assert result.response.next_action == "drill"
+    assert result.response.citation_ids == ["note/attention::0"]
+    assert "Attention highlights relevant context" in result.response.learner_message
+    assert "Tools let an agent act" not in result.response.learner_message
+    assert result.response.check_question == "What does attention help with?"
 
 
 def test_session_uses_grounded_reexplain_fallback_after_wrong_answer(tmp_path):

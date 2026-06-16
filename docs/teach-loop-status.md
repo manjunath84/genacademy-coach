@@ -1,7 +1,7 @@
 # Teach Loop Status
 
 Status: implemented and live-verified. Earlier teach-loop PRs were reviewed by Gemini/Claude; the
-latest demo-readiness fallback still needs a fresh review before merge.
+latest demo-readiness fallback has Claude review fixes applied and still needs final review/merge.
 
 ## Verification
 
@@ -156,14 +156,14 @@ Grounded command:
 ```bash
 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
   uv run python scripts/run_teach_demo.py \
-    --session-id demo-grounded-harness-fallback-20260616 \
+    --session-id demo-grounded-harness-reviewfix-20260616 \
     --topic "agent harness" \
     --style analogy \
     --track-lens code_heavy \
     --learner-answer "It is just one prompt with no tool checks or feedback."
 ```
 
-Trace: `traces/demo-grounded-harness-fallback-20260616.jsonl`
+Trace: `traces/demo-grounded-harness-reviewfix-20260616.jsonl`
 
 Redacted trace summary:
 
@@ -173,21 +173,27 @@ Redacted trace summary:
   `faithfulness_ok=true`, `retrieved_count=4`, tool calls include retrieval, grading, and profile update.
 - This run demonstrates a grounded teach turn plus a learner-dependent strategy change after a wrong
   answer. The held-out `test` split was not used.
-- Post-fallback dev eval remains `8/10` overall and `8/8` teachable with only
-  `safe_low_retrieval_refusal=2` (`eval/runs/teach-loop-dev-demo-fallback.json`).
+- Latest review-fix dev eval is `7/10` overall and `7/8` teachable. The two non-teachable scenarios
+  remain safe low-retrieval refusals; one teachable scenario still failed with model-behavior diagnostics
+  (`citation_ids_not_resolved`, `missing_strategy_change`, `grade_not_correct`, and
+  `missing_runtime_decision_trace`).
+- A targeted grade-lock verification on the previously failing first dev scenario now passes with
+  `grade_correct=true` (`eval/runs/teach-loop-dev-demo-fallback-gradelock-scenario0.json`).
+- MVP tradeoff: the safety fallback uses a bounded exact course-span excerpt instead of a polished
+  rewrite, prioritizing faithfulness over teaching style when the model's first wording fails grounding.
 
 Refusal command:
 
 ```bash
 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
   uv run python scripts/run_teach_demo.py \
-    --session-id demo-refusal-20260616 \
+    --session-id demo-refusal-reviewfix-20260616 \
     --topic "Gen Academy cafeteria menu" \
     --style concise \
     --track-lens low_code_no_code
 ```
 
-Trace: `traces/demo-refusal-20260616.jsonl`
+Trace: `traces/demo-refusal-reviewfix-20260616.jsonl`
 
 Redacted trace summary:
 
