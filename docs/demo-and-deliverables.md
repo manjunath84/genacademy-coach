@@ -249,4 +249,4 @@ different `next_action` + `strategy` without changing Python control flow.
 | ≤5-min video | ✅ script packaged / ⚠️ video not recorded | Use `docs/video-demo-script.md`; record through the local Gradio UI presets, with CLI commands as fallback |
 | GitHub | ✅ private repo | Flip to public at submission (`gh repo edit --visibility public`) |
 | Architecture diagram | ✅ `docs/architecture-diagrams.md` | Export Diagram 2 (teach loop) to PNG/SVG for the Doc/video |
-| Hugging Face deployment | ✅ private Space HTTP smoke passed / ⚠️ corpus click smoke pending | URL: `https://huggingface.co/spaces/Manjunath84/genacademy-coach`; no private corpus/index uploaded; UI marks this as a deployment shell |
+| Hugging Face deployment | ✅ private Space HTTP smoke passed / ⚠️ corpus click smoke pending | URL: `https://huggingface.co/spaces/Manjunath84/genacademy-coach`; no private corpus/index uploaded, so the Space is a deployment shell until a public-safe subset is approved |

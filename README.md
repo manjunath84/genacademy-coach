@@ -19,22 +19,64 @@ from the course materials, and escalates the rest to a human mentor.
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
 
+## Shipped vs. Roadmap
+
+| Surface | Status | Proof / limit |
+|---|---|---|
+| Grounded teach loop | **Shipped** | Local CLI + Gradio UI; model chooses `next_action`/strategy while Python enforces grounding, citation, and refusal safety. |
+| Refusal + mentor queue | **Shipped** | Out-of-corpus topics refuse/escalate instead of answering from priors; review queue stays local/gitignored. |
+| Redacted eval + leak guard | **Shipped** | Latest dev evidence is `7/10` overall and `7/8` teachable on 2026-06-16; held-out `test` split remains unrun. |
+| Same-topic lens switch | **Shipped** | Same public topic and learner answer, different teaching lens; grounding metadata stays stable as the control. |
+| Grounded Quiz Mode | **Shipped pull-in** | Cited MCQ generation with deterministic Python grading; UI hides generated question text by default for recording. |
+| Local Gradio web chat | **Shipped** | Demo-ready local UI and screenshot packet are committed; no public tunnel or private corpus exposure. |
+| Hugging Face Space | **Live deployment shell** | Private Space HTTP smoke passed; no private corpus/index uploaded, so grounded click smoke is pending. |
+| Skill-Gap Diagnosis | **Planned standout workflow** | Spec drafted only; needs fresh-context review before code. |
+| Mock Interview / admin upload / voice / memory | **Roadmap** | Deferred pull-ins; not part of the shipped Week-3 demo. |
+
+## Grader's 5-Minute Path
+
+1. Watch the UI flow from the canonical packet:
+   [`docs/demo-walkthrough-with-screenshots.docx`](docs/demo-walkthrough-with-screenshots.docx).
+2. Check the redacted trace evidence:
+   [`docs/teach-loop-status.md`](docs/teach-loop-status.md) and the screenshot inventory
+   [`docs/ui-screenshot-inventory.md`](docs/ui-screenshot-inventory.md).
+3. Inspect the dated dev eval artifact:
+   [`eval/runs/teach-loop-dev-main-final-20260616.json`](eval/runs/teach-loop-dev-main-final-20260616.json).
+4. Run one local grounded teach command:
+
+   ```bash
+   GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+     uv run python scripts/run_teach_demo.py \
+       --topic "agent harness" \
+       --style analogy \
+       --track-lens code_heavy \
+       --learner-answer "It is just one prompt with no tool checks or feedback."
+   ```
+
+5. Open the deployment proof:
+   [`https://huggingface.co/spaces/Manjunath84/genacademy-coach`](https://huggingface.co/spaces/Manjunath84/genacademy-coach).
+   It is intentionally a live shell until a public-safe corpus subset is approved and uploaded.
+6. Read the hardening docs:
+   [`docs/grading-gap-audit.md`](docs/grading-gap-audit.md) and
+   [`docs/submission-hardening-plan.md`](docs/submission-hardening-plan.md).
+
 ## What it is
 
-One agent engine, three modes that share it:
+One agent engine with shipped teach/quiz surfaces and explicit roadmap pull-ins:
 
 - **Teach** *(Thursday MVP)* — explain a concept grounded in the corpus → check understanding →
   re-explain a different way until it clicks.
 - **Quiz** *(first pull-in shipped)* — cited MCQ generation with deterministic grading.
-- **Mock interview** *(pull-in)* — open-answer questions, grounded grading against cited expected
-  points, follow-up probing, and a short gap report.
-- **Admin upload / ElevenLabs voice** *(pull-ins)* — added only after the text teach loop, refusal path,
-  eval split, and trace are demoable end-to-end.
+- **Skill-Gap Diagnosis** *(planned standout workflow)* — deterministic, cited next-step report from
+  teach/quiz traces and review-queue events; spec only until reviewed.
+- **Mock interview / admin upload / ElevenLabs voice / cross-session memory** *(roadmap pull-ins)* —
+  added only after the text teach loop, refusal path, eval split, and trace are demoable end-to-end.
 
 The differentiator is **personalization** (never the same answer to everyone) on top of a **won't-bluff**
 grounding discipline. Track is a teaching lens, not a learner identity: the same learner can ask for a
 low-code/no-code workflow lens, a code-heavy implementation lens, or a bridge between them for the same
-topic.
+topic. Current personalization is switchable teaching lens plus within-session profile state, not
+cross-session ML clustering or provider-backed memory.
 
 ## The constitution
 
@@ -58,6 +100,11 @@ topic.
 - [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted live trace and eval evidence
 - [`docs/two-day-score-lift-plan.md`](docs/two-day-score-lift-plan.md) — final score-lift sequence:
   grading diagnostic, lens-switch demo, then grounded Quiz Mode
+- [`docs/grading-gap-audit.md`](docs/grading-gap-audit.md) — strict submission-risk audit by rubric area
+- [`docs/submission-hardening-plan.md`](docs/submission-hardening-plan.md) — P0/P1/P2 hardening plan and
+  human-run submission runbooks
+- [`docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md`](docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md)
+  — spec for the planned Skill-Gap Diagnosis standout workflow
 
 ## Build track
 

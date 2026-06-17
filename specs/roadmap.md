@@ -103,12 +103,16 @@ exist at every step ("demo cannot fail").
   buttons for the grounded and refusal demos, a readable trace summary panel generated only from the
   safe trace allow-lists, a local-only quiz question display toggle that stays off by default for
   recording, and a no-live-call fallback note pointing to committed redacted evidence.
+- **Submission hardening and grader path packaged.** The grading-gap audit, submission hardening runbooks,
+  Skill-Gap Diagnosis spec, README status table, and grader 5-minute path make the shipped proof visible
+  without changing behavior or using the held-out `test` split.
 
 ### In Progress
 
-- **Demo packaging after private Space smoke.** The remaining critical path is external Google Doc
-  creation/import, video recording through the local Gradio UI, and deciding whether to keep the Space
-  framed as a deployment shell or make a public-safe corpus/index available in the Space. Memory is
+- **Demo packaging after private Space smoke.** The remaining critical path is different-model review of
+  the hardening PRs, external Google Doc creation/import, video recording through the local Gradio UI,
+  and deciding whether to keep the Space framed as a deployment shell or make a public-safe corpus/index
+  available in the Space. Memory is
   intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden
   source of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable

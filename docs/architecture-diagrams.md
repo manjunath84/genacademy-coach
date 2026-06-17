@@ -1,7 +1,8 @@
 # GenAcademy Coach - Architecture & Agentic-Flow Diagrams
 
 > **Purpose:** the handout-required architecture diagram and the visual spine for the Google Doc/video.
-> **Status:** design artifact, pre-build. Aligned to the Week-3 handout and the 2026-06-15 decision pass.
+> **Status:** shipped/planned map. The CLI + local Gradio teach/quiz surfaces are shipped; direct voice,
+> admin upload, cross-session memory, and mock interview remain planned pull-ins.
 > The constitution (`../AGENTS.md`, `../specs/*`, `docs/decisions.md`) is canonical.
 
 ## The Spine
@@ -17,7 +18,7 @@
 | Framework field | Coach |
 |---|---|
 | **Agent goal** | Teach one course concept until the learner can pass a grounded check-question. |
-| **Where used** | Text web chat for the MVP; ElevenLabs voice is a pull-in over the same engine. |
+| **Where used** | Local Gradio web chat and CLI for the MVP; ElevenLabs voice is a pull-in over the same engine. |
 | **Steps** | intake -> retrieve -> explain -> check -> grade -> runtime decide -> update profile -> loop/report. |
 | **Tools** | `retrieve_course_corpus` (READ), `generate_check_item` (Nebius), `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` (WRITE/HITL). |
 | **State** | Within-session learner profile: style, track lens, optional bridge source, known, struggled, coverage, turn budget, transcript. |
@@ -29,7 +30,9 @@
 ## 1. System Architecture
 
 One `create_agent` loop on LangGraph's internal runtime, one source-prioritized retriever over the
-extended Week-2 corpus, and local trace/eval artifacts. Most tools read; only escalation writes.
+extended Week-2 corpus, and local trace/eval artifacts. Most tools read; only escalation writes. The
+diagrams below label the architecture; current shipped surfaces are CLI + local Gradio teach/quiz, while
+voice, memory, admin upload, and mock interview remain planned.
 
 ```mermaid
 flowchart TD
@@ -200,9 +203,10 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    MVP["MVP: text teach loop"]
-    MVP --> Quiz["Pull-in: quiz mode"]
-    Quiz --> Interview["Pull-in: mock interview\nopen answer -> cited grading -> follow-up -> report"]
+    MVP["SHIPPED: text teach loop\nCLI + local Gradio"]
+    MVP --> Quiz["SHIPPED PULL-IN: quiz mode"]
+    Quiz --> SkillGap["SPEC ONLY: skill-gap diagnosis\ncited next-step plan"]
+    SkillGap --> Interview["ROADMAP: mock interview\nopen answer -> cited grading -> follow-up -> report"]
     MVP --> Admin["Low-priority pull-in: admin upload"]
     MVP --> Voice["Pull-in: ElevenLabs voice"]
     MVP --> Memory["Later: cross-session memory"]
