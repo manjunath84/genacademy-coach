@@ -90,12 +90,16 @@ exist at every step ("demo cannot fail").
   item, `docs/submission-google-doc-draft.md` turns the demo playbook into a Google-Doc-shaped
   narrative, and `docs/vibe-coding-prompt-appendix.md` packages sanitized prompt examples without
   private corpus/eval text, API keys, or raw generated quiz content.
+- **Recording and deployment docs prepared.** `docs/video-demo-script.md` provides the timed recording
+  script. `docs/hugging-face-deployment-plan.md` records the Hugging Face Spaces plan, reusing the Week
+  2 Docker deployment pattern while noting that Coach still needs a thin Space UI before live deploy.
 
 ### In Progress
 
 - **Demo packaging after Quiz Mode.** The grade-boundary fix, same-topic lens-switch demo, grounded
-  Quiz Mode pull-in, Google Doc draft, prompt appendix, and packaging-item explainer are captured. The
-  next critical path is recording the video and creating the external Google Doc. Memory is intentionally
+  Quiz Mode pull-in, Google Doc draft, prompt appendix, recording script, and Hugging Face deployment
+  plan are captured. The next critical path is creating/importing the external Google Doc, recording the
+  video, and then deciding whether to implement the Hugging Face Space wrapper. Memory is intentionally
   held as a later personalization pull-in because it adds persistence/privacy surface and must not become
   a hidden source of course facts. Explicit LangGraph remains deferred for the same reason: useful for
   durable memory later, unnecessary for the two-day demo.
@@ -111,6 +115,8 @@ exist at every step ("demo cannot fail").
   current pure-core / thin-view boundary.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
 - Create the external Google Doc submission from `docs/submission-google-doc-draft.md`.
+- Decide whether to implement the Hugging Face Space wrapper from `docs/hugging-face-deployment-plan.md`
+  before pulling in another product feature.
 - Flip the repo public at submission time if required.
 
 ## Teach-Loop MVP
