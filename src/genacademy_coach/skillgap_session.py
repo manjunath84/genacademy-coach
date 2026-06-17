@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -12,10 +13,22 @@ from genacademy_coach.skillgap_types import SkillGapItem, SkillGapReport, SkillG
 from genacademy_coach.teach_types import RetrievedSpan
 
 NO_CITEABLE_SKILL_GAP_REVIEW = "no citeable course corpus found for skill gap review"
+SAFE_SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]+$")
 
 
 def _hash_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:12]
+
+
+def validate_skillgap_session_id(value: str) -> str:
+    session_id = value.strip()
+    if not session_id:
+        raise ValueError("session id is required")
+    if session_id in {".", ".."} or not SAFE_SESSION_ID_PATTERN.fullmatch(session_id):
+        raise ValueError(
+            "session id may only contain letters, numbers, dots, dashes, underscores, or colons"
+        )
+    return session_id
 
 
 def _span_from_row(row: dict[str, Any]) -> RetrievedSpan:
@@ -75,6 +88,10 @@ class SkillGapSession:
     trace_writer: SkillGapTraceWriter = field(init=False)
 
     def __post_init__(self) -> None:
+        self.session_id = validate_skillgap_session_id(self.session_id)
+        self.source_session_ids = [
+            validate_skillgap_session_id(session_id) for session_id in self.source_session_ids
+        ]
         if not self.source_session_ids:
             raise ValueError("source_session_ids must contain at least one session")
         self.trace_writer = SkillGapTraceWriter(self.settings.trace_dir)

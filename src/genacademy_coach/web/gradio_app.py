@@ -14,6 +14,7 @@ from genacademy_rag.core.vectorstore import ChromaStore
 from genacademy_coach.foundation import Foundation
 from genacademy_coach.quiz_session import QuizSession
 from genacademy_coach.settings import CoachSettings
+from genacademy_coach.skillgap_session import SkillGapSession, validate_skillgap_session_id
 from genacademy_coach.teach_session import CoachSession
 from genacademy_coach.teach_types import LearnerProfile
 
@@ -39,6 +40,12 @@ TEACH_REFUSAL_PRESET = (
     "",
 )
 QUIZ_GROUNDED_PRESET = ("agent harness", 1, "A", False)
+SKILLGAP_SOURCE_PRESET = "\n".join(
+    (
+        "demo-grounded-main-final-20260616",
+        "demo-quiz-agent-harness-reviewfix2-20260616",
+    )
+)
 DEMO_PRESET_TOPICS = frozenset(
     {
         TEACH_GROUNDED_PRESET[0],
@@ -78,6 +85,22 @@ SAFE_QUIZ_TRACE_FIELDS = (
     "correctness",
     "refusal_reason",
     "actions",
+)
+SAFE_SKILLGAP_TRACE_FIELDS = (
+    "session_id",
+    "topic_hash",
+    "gap_id",
+    "source_session_ids",
+    "evidence_score",
+    "evidence_band",
+    "citation_ids",
+    "quiz_correct",
+    "quiz_total",
+    "struggle_count",
+    "refusal_count",
+    "next_action",
+    "escalated",
+    "reason_code",
 )
 
 GENACADEMY_COACH_CSS = """
@@ -557,6 +580,7 @@ APP_HEADER_HTML = """
   <div class="gc-status-rail" aria-label="Demo status">
     <span class="gc-chip sage">Teach loop</span>
     <span class="gc-chip mineral">Quiz pull-in</span>
+    <span class="gc-chip">Skill-Gap</span>
     <span class="gc-chip">Redacted traces</span>
   </div>
 </section>
@@ -597,6 +621,21 @@ def _parse_answers(raw: str) -> list[str] | None:
     return answers
 
 
+def _parse_source_session_ids(raw: str) -> list[str]:
+    tokens = [
+        item.strip()
+        for line in raw.splitlines()
+        for item in line.split(",")
+        if item.strip()
+    ]
+    if not tokens:
+        raise UserInputError("at least one source session id is required")
+    try:
+        return [validate_skillgap_session_id(token) for token in tokens]
+    except ValueError as exc:
+        raise UserInputError(str(exc)) from exc
+
+
 def _validate_answer_count(selected: list[str] | None, count: int) -> None:
     if selected is not None and len(selected) != count:
         raise UserInputError(f"expected {count} answers, received {len(selected)}")
@@ -612,6 +651,10 @@ def fill_teach_refusal_preset() -> tuple[str, str, str, str]:
 
 def fill_quiz_grounded_preset() -> tuple[str, int, str, bool]:
     return QUIZ_GROUNDED_PRESET
+
+
+def fill_skillgap_preset() -> str:
+    return SKILLGAP_SOURCE_PRESET
 
 
 def _format_score(value: Any) -> str:
@@ -719,7 +762,7 @@ def _format_trace_summary(
                 ),
                 ("Tools", _format_list_summary(row.get("tool_calls", []), unit="tool call")),
             ]
-        else:
+        elif mode == "quiz":
             title = "Quiz run"
             pills = [
                 _format_chip(row.get("evidence_band", "unknown")),
@@ -737,6 +780,42 @@ def _format_trace_summary(
             refusal_reason = row.get("refusal_reason")
             if refusal_reason:
                 fields.append(("Refusal", f"<code>{escape(str(refusal_reason))}</code>"))
+        else:
+            title = f"Gap {_short_value(row.get('gap_id', '?'), limit=42)}"
+            pills = [
+                _format_chip(row.get("next_action", "unknown")),
+                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
+            ]
+            fields = [
+                (
+                    "Source sessions",
+                    _format_list_summary(
+                        row.get("source_session_ids", []),
+                        unit="session",
+                        show_samples=False,
+                    ),
+                ),
+                (
+                    "Citations",
+                    _format_list_summary(
+                        row.get("citation_ids", []),
+                        unit="cited span",
+                        show_samples=False,
+                    ),
+                ),
+                (
+                    "Quiz",
+                    f"{escape(str(row.get('quiz_correct', 0)))}/"
+                    f"{escape(str(row.get('quiz_total', 0)))}",
+                ),
+                ("Struggles", escape(str(row.get("struggle_count", 0)))),
+                ("Refusals", escape(str(row.get("refusal_count", 0)))),
+                ("Escalated", _format_bool(row.get("escalated", False))),
+            ]
+            reason_code = row.get("reason_code")
+            if reason_code:
+                fields.append(("Reason", f"<code>{escape(str(reason_code))}</code>"))
         cards.append(_trace_card(title, pills, fields))
     if not cards:
         return "**Trace summary:** no displayable trace rows available."
@@ -929,6 +1008,61 @@ def run_quiz_session(
         return _error_payload(exc)
 
 
+def _format_skillgap_report(result: Any) -> str:
+    if not result.items:
+        return "No trace-backed gaps found for the supplied sessions."
+
+    sections = ["### Skill-Gap Diagnosis", ""]
+    for index, item in enumerate(result.items, start=1):
+        gap_id = _short_value(item.gap_id, limit=54)
+        sections.append(f"#### {index}. Gap `{gap_id}`")
+        sections.append(
+            f"Priority `{item.priority_score}` · evidence `{item.evidence_band}` "
+            f"({_format_score(item.evidence_score)}) · action `{item.next_action}`"
+        )
+        sections.append(
+            f"- Signals: quiz `{item.quiz_correct}/{item.quiz_total}`, "
+            f"struggles `{item.struggle_count}`, refusals `{item.refusal_count}`"
+        )
+        if item.citation_ids:
+            citation_summary = ", ".join(
+                _short_value(citation_id, limit=54) for citation_id in item.citation_ids
+            )
+            sections.append(
+                "- Next step: review cited course material "
+                f"`{citation_summary}`."
+            )
+        if item.reason_code:
+            sections.append(f"- Refused/escalated: `{item.reason_code}`")
+        sections.append("")
+    return "\n".join(sections)
+
+
+def run_skillgap_session(source_session_ids: str) -> tuple[str, dict[str, Any]]:
+    try:
+        clean_source_ids = _parse_source_session_ids(source_session_ids)
+        settings, foundation = _runtime()
+        session = SkillGapSession(
+            session_id=f"hf-skillgap-{uuid.uuid4().hex[:10]}",
+            source_session_ids=clean_source_ids,
+            settings=settings,
+            foundation=foundation,
+        )
+        result = session.run()
+        metadata = {
+            "status": "ok",
+            "session_id": result.session_id,
+            "source_session_ids": result.source_session_ids,
+            "trace_file": Path(result.trace_path).name,
+            "trace": safe_trace_rows(result.trace_path, SAFE_SKILLGAP_TRACE_FIELDS),
+        }
+        return _format_skillgap_report(result), metadata
+    except UserInputError as exc:
+        return _input_error_payload(str(exc))
+    except Exception as exc:
+        return _error_payload(exc)
+
+
 def run_teach_ui(
     topic: str,
     style: str,
@@ -947,6 +1081,11 @@ def run_quiz_ui(
 ) -> tuple[str, str, dict[str, Any]]:
     output, metadata = run_quiz_session(topic, question_count, answers, show_questions)
     return output, _format_trace_summary(metadata, mode="quiz"), metadata
+
+
+def run_skillgap_ui(source_session_ids: str) -> tuple[str, str, dict[str, Any]]:
+    output, metadata = run_skillgap_session(source_session_ids)
+    return output, _format_trace_summary(metadata, mode="skillgap"), metadata
 
 
 def build_demo(status_message: str | None = None) -> gr.Blocks:
@@ -1141,6 +1280,76 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                     fn=run_quiz_ui,
                     inputs=[quiz_topic, question_count, answers, show_questions],
                     outputs=[quiz_output, quiz_trace_summary, quiz_metadata],
+                )
+
+            with gr.Tab("Skill-Gap"):
+                with gr.Row(elem_classes=["gc-workbench"]):
+                    with gr.Column(scale=5, min_width=320, elem_classes=["gc-panel"]):
+                        gr.HTML(
+                            """
+                            <p class="gc-eyebrow">Skill-Gap diagnosis</p>
+                            <h2 class="gc-panel-title">Cited next-step plan</h2>
+                            <p class="gc-panel-copy">
+                              Diagnose existing teach and quiz sessions without adding memory,
+                              a second agent loop, or LLM mastery grading.
+                            </p>
+                            <div class="gc-mode-card">
+                              <strong>Trace-first workflow</strong>
+                              <span>Input local session IDs; output only safe gap metadata.</span>
+                            </div>
+                            """
+                        )
+                        source_session_ids = gr.Textbox(
+                            label="Source session IDs",
+                            value=SKILLGAP_SOURCE_PRESET,
+                            lines=3,
+                            placeholder="demo-grounded-main-final-20260616",
+                            elem_classes=["gc-input"],
+                        )
+                        with gr.Row(elem_classes=["gc-action-row"]):
+                            skillgap_preset = gr.Button(
+                                "Skill-Gap preset",
+                                elem_classes=["gc-preset-button"],
+                            )
+                            skillgap_button = gr.Button(
+                                "Run diagnosis",
+                                elem_classes=["gc-run-button"],
+                            )
+                    with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
+                        gr.HTML(
+                            """
+                            <p class="gc-eyebrow">Gap report</p>
+                            <h2 class="gc-panel-title">Ranked gaps and redacted trace</h2>
+                            """
+                        )
+                        skillgap_output = gr.Markdown(
+                            label="Skill-Gap output",
+                            value="_Awaiting diagnosis run._",
+                            elem_classes=["gc-output"],
+                        )
+                        skillgap_trace_summary = gr.Markdown(
+                            label="Trace summary",
+                            value="_Trace summary appears after a run._",
+                            elem_classes=["gc-trace"],
+                        )
+                        with gr.Accordion(
+                            "Redacted metadata",
+                            open=False,
+                            elem_classes=["gc-accordion"],
+                        ):
+                            skillgap_metadata = gr.JSON(
+                                label="Redacted metadata",
+                                elem_classes=["gc-json"],
+                            )
+                skillgap_preset.click(
+                    fn=fill_skillgap_preset,
+                    inputs=[],
+                    outputs=[source_session_ids],
+                )
+                skillgap_button.click(
+                    fn=run_skillgap_ui,
+                    inputs=[source_session_ids],
+                    outputs=[skillgap_output, skillgap_trace_summary, skillgap_metadata],
                 )
     return demo
 

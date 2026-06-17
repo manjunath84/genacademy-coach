@@ -14,7 +14,9 @@ from genacademy_coach.web.gradio_app import (
     EMPTY_CORPUS_STATUS_MESSAGE,
     QUIZ_GROUNDED_PRESET,
     SAFE_QUIZ_TRACE_FIELDS,
+    SAFE_SKILLGAP_TRACE_FIELDS,
     SAFE_TEACH_TRACE_FIELDS,
+    SKILLGAP_SOURCE_PRESET,
     TEACH_GROUNDED_PRESET,
     TEACH_REFUSAL_PRESET,
     UserInputError,
@@ -22,13 +24,16 @@ from genacademy_coach.web.gradio_app import (
     _error_payload,
     _format_trace_summary,
     _parse_answers,
+    _parse_source_session_ids,
     _require_topic,
     _server_name,
     _space_status_message,
     fill_quiz_grounded_preset,
+    fill_skillgap_preset,
     fill_teach_grounded_preset,
     fill_teach_refusal_preset,
     run_quiz_session,
+    run_skillgap_session,
     safe_trace_rows,
 )
 
@@ -129,6 +134,44 @@ def test_safe_trace_rows_omit_raw_quiz_fields_and_skip_malformed_rows(tmp_path, 
     assert "malformed trace row" in caplog.text
 
 
+def test_safe_trace_rows_omit_raw_skillgap_fields(tmp_path):
+    trace_path = tmp_path / "skillgap.jsonl"
+    private_value = "PRIVATE_SKILLGAP_TEXT"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "session_id": "skillgap-1",
+                "topic_hash": "abc123",
+                "gap_id": "note/agent-harness::0",
+                "source_session_ids": ["teach-1"],
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "citation_ids": ["chunk-1"],
+                "quiz_correct": 0,
+                "quiz_total": 1,
+                "struggle_count": 1,
+                "refusal_count": 0,
+                "next_action": "review_next",
+                "escalated": False,
+                "reason_code": None,
+                "raw_topic": private_value,
+                "review_next": private_value,
+                "learner_message": private_value,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rows = safe_trace_rows(str(trace_path), SAFE_SKILLGAP_TRACE_FIELDS)
+
+    serialized = json.dumps(rows, sort_keys=True)
+    assert set(rows[0]) == set(SAFE_SKILLGAP_TRACE_FIELDS)
+    assert private_value not in serialized
+    assert "raw_topic" not in serialized
+    assert '"review_next":' not in serialized
+    assert "learner_message" not in serialized
+
+
 def test_trace_summary_uses_only_safe_fields():
     private_value = "PRIVATE_TRACE_TEXT"
     metadata = {
@@ -159,6 +202,40 @@ def test_trace_summary_uses_only_safe_fields():
     assert "| turn |" not in summary
     assert private_value not in summary
     assert "learner_message" not in summary
+
+
+def test_skillgap_trace_summary_uses_only_safe_fields():
+    private_value = "PRIVATE_TRACE_TEXT"
+    metadata = {
+        "status": "ok",
+        "trace": [
+            {
+                "gap_id": "note/agent-harness::0",
+                "review_next": private_value,
+                "next_action": "review_next",
+                "evidence_score": 0.911,
+                "evidence_band": "proceed",
+                "source_session_ids": ["teach-1", "quiz-1"],
+                "citation_ids": ["chunk-1", "chunk-2"],
+                "quiz_correct": 0,
+                "quiz_total": 1,
+                "struggle_count": 1,
+                "refusal_count": 0,
+                "escalated": False,
+            }
+        ],
+    }
+
+    summary = _format_trace_summary(metadata, mode="skillgap")
+
+    assert "gc-trace-card" in summary
+    assert "review_next" in summary
+    assert "0.911" in summary
+    assert "2 cited spans" in summary
+    assert "2 sessions" in summary
+    assert "chunk-1" not in summary
+    assert "chunk-2" not in summary
+    assert private_value not in summary
 
 
 def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
@@ -226,12 +303,22 @@ def test_input_helpers_return_specific_safe_errors():
         _parse_answers("A,Z")
     with pytest.raises(UserInputError, match="style must be one of"):
         _coerce_choice("verbose", ["concise"], "style")
+    assert _parse_source_session_ids("teach-1, quiz_2\nskillgap:3") == [
+        "teach-1",
+        "quiz_2",
+        "skillgap:3",
+    ]
+    with pytest.raises(UserInputError, match="at least one source session id"):
+        _parse_source_session_ids(" ")
+    with pytest.raises(UserInputError, match="session id may only contain"):
+        _parse_source_session_ids("../private")
 
 
 def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries():
     assert fill_teach_grounded_preset() == TEACH_GROUNDED_PRESET
     assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
     assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
+    assert fill_skillgap_preset() == SKILLGAP_SOURCE_PRESET
     assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", False)
 
     manifest = json.loads(Path("eval/split_manifest.json").read_text(encoding="utf-8"))
@@ -241,6 +328,7 @@ def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries
         for value in (item["id"], item["source_file"], item["source_sha256"])
     }
     assert DEMO_PRESET_TOPICS.isdisjoint(eval_tokens)
+    assert set(_parse_source_session_ids(SKILLGAP_SOURCE_PRESET)).isdisjoint(eval_tokens)
     assert TEACH_REFUSAL_PRESET[0] == "Gen Academy cafeteria menu"
 
 
@@ -390,6 +478,75 @@ def test_run_quiz_session_metadata_uses_safe_trace_allow_list(tmp_path, monkeypa
     assert "prompt" not in serialized
 
 
+def test_run_skillgap_session_returns_redacted_report_and_metadata(tmp_path, monkeypatch):
+    private_value = "PRIVATE_SKILLGAP_REVIEW_TARGET"
+    trace_path = tmp_path / "skillgap.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "session_id": "skillgap-1",
+                "topic_hash": "abc123",
+                "gap_id": "note/agent-harness::0",
+                "source_session_ids": ["teach-1", "quiz-1"],
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "citation_ids": ["chunk-1"],
+                "quiz_correct": 0,
+                "quiz_total": 1,
+                "struggle_count": 1,
+                "refusal_count": 0,
+                "next_action": "review_next",
+                "escalated": False,
+                "reason_code": None,
+                "review_next": private_value,
+                "raw_topic": private_value,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeSkillGapSession:
+        def __init__(self, **kwargs):
+            assert kwargs["source_session_ids"] == ["teach-1", "quiz-1"]
+
+        def run(self):
+            return SimpleNamespace(
+                session_id="skillgap-1",
+                source_session_ids=["teach-1", "quiz-1"],
+                trace_path=str(trace_path),
+                items=[
+                    SimpleNamespace(
+                        gap_id="note/agent-harness::0",
+                        priority_score=6,
+                        next_action="review_next",
+                        evidence_score=0.91,
+                        evidence_band="proceed",
+                        citation_ids=["chunk-1"],
+                        quiz_correct=0,
+                        quiz_total=1,
+                        struggle_count=1,
+                        refusal_count=0,
+                        reason_code=None,
+                        review_next=private_value,
+                    )
+                ],
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "SkillGapSession", FakeSkillGapSession)
+
+    message, metadata = run_skillgap_session("teach-1, quiz-1")
+
+    serialized = json.dumps(metadata, sort_keys=True)
+    assert "Skill-Gap Diagnosis" in message
+    assert "review cited course material" in message
+    assert "chunk-1" in message
+    assert metadata["status"] == "ok"
+    assert private_value not in message
+    assert private_value not in serialized
+    assert "raw_topic" not in serialized
+
+
 def test_web_framework_imports_stay_outside_core():
     offenders = []
     for path in Path("src/genacademy_coach").rglob("*.py"):
@@ -430,6 +587,8 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "min-height: 44px" in app_text
     assert "_Awaiting teach run._" in app_text
     assert "_Awaiting quiz run._" in app_text
+    assert "_Awaiting diagnosis run._" in app_text
+    assert "Skill-Gap" in app_text
     assert "GENACADEMY_COACH_CSS" in app_text
     assert "css=GENACADEMY_COACH_CSS" in app_text
     assert "Evidence fallback" in app_text

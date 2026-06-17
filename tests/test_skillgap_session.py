@@ -179,6 +179,16 @@ def test_review_queue_reason_is_not_serialized_as_gap_id(tmp_path):
     assert result.items[0].gap_id.startswith("review:teach-1:")
 
 
+def test_skillgap_rejects_unsafe_session_ids(tmp_path):
+    with pytest.raises(ValueError, match="session id may only contain"):
+        SkillGapSession(
+            session_id="skillgap-1",
+            source_session_ids=["../private"],
+            settings=FakeSettings(tmp_path),
+            foundation=FakeFoundation({}),
+        )
+
+
 def test_skillgap_trace_row_is_allow_list():
     with pytest.raises(ValidationError):
         SkillGapTraceRow(

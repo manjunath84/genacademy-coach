@@ -17,8 +17,8 @@ author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
 | Redacted eval + leak guard | Shipped | Dev evidence is `7/10` overall and `7/8` teachable on 2026-06-16; held-out `test` split remains unused. |
 | Same-topic lens switch | Shipped | The learner can switch among low-code/no-code, code-heavy, and bridge teaching lenses for the same topic. |
 | Grounded Quiz Mode | Shipped pull-in | Generates cited MCQs from retrieved spans and grades selected option IDs deterministically in Python. |
-| Skill-Gap Diagnosis | Shipped CLI/core pull-in | Produces a deterministic, cited next-step report from teach/quiz traces and review-queue events. |
-| Local Gradio UI | Shipped for teach/quiz | Thin web view over the grounded core; Skill-Gap UI is tracked separately until merged. |
+| Skill-Gap Diagnosis | Shipped pull-in | Produces a deterministic, cited next-step report from teach/quiz traces and review-queue events. |
+| Local Gradio UI | Shipped | Thin web view over teach, quiz, and skill-gap workflows; core logic has no web-framework imports. |
 | Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP; no private corpus/index is uploaded, so the public shell shows an empty-corpus notice. |
 | Mock interview / admin upload / voice / cross-session memory | Roadmap | Deferred until they earn separate plans and privacy reviews. |
 
@@ -74,6 +74,8 @@ Architecture diagrams live in [`docs/architecture-diagrams.md`](docs/architectur
 - [`docs/build-learnings.md`](docs/build-learnings.md) — implementation lessons and tradeoffs.
 - [`docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md`](docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md)
   — reviewed plan behind the Skill-Gap Diagnosis slice.
+- [`docs/superpowers/plans/2026-06-17-skill-gap-ui-wrapper.md`](docs/superpowers/plans/2026-06-17-skill-gap-ui-wrapper.md)
+  — thin-view plan for the Gradio Skill-Gap tab.
 
 ## Local Setup
 
@@ -124,7 +126,7 @@ This project adds the agentic layer:
 - deterministic quiz assessment,
 - deterministic skill-gap diagnosis,
 - typed redacted traces,
-- local Gradio UI over the teach/quiz core.
+- local Gradio UI over the same core.
 
 Cross-session memory and explicit LangGraph orchestration are deliberately deferred. They are useful
 future layers, but this version keeps personalization within the session and relies on LangChain
