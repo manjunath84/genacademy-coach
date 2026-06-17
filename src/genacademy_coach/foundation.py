@@ -11,7 +11,7 @@ from genacademy_rag.core.providers import build_provider
 from genacademy_rag.core.reranker import build_reranker
 from genacademy_rag.core.retriever import DEFAULT_CANDIDATE_K, HybridRetriever
 from genacademy_rag.core.types import Document, RetrievedChunk
-from genacademy_rag.core.vectorstore import ChromaStore
+from genacademy_rag.core.vectorstore import VectorStore, build_vectorstore
 from genacademy_rag.data.datastore import SQLiteDatastore
 
 from genacademy_coach.settings import CoachSettings
@@ -52,12 +52,30 @@ def select_retrieved_spans(
     return selected
 
 
+def rag_settings_for_coach(coach: CoachSettings) -> RagSettings:
+    return replace(
+        RagSettings.from_env(),
+        chroma_dir=coach.chroma_dir,
+        sqlite_path=coach.sqlite_path,
+    )
+
+
+def build_course_vectorstore(
+    coach: CoachSettings,
+    rag: RagSettings | None = None,
+) -> VectorStore:
+    return build_vectorstore(
+        rag or rag_settings_for_coach(coach),
+        collection=coach.course_collection,
+    )
+
+
 @dataclass
 class Foundation:
     rag_settings: RagSettings
     coach_settings: CoachSettings
     provider: Any
-    store: ChromaStore
+    store: VectorStore
     datastore: SQLiteDatastore
     chroma_dir: Path
     sqlite_path: Path
@@ -70,13 +88,9 @@ class Foundation:
         provider: Any | None = None,
     ) -> Foundation:
         coach = coach_settings or CoachSettings.from_env()
-        rag = replace(
-            RagSettings.from_env(),
-            chroma_dir=coach.chroma_dir,
-            sqlite_path=coach.sqlite_path,
-        )
+        rag = rag_settings_for_coach(coach)
         active_provider = provider or build_provider(rag)
-        store = ChromaStore(persist_dir=coach.chroma_dir, collection=coach.course_collection)
+        store = build_course_vectorstore(coach, rag)
         datastore = SQLiteDatastore(coach.sqlite_path)
         return cls(
             rag_settings=rag,

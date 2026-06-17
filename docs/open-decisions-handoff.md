@@ -26,8 +26,9 @@ repo are tracked as `AD-1` through `AD-11` in `docs/decisions.md`.
 ## B. The foundation — `genacademy-rag` (reuse, don't reinvent)
 
 Full detail in `docs/genacademy-rag-foundation.md`. Key inheritable assets (verified on disk):
-- Embedder `all-MiniLM-L6-v2` (384-d, local), **Chroma** index + `chunks_meta` schema, section-aware chunker
-  (A/B-tested), refusal/grounding/citation pipeline, deterministic JSON grader, Nebius provider call.
+- Embedder `all-MiniLM-L6-v2` (384-d, local), Week-2 vectorstore factory/schema (Chroma local by
+  default, Pinecone-capable for serving), section-aware chunker (A/B-tested),
+  refusal/grounding/citation pipeline, deterministic JSON grader, Nebius provider call.
 - A working **eval harness**: retrieval metrics (recall@k/precision@k/MRR) + **refusal-correctness** + an
   **LLM-judge** faithfulness check + a 12-Q gold set.
 - The current index is tiny (4 docs / 53 chunks) — the owned corpus is **not** indexed yet; extending it is a build task.

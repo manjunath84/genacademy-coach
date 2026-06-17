@@ -96,7 +96,7 @@ flowchart TD
     end
 
     subgraph Foundation["Week-2 genacademy-rag foundation"]
-        Corpus["Extended course Chroma collection\nslides · handouts · notes · transcripts"]
+        Corpus["Extended course vectorstore\nChroma local · Pinecone hosted\nslides · handouts · notes · transcripts"]
         Provider["Nebius/OpenAI-compatible provider"]
         Eval["Eval harness + split manifest\nheld-out test never indexed"]
     end
@@ -309,7 +309,7 @@ flowchart TD
         T["transcripts/"]
     end
 
-    Ingest["Week-2 chunker + embedder + Chroma schema"]
+    Ingest["Week-2 chunker + embedder + vectorstore schema"]
     Indexed --> Ingest --> Retriever["retrieve_course_corpus"]
 
     subgraph NeverIndexed["Never indexed"]

@@ -49,6 +49,10 @@ SPACE_VARIABLES = {
     "GENACADEMY_COACH_TRACE_DIR": "/data/traces",
     "GENACADEMY_COACH_REVIEW_QUEUE_PATH": "/data/review_queue.jsonl",
     "GENACADEMY_DATA_DIR": "/data",
+    "GENACADEMY_VECTORSTORE": "pinecone",
+    "GENACADEMY_PINECONE_INDEX": "genacademy-coach",
+    "GENACADEMY_PINECONE_CLOUD": "aws",
+    "GENACADEMY_PINECONE_REGION": "us-east-1",
     "GENACADEMY_EMBEDDINGS": "local",
     "GENACADEMY_EMBED_MODEL": "all-MiniLM-L6-v2",
     "GENACADEMY_EMBED_DIM": "384",
@@ -82,12 +86,14 @@ def main() -> None:
     for key, default in SPACE_VARIABLES.items():
         api.add_space_variable(repo_id, key, os.environ.get(key, default))
 
-    nebius_key = os.environ.get("NEBIUS_API_KEY")
-    if nebius_key:
-        api.add_space_secret(repo_id, "NEBIUS_API_KEY", nebius_key)
-        secret_status = "set"
-    else:
-        secret_status = "skipped"
+    secret_statuses = {}
+    for secret_name in ("NEBIUS_API_KEY", "PINECONE_API_KEY"):
+        secret_value = os.environ.get(secret_name)
+        if secret_value:
+            api.add_space_secret(repo_id, secret_name, secret_value)
+            secret_statuses[secret_name] = "set"
+        else:
+            secret_statuses[secret_name] = "skipped"
 
     commit = api.upload_folder(
         repo_id=repo_id,
@@ -107,7 +113,8 @@ def main() -> None:
     print(f"commit={commit.oid}")
     print(f"private={private}")
     print(f"factory_reboot={factory_reboot}")
-    print(f"secret_NEBIUS_API_KEY={secret_status}")
+    print(f"secret_NEBIUS_API_KEY={secret_statuses['NEBIUS_API_KEY']}")
+    print(f"secret_PINECONE_API_KEY={secret_statuses['PINECONE_API_KEY']}")
     print("uploaded=deployment allow-list only")
 
 

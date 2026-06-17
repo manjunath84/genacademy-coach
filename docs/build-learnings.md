@@ -257,7 +257,7 @@ answers live in the index you retrieve from.
 app. That's literally how my own README put it: "reused the index format (no re-ingest)."
 
 **What I found:** the Week-2 repo wasn't a footnote — it was the whole foundation. It already shipped the
-embedder (`all-MiniLM-L6-v2`, 384-d), the Chroma schema, an A/B-tested chunker, the refusal/citation
+embedder (`all-MiniLM-L6-v2`, 384-d), the vectorstore schema, an A/B-tested chunker, the refusal/citation
 pipeline, the Nebius call, *and* a working eval harness (12-question gold set, recall/precision/MRR,
 refusal-correctness, an LLM-judge) plus the real student questions. "Reuse the index format" buried in one
 prose line is an instruction a reviewer — or me in three weeks — will cheerfully ignore and rebuild from

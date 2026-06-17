@@ -19,7 +19,7 @@ author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
 | Grounded Quiz Mode | Shipped pull-in | Generates cited MCQs from retrieved spans and grades selected option IDs deterministically in Python. |
 | Skill-Gap Diagnosis | Shipped pull-in | Produces a deterministic, cited next-step report from teach/quiz traces and review-queue events. |
 | Local Gradio UI | Shipped | Thin web view over teach, quiz, and skill-gap workflows; core logic has no web-framework imports. |
-| Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP; no private corpus/index is uploaded, so the public shell shows an empty-corpus notice. |
+| Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP; hosted retrieval is Pinecone-ready, but no approved corpus/index is seeded yet, so the shell shows an empty-corpus notice. |
 | Mock interview / admin upload / voice / cross-session memory | Roadmap | Deferred until they earn separate plans and privacy reviews. |
 
 Private course material, traces, review queues, screenshots, and handoff packaging stay local-only.
@@ -116,8 +116,8 @@ Do not run or tune against `--split test` until final evaluation/reporting.
 
 ## What Changed From Week 2
 
-The Week-2 project provided the RAG foundation: embedder, Chroma schema, chunking pipeline, citation
-metadata, provider boundary, eval harness, and refusal-first discipline.
+The Week-2 project provided the RAG foundation: embedder, vectorstore schema/factory, chunking pipeline,
+citation metadata, provider boundary, eval harness, and refusal-first discipline.
 
 This project adds the agentic layer:
 

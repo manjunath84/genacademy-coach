@@ -22,10 +22,10 @@
 | Capability | What Week-2 already has | Module / artifact |
 |---|---|---|
 | **Embeddings** | `all-MiniLM-L6-v2`, **384-dim**, local via `sentence-transformers==5.5.1` (Nebius `Qwen/Qwen3-Embedding-8B` 4096-d is an alt preset) | `core/vectorstore.py`, `.env.example` |
-| **Vector store** | **Chroma** (`chromadb==1.5.9`), local default; Pinecone optional for serving. Eval always uses local Chroma. | `core/vectorstore.py`, `data/chroma/` |
+| **Vector store** | `build_vectorstore(settings, collection=...)` selects **Chroma** (`chromadb==1.5.9`) locally by default or Pinecone for hosted serving. Eval always uses local Chroma. | `core/vectorstore.py`, `data/chroma/` |
 | **Chunker** | Section-aware chunker, **A/B-tested** (see `eval/phase2-section-aware-chunking-delta.md`) | `core/chunker.py` |
 | **Loaders** | markdown, PDF, Jupyter, GitHub fetcher | `core/loaders/*` |
-| **Retriever** | **One** retriever over **one** Chroma collection (+ optional cross-encoder rerank `cross-encoder/ms-marco-MiniLM-L6-v2`, off by default) | `core/retriever.py`, `core/reranker.py` |
+| **Retriever** | **One** retriever over **one** active vectorstore collection/namespace (+ optional cross-encoder rerank `cross-encoder/ms-marco-MiniLM-L6-v2`, off by default) | `core/retriever.py`, `core/reranker.py` |
 | **Grounding / refusal / citation** | Refusal-first pipeline; citations carry `week · title` + span metadata; deterministic JSON grader gate | `core/pipeline.py`, `core/grader.py`, `core/graph.py` |
 | **Generation provider** | OpenAI-compatible behind `ModelProvider.generate()` — `openrouter \| openai \| nebius \| gemma`. **Nebius Token Factory** = the rubric-required call. | `core/providers.py` |
 | **Eval harness** | Retrieval metrics (recall@k / precision@k / MRR), **refusal-correctness**, faithfulness (LLM-judge), gold schema + gold set, report generator | `eval/{retrieval_eval,faithfulness_eval,gold_schema,report}.py`, `scripts/run_eval.py`, `scripts/eval_retrieval.py` |
@@ -53,9 +53,9 @@
 
 ## Reuse contract (binding — a review-blocker if violated)
 
-1. **Reuse, don't reinvent.** The Coach **must** reuse the Week-2 embedding model, Chroma schema/index
-   format, section-aware chunker, citation metadata, retrieval + rerank, refusal/grounding logic, and the
-   **eval harness** — through a thin adapter. **Building a new chunker, embedder, vector schema,
+1. **Reuse, don't reinvent.** The Coach **must** reuse the Week-2 embedding model, vectorstore
+   schema/factory, section-aware chunker, citation metadata, retrieval + rerank, refusal/grounding
+   logic, and the **eval harness** — through a thin adapter. **Building a new chunker, embedder, vector schema,
    refusal/threshold scheme, or eval harness without a written delta** explaining why the Week-2 API
    can't support the need is a **reject**.
 2. **Same-embedder rule.** The index is `all-MiniLM-L6-v2` / 384-d. Reusing the index means using the
