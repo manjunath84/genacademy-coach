@@ -10,6 +10,40 @@
 
 ---
 
+## 2026-06-17 — Demo defaults are product decisions, not just convenience
+
+**What I believed:** the local UI polish pass was mostly visual: make the Gradio app look less raw,
+align it with the Week 2 paper-grid style, and keep the existing presets visible.
+
+**What I found:** defaults are part of the safety and reliability contract. The first quiz preset tried
+to generate three questions live, which is a legitimate core capability but a brittle recording path. A
+one-question hidden quiz still proves the important contract — retrieval, grounded generation, Python
+grading, redacted trace, and hidden generated text — without asking the video to depend on three live
+generation successes. Likewise, loading `.env` locally and caching the Foundation runtime were not just
+developer conveniences; they removed confusing failure modes and repeated cold-start waits during a
+recording.
+
+**Principle:** for a demo UI, choose defaults that prove the product promise with the fewest live failure
+points. Keep the broader capability available, but make the first click a reliable, privacy-safe path.
+
+---
+
+## 2026-06-17 — A trace is only useful if a human can read it on camera
+
+**What I believed:** showing the raw safe trace table would be enough because it contained the right
+fields: action, strategy, evidence band, score, citation IDs, and tool calls.
+
+**What I found:** a safe field list can still make a bad demo surface. Long citation IDs and tool names
+wrapped into narrow markdown-table columns, which looked like debugging output rather than a polished
+tutor. The better UI was a decision-trace card: one card per turn, action/band/score as chips,
+faithfulness as a small status, citation counts instead of long IDs, and full safe metadata collapsed
+below for audit. The information did not become less honest; it became legible.
+
+**Principle:** redaction and readability are separate gates. First decide what is safe to expose, then
+design the safe evidence so a reviewer can understand it in seconds.
+
+---
+
 ## 2026-06-16 — A second mode is safer when the model creates content but Python owns correctness
 
 **What I believed:** adding Quiz Mode might require another agent loop or an LLM judge to decide whether

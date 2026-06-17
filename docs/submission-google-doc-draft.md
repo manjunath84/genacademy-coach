@@ -142,12 +142,24 @@ The project improved through several loops:
 - Same-topic lens switching became the safer personalization demo than rushing memory.
 - Quiz Mode shipped only after the teach-loop floor was stable, and it keeps model generation separate
   from deterministic grading.
+- A strict UI review found that the first demo polish pass still felt too much like a raw Gradio app:
+  the run buttons could fall below the fold, empty states looked unfinished, touch targets were small,
+  and raw trace tables were hard to read on camera. The fix moved the main actions higher, added
+  recording-safe empty states, improved mobile touch targets, and replaced the trace table with
+  decision-trace cards.
+- Manual scenario testing found that the three-question quiz path was valid but too brittle as the
+  default live recording path. The fix made the UI preset prove the same safety contract with one hidden
+  question by default, while leaving the three-question CLI artifact as optional deeper evidence.
+- Manual retries also exposed an operational lesson: stale local Gradio processes and browser cache can
+  make a fixed branch look broken. The final script now includes a hard-refresh/restart check and visible
+  fixed-UI cues before recording.
 
 ## Learnings
 
-The deeper learning was scope discipline. The tempting route was to add memory, explicit LangGraph, a
-gradebook UI, or voice. The better route was to make the grounded tutor harder to break, then show one
-small pull-in that reused the same safety rules.
+The deeper learning was scope discipline plus demo honesty. The tempting route was to add memory,
+explicit LangGraph, a gradebook UI, or voice. The better route was to make the grounded tutor harder to
+break, then make the proof easy to understand on camera: one reliable teach path, one refusal path, one
+hidden quiz path, and trace cards that show the safety decisions without exposing raw private text.
 
 Reusable principles:
 
@@ -157,6 +169,12 @@ Reusable principles:
 - When Python owns a correctness signal, the model's later tool calls should not overwrite it.
 - Personalization can be demonstrated with controlled contrast before adding durable memory.
 - A second mode is safer when the model creates content but Python owns correctness.
+- Demo defaults are product decisions. The first click should prove the promise with the fewest live
+  failure points.
+- A trace needs both safety and legibility. Citation counts and decision cards are better for video than
+  long internal IDs in a raw table.
+- A local demo needs an operational checklist: kill stale servers, hard-refresh, confirm fixed UI
+  defaults, and keep generated quiz text hidden unless it is explicitly public-safe.
 
 Full learning notes are in `docs/build-learnings.md`.
 

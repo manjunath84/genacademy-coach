@@ -194,7 +194,8 @@ appendix: `docs/vibe-coding-prompt-appendix.md`. Hugging Face deployment plan:
 6. **Honest numbers** (½ p) — `7/10` dev, `7/8` teachable, two safe refusals, one conservative
    escalation variance, held-out `test` split untouched.
 7. **What I learned** (½ p) — use `docs/build-learnings.md`: eval splits must be frozen, diagnostics
-   should reuse runtime truth, and locks need identity, not only a boolean.
+   should reuse runtime truth, locks need identity, demo defaults are product decisions, and safe traces
+   still need camera-readable design.
 
 > **Make the builder's voice visible** (the review's weakest-scoring dimension, "human-reasoning
 > legibility"): include the wrong turns, the "I tried X, it was too slow," and the option-vs-option
