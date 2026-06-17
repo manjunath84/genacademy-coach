@@ -40,4 +40,3 @@ report plus redacted trace cards.
 - UI tests prove trace summary cards do not expose citation samples or private review text.
 - Core test rejects unsafe source session IDs.
 - `pytest`, `ruff`, `git diff --check`, and `check_eval_leak.py` pass.
-
