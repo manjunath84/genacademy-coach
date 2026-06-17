@@ -31,6 +31,9 @@ move at runtime within that safe boundary.
   writes a local mentor-review queue row instead of bluffing.
 - A redacted **runtime trace**: each turn records safe metadata such as evidence score, evidence band,
   next action, strategy, citation IDs, and faithfulness result.
+- A polished local **recording UI**: preset-driven Teach and Quiz paths, local-only launch, collapsed
+  metadata by default, camera-safe decision-trace cards, and hidden generated quiz text unless explicitly
+  enabled for local/private inspection.
 - A redacted **dev eval harness**: multi-turn scenarios report pass/fail diagnostics without exposing
   private question text.
 - A first pull-in, **Grounded Quiz Mode**: generate up to 3 cited MCQs from retrieved spans, pin the
@@ -93,7 +96,7 @@ reproduces only the redacted metadata that is safe to commit or show in the exte
 | Dev eval | `eval/runs/teach-loop-dev-main-final-20260616.json` | Latest dev evidence: `7/10` overall and `7/8` teachable, with two safe low-retrieval refusals. |
 | Grade-boundary follow-up | `eval/runs/teach-loop-dev-grade-boundary.json` | The original same-turn grade overwrite bug is fixed. |
 | Same-topic lens switch | `traces/demo-lens-low-code-20260616.jsonl` and `traces/demo-lens-code-heavy-20260616.jsonl` | The same public topic and learner answer can be taught through different lenses while the grounding floor stays stable. |
-| Grounded quiz | `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` | Quiz Mode generated 3 cited MCQs at `0.711 confirm` evidence and graded `A,B,C` as `1/3` deterministically. |
+| Grounded quiz | Local UI hidden-question run + `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` fallback | The UI demo keeps generated quiz text hidden, grades answer IDs deterministically, and shows only safe trace metadata. The fallback trace demonstrates the three-question path. |
 
 The honest eval story matters. I did not hide the failures: two dev failures are safe low-retrieval
 refusals, and the remaining teachable variance is a conservative escalation case. The held-out test
@@ -172,7 +175,7 @@ I deliberately deferred:
 
 ## Next Steps
 
-1. Record the <=5-minute video using `docs/demo-and-deliverables.md`.
+1. Record the <=5-minute video using `docs/video-demo-script.md` and the local Gradio presets.
 2. Create the external Google Doc from this draft.
 3. Keep the held-out `test` split unused until final reporting.
 4. If there is time after the recording, decide whether to explain or harden the remaining confirm-band

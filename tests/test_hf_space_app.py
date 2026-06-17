@@ -150,9 +150,13 @@ def test_trace_summary_uses_only_safe_fields():
 
     summary = _format_trace_summary(metadata, mode="teach")
 
+    assert "gc-trace-card" in summary
     assert "drill" in summary
     assert "0.711" in summary
-    assert "2: chunk-1, chunk-2" in summary
+    assert "2 cited spans" in summary
+    assert "chunk-1" not in summary
+    assert "chunk-2" not in summary
+    assert "| turn |" not in summary
     assert private_value not in summary
     assert "learner_message" not in summary
 
@@ -168,6 +172,9 @@ def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
     assert metadata["status"] == "error"
     assert len(metadata["error_id"]) == 8
     assert metadata["error_id"] in message
+    assert "failed closed" in message
+    assert "hard-refresh" in message
+    assert "approved Chroma index" in message
     assert private_value not in message
     assert private_value not in json.dumps(metadata)
     assert private_value in caplog.text
@@ -225,6 +232,7 @@ def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries
     assert fill_teach_grounded_preset() == TEACH_GROUNDED_PRESET
     assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
     assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
+    assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", False)
 
     manifest = json.loads(Path("eval/split_manifest.json").read_text(encoding="utf-8"))
     eval_tokens = {
@@ -234,6 +242,29 @@ def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries
     }
     assert DEMO_PRESET_TOPICS.isdisjoint(eval_tokens)
     assert TEACH_REFUSAL_PRESET[0] == "Gen Academy cafeteria menu"
+
+
+def test_runtime_reuses_foundation_for_local_demo(monkeypatch):
+    settings = object()
+    foundation = object()
+    build_calls = []
+
+    gradio_app._runtime.cache_clear()
+    monkeypatch.setattr(gradio_app.CoachSettings, "from_env", lambda: settings)
+
+    def fake_build(value):
+        build_calls.append(value)
+        return foundation
+
+    monkeypatch.setattr(gradio_app.Foundation, "build", fake_build)
+
+    try:
+        assert gradio_app._runtime() == (settings, foundation)
+        assert gradio_app._runtime() == (settings, foundation)
+    finally:
+        gradio_app._runtime.cache_clear()
+
+    assert build_calls == [settings]
 
 
 def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
@@ -395,6 +426,10 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "gc-app-header" in app_text
     assert "gc-status-rail" in app_text
     assert "gc-workbench" in app_text
+    assert "gc-action-row" in app_text
+    assert "min-height: 44px" in app_text
+    assert "_Awaiting teach run._" in app_text
+    assert "_Awaiting quiz run._" in app_text
     assert "GENACADEMY_COACH_CSS" in app_text
     assert "css=GENACADEMY_COACH_CSS" in app_text
     assert "Evidence fallback" in app_text

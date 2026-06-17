@@ -4,6 +4,8 @@ import json
 import logging
 import os
 import uuid
+from functools import lru_cache
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +38,7 @@ TEACH_REFUSAL_PRESET = (
     "low_code_no_code",
     "",
 )
-QUIZ_GROUNDED_PRESET = ("agent harness", 3, "A,B,C", False)
+QUIZ_GROUNDED_PRESET = ("agent harness", 1, "A", False)
 DEMO_PRESET_TOPICS = frozenset(
     {
         TEACH_GROUNDED_PRESET[0],
@@ -232,6 +234,23 @@ body,
   border: 0 !important;
 }
 
+.gc-tabs button[role="tab"],
+.gc-tabs .tab-nav button,
+.gc-tabs [role="tab"] {
+  min-height: 44px !important;
+  border-color: transparent !important;
+  color: var(--gc-muted) !important;
+  font-weight: 750 !important;
+}
+
+.gc-tabs button[role="tab"][aria-selected="true"],
+.gc-tabs .selected,
+.gc-tabs [aria-selected="true"] {
+  border-color: var(--gc-mineral-border) !important;
+  background: var(--gc-mineral-bg) !important;
+  color: var(--gc-mineral-text) !important;
+}
+
 .gc-workbench {
   gap: 16px !important;
   align-items: stretch !important;
@@ -296,10 +315,19 @@ body,
   gap: 8px !important;
 }
 
+.gc-action-row {
+  gap: 8px !important;
+  align-items: stretch !important;
+}
+
+.gc-action-row > * {
+  min-width: 0 !important;
+}
+
 .gc-preset-button button,
 .gc-run-button button {
-  min-height: 40px !important;
-  border-radius: 999px !important;
+  min-height: 44px !important;
+  border-radius: 8px !important;
   font-weight: 750 !important;
   transition:
     transform 0.15s ease,
@@ -347,31 +375,101 @@ body,
   padding: 12px;
 }
 
+.gc-output em,
+.gc-trace em {
+  color: var(--gc-muted);
+}
+
 .gc-trace {
+  overflow-x: auto;
   padding: 12px;
   background: var(--gc-brass-bg);
   border-left: 3px solid var(--gc-brass-border);
 }
 
-.gc-trace table {
-  width: 100%;
-  overflow-wrap: anywhere;
-  font-size: 12px;
+.gc-trace-stack {
+  display: grid;
+  gap: 10px;
 }
 
-.gc-trace th {
-  color: var(--gc-muted);
-  font-size: 10px;
-  letter-spacing: 0.07em;
+.gc-trace-card {
+  padding: 12px;
+  border: 1px solid rgba(200, 167, 106, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 252, 241, 0.82);
+}
+
+.gc-trace-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.gc-trace-title {
+  color: var(--gc-ink);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.gc-trace td,
-.gc-trace th {
-  padding: 6px 8px;
-  border-bottom: 1px solid rgba(200, 167, 106, 0.35);
-  text-align: left;
-  vertical-align: top;
+.gc-trace-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gc-trace-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid var(--gc-rule);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--gc-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.gc-trace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gc-trace-field {
+  min-width: 0;
+}
+
+.gc-trace-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--gc-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gc-trace-value {
+  color: var(--gc-ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gc-trace-value code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .gc-trace-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .gc-json {
@@ -402,9 +500,26 @@ body,
   background: #fff !important;
 }
 
+.gc-accordion button,
+.gc-fallback button {
+  min-height: 44px !important;
+}
+
+.gc-checkbox {
+  min-height: 44px;
+}
+
 .gc-checkbox label {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
   color: var(--gc-muted) !important;
   font-size: 12px !important;
+}
+
+.gc-checkbox input {
+  min-width: 20px !important;
+  min-height: 20px !important;
 }
 
 footer {
@@ -505,12 +620,66 @@ def _format_score(value: Any) -> str:
     return str(value)
 
 
-def _format_count_or_values(value: Any) -> str:
-    if isinstance(value, list):
-        if not value:
-            return "0"
-        return f"{len(value)}: " + ", ".join(str(item) for item in value)
-    return str(value)
+def _short_value(value: Any, *, limit: int = 34) -> str:
+    text = str(value)
+    if len(text) <= limit:
+        return text
+    return f"{text[: limit - 1]}..."
+
+
+def _format_chip(value: Any) -> str:
+    return f'<span class="gc-trace-pill">{escape(str(value))}</span>'
+
+
+def _format_list_summary(
+    values: Any,
+    *,
+    unit: str,
+    sample_limit: int = 2,
+    show_samples: bool = True,
+) -> str:
+    if not isinstance(values, list):
+        return escape(str(values))
+    if not values:
+        return f"0 {unit}"
+
+    count = len(values)
+    plural = unit if count == 1 else f"{unit}s"
+    if not show_samples:
+        return f"{count} {plural}"
+
+    samples = ", ".join(escape(_short_value(item)) for item in values[:sample_limit])
+    more = count - sample_limit
+    suffix = f" + {more} more" if more > 0 else ""
+    return f"{count} {plural}<br><code>{samples}{escape(suffix)}</code>"
+
+
+def _format_bool(value: Any) -> str:
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    return escape(str(value))
+
+
+def _trace_field(label: str, value: str) -> str:
+    return (
+        '<div class="gc-trace-field">'
+        f'<span class="gc-trace-label">{escape(label)}</span>'
+        f'<div class="gc-trace-value">{value}</div>'
+        "</div>"
+    )
+
+
+def _trace_card(title: str, pills: list[str], fields: list[tuple[str, str]]) -> str:
+    field_markup = "".join(_trace_field(label, value) for label, value in fields)
+    return (
+        '<section class="gc-trace-card">'
+        '<div class="gc-trace-head">'
+        f'<span class="gc-trace-title">{escape(title)}</span>'
+        f'<div class="gc-trace-pills">{"".join(pills)}</div>'
+        "</div>"
+        f'<div class="gc-trace-grid">{field_markup}</div>'
+        "</section>"
+    )
 
 
 def _format_trace_summary(
@@ -526,46 +695,52 @@ def _format_trace_summary(
     if not isinstance(rows, list) or not rows:
         return "**Trace summary:** no trace rows available."
 
-    if mode == "teach":
-        header = [
-            "turn",
-            "next_action",
-            "strategy",
-            "evidence_band",
-            "evidence_score",
-            "faithfulness_ok",
-            "retrieved_citation_ids",
-            "tool_calls",
-        ]
-    else:
-        header = [
-            "evidence_band",
-            "evidence_score",
-            "question_ids",
-            "selected_option_ids",
-            "correctness",
-            "refusal_reason",
-            "actions",
-        ]
-
-    lines = [
-        "| " + " | ".join(header) + " |",
-        "| " + " | ".join("---" for _ in header) + " |",
-    ]
+    cards: list[str] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
-        cells = []
-        for field in header:
-            value = row.get(field, "")
-            if field == "evidence_score":
-                cells.append(_format_score(value))
-            elif isinstance(value, list):
-                cells.append(_format_count_or_values(value))
-            else:
-                cells.append(str(value))
-        lines.append("| " + " | ".join(cells) + " |")
-    return "\n".join(lines)
+        if mode == "teach":
+            title = f"Turn {row.get('turn', '?')}"
+            pills = [
+                _format_chip(row.get("next_action", "unknown")),
+                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
+            ]
+            fields = [
+                ("Strategy", f"<code>{escape(str(row.get('strategy', 'unknown')))}</code>"),
+                ("Faithful", _format_bool(row.get("faithfulness_ok", "unknown"))),
+                (
+                    "Citations",
+                    _format_list_summary(
+                        row.get("retrieved_citation_ids", []),
+                        unit="cited span",
+                        show_samples=False,
+                    ),
+                ),
+                ("Tools", _format_list_summary(row.get("tool_calls", []), unit="tool call")),
+            ]
+        else:
+            title = "Quiz run"
+            pills = [
+                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
+            ]
+            fields = [
+                ("Questions", _format_list_summary(row.get("question_ids", []), unit="question")),
+                (
+                    "Answers",
+                    _format_list_summary(row.get("selected_option_ids", []), unit="answer"),
+                ),
+                ("Correctness", _format_list_summary(row.get("correctness", []), unit="grade")),
+                ("Actions", _format_list_summary(row.get("actions", []), unit="action")),
+            ]
+            refusal_reason = row.get("refusal_reason")
+            if refusal_reason:
+                fields.append(("Refusal", f"<code>{escape(str(refusal_reason))}</code>"))
+        cards.append(_trace_card(title, pills, fields))
+    if not cards:
+        return "**Trace summary:** no displayable trace rows available."
+    return '<div class="gc-trace-stack">' + "".join(cards) + "</div>"
 
 
 def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[dict[str, Any]]:
@@ -596,6 +771,7 @@ def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[di
     return rows
 
 
+@lru_cache(maxsize=1)
 def _runtime() -> tuple[CoachSettings, Foundation]:
     settings = CoachSettings.from_env()
     return settings, Foundation.build(settings)
@@ -631,8 +807,9 @@ def _error_payload(exc: Exception) -> tuple[str, dict[str, Any]]:
     error_id = uuid.uuid4().hex[:8]
     logger.exception("space handler failed error_id=%s", error_id)
     return (
-        "I could not run the demo safely. Check the Space settings, provider key, "
-        f"and corpus setup. Error ID: {error_id}.",
+        "This run failed closed before showing generated or corpus-derived text. "
+        "For a local recording, restart the app, hard-refresh the browser, and confirm "
+        f"the provider key plus approved Chroma index are loaded. Error ID: {error_id}.",
         {"status": "error", "error_id": error_id},
     )
 
@@ -809,6 +986,19 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             value="agent harness",
                             elem_classes=["gc-input"],
                         )
+                        with gr.Row(elem_classes=["gc-action-row"]):
+                            grounded_preset = gr.Button(
+                                "Grounded preset",
+                                elem_classes=["gc-preset-button"],
+                            )
+                            refusal_preset = gr.Button(
+                                "Refusal preset",
+                                elem_classes=["gc-preset-button"],
+                            )
+                            teach_button = gr.Button(
+                                "Run teach",
+                                elem_classes=["gc-run-button"],
+                            )
                         with gr.Row():
                             style = gr.Dropdown(
                                 STYLE_CHOICES,
@@ -824,21 +1014,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             )
                         learner_answer = gr.Textbox(
                             label="Learner answer",
-                            lines=4,
+                            lines=3,
                             elem_classes=["gc-input"],
-                        )
-                        with gr.Row(elem_classes=["gc-preset-row"]):
-                            grounded_preset = gr.Button(
-                                "Grounded demo preset",
-                                elem_classes=["gc-preset-button"],
-                            )
-                            refusal_preset = gr.Button(
-                                "Refusal demo preset",
-                                elem_classes=["gc-preset-button"],
-                            )
-                        teach_button = gr.Button(
-                            "Run teach session",
-                            elem_classes=["gc-run-button"],
                         )
                     with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
                         gr.HTML(
@@ -849,10 +1026,12 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                         )
                         teach_output = gr.Markdown(
                             label="Teach output",
+                            value="_Awaiting teach run._",
                             elem_classes=["gc-output"],
                         )
                         teach_trace_summary = gr.Markdown(
                             label="Trace summary",
+                            value="_Trace summary appears after a run._",
                             elem_classes=["gc-trace"],
                         )
                         with gr.Accordion(
@@ -906,12 +1085,19 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             minimum=1,
                             maximum=3,
                             step=1,
-                            value=3,
+                            value=1,
                             label="Questions",
                             elem_classes=["gc-input"],
                         )
+                        with gr.Row(elem_classes=["gc-action-row"]):
+                            quiz_preset = gr.Button(
+                                "Grounded quiz preset",
+                                elem_classes=["gc-preset-button"],
+                            )
+                            quiz_button = gr.Button("Run quiz", elem_classes=["gc-run-button"])
                         answers = gr.Textbox(
                             label="Answers",
+                            value="A",
                             placeholder="A,B,C",
                             elem_classes=["gc-input"],
                         )
@@ -920,11 +1106,6 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             value=False,
                             elem_classes=["gc-checkbox"],
                         )
-                        quiz_preset = gr.Button(
-                            "Grounded quiz preset",
-                            elem_classes=["gc-preset-button"],
-                        )
-                        quiz_button = gr.Button("Run quiz", elem_classes=["gc-run-button"])
                     with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
                         gr.HTML(
                             """
@@ -934,10 +1115,12 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                         )
                         quiz_output = gr.Markdown(
                             label="Quiz output",
+                            value="_Awaiting quiz run._",
                             elem_classes=["gc-output"],
                         )
                         quiz_trace_summary = gr.Markdown(
                             label="Trace summary",
+                            value="_Trace summary appears after a run._",
                             elem_classes=["gc-trace"],
                         )
                         with gr.Accordion(

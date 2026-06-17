@@ -6,13 +6,24 @@
 ## Pre-Recording Setup
 
 1. Open the repo root in the terminal.
-2. Start the local Gradio UI against the local private corpus; do not use `share=True` or a public
+2. Stop any stale local app already using port `7861`.
+3. Start the local Gradio UI against the local private corpus; do not use `share=True` or a public
    tunnel.
-3. Keep one editor tab open with `docs/demo-and-deliverables.md`.
-4. Keep one editor tab open with `specs/roadmap.md`.
-5. Keep trace output views narrow enough to show metadata only: `next_action`, `strategy`,
-   `evidence_score`, `evidence_band`, `citation_ids`, `faithfulness_ok`, `refusal_reason`.
-6. Do not run `--split test`.
+4. Open `http://127.0.0.1:7861` in the browser and hard-refresh before recording.
+5. Keep one editor tab open with `docs/demo-and-deliverables.md`.
+6. Keep one editor tab open with `specs/roadmap.md`.
+7. Do not run `--split test`.
+
+Fixed UI check before recording:
+
+- Teach tab shows `Grounded preset`, `Refusal preset`, and `Run teach` in one row.
+- Quiz tab defaults to topic `agent harness`, `Questions = 1`, `Answers = A`.
+- `Show generated quiz questions (local/private only)` is unchecked.
+- Trace display uses decision cards, not a markdown table.
+- `Redacted metadata` is collapsed.
+
+If you see orange default tab styling, stacked quiz buttons, or `Questions = 3` by default, the browser
+is showing the stale pre-polish UI. Hard-refresh or restart the local app.
 
 Recommended terminal environment:
 
@@ -24,12 +35,11 @@ export GENACADEMY_COACH_STOP_THRESHOLD=0.40
 Local UI command:
 
 ```bash
-PORT=7861 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
-  uv run python app.py
+PORT=7861 uv run python app.py
 ```
 
-Open `http://127.0.0.1:7861`. Use the preset buttons for the recording path. Leave "Show generated
-quiz questions" unchecked unless the topic and generated quiz text are safe to show.
+`app.py` loads `.env` when present. If `.env` is not available in the environment, use the explicit
+environment variables shown above.
 
 ## Shot List
 
@@ -37,12 +47,130 @@ quiz questions" unchecked unless the topic and generated quiz text are safe to s
 |---|---|---|
 | 0:00-0:20 | README title + one-line status | "This is GenAcademy Coach: a grounded adaptive tutor built on my Week 2 RAG system. The core promise is simple: it teaches from cited course evidence, adapts when the learner stumbles, and refuses when it cannot cite." |
 | 0:20-0:45 | `specs/roadmap.md` cut list | "The first decision was scope. I cut memory, voice, admin UI, explicit LangGraph, and mock interview until the grounded teach loop worked end-to-end. That kept the demo from becoming a pile of half-features." |
-| 0:45-2:05 | Local Gradio Teach tab: click "Grounded demo preset" then run | "Here the learner asks about a public demo topic. The tutor retrieves course evidence, explains, asks a grounded check, and then reacts to the learner's wrong answer. The key evidence is the readable runtime trace: the model chooses `drill` first, then `re_explain_differently`; Python only enforces grounding and safety." |
-| 2:05-2:45 | Local Gradio Teach tab: click "Refusal demo preset" then run; show review queue row count only if needed | "The failure path is load-bearing. For an out-of-corpus topic, the system does not invent an answer. Retrieval evidence is `stop`, the tutor refuses, and it writes one mentor-review queue row." |
+| 0:45-2:05 | Local Gradio Teach tab: click `Grounded preset`, then `Run teach` | "Here the learner asks about a public demo topic. The tutor retrieves course evidence, explains, asks a grounded check, and then reacts to the learner's wrong answer. The key evidence is the runtime trace card: the model chooses a teaching action and strategy at runtime; Python only enforces grounding and safety." |
+| 2:05-2:45 | Local Gradio Teach tab: click `Refusal preset`, then `Run teach`; show refusal output and safe trace only | "The failure path is load-bearing. For an out-of-corpus topic, the system does not invent an answer. Retrieval evidence is insufficient, the tutor refuses, and it queues mentor review." |
 | 2:45-3:25 | Dev eval status doc | "I did not use the held-out test split for tuning or demo prep. The redacted dev eval is `7/10` overall and `7/8` teachable. Two failures are safe refusals. The remaining teachable variance is a conservative escalation case, not a hallucination." |
 | 3:25-4:10 | Same-topic lens-switch metadata | "To show personalization without risky memory, I used controlled contrast: same topic, same learner answer, different teaching lens. The grounding metadata stays stable; the explanation shown live changes by lens." |
-| 4:10-4:45 | Local Gradio Quiz tab: click "Grounded quiz preset" then run with question text hidden | "Quiz Mode is the first pull-in, not the agenticity proof. The model generates cited MCQs from retrieved spans, but Python owns the answer key and deterministic grading. For the recording, generated quiz text stays hidden; the trace stores only `topic_hash`, IDs, scores, booleans, and actions." |
+| 4:10-4:45 | Local Gradio Quiz tab: click `Grounded quiz preset`, then `Run quiz` with question text hidden | "Quiz Mode is the first pull-in, not the agenticity proof. The model generates a cited MCQ from retrieved spans, but Python owns the answer key and deterministic grading. For the recording, generated quiz text stays hidden; the trace stores only safe metadata." |
 | 4:45-5:00 | `docs/submission-google-doc-draft.md` or roadmap | "The next steps are submission packaging, then future pull-ins: memory, mock interview, or deployment polish. The main learning was to raise the floor before adding new surfaces." |
+
+## UI Walkthrough: Teach Tab
+
+Use this section as the exact click script during recording.
+
+### A. Grounded Adaptive Teach Path
+
+1. Open `http://127.0.0.1:7861`.
+2. Click the `Teach` tab.
+3. Click `Grounded preset`.
+4. Confirm the visible fields:
+   - Topic: `agent harness`
+   - Style: `analogy`
+   - Track lens: `code_heavy`
+   - Learner answer: `It is just one prompt with no tool checks or feedback.`
+5. Click `Run teach`.
+6. Wait for the live provider call to finish. The first run may be slower; the warmed app should be
+   faster.
+7. In `Response and decision trace`, show:
+   - `Turn 1`
+   - a grounded learner explanation
+   - `Check: ...`
+   - `Turn 2`
+   - a different re-explanation after the learner's wrong answer
+8. In the trace card, point to:
+   - action chip, especially `re_explain_differently` on the second turn
+   - evidence band `confirm`
+   - evidence score
+   - `Faithful: yes`
+   - citation counts, for example `5 cited spans`
+   - tool-call counts
+9. Do not expand `Redacted metadata` during the main recording. It is available as proof, but the trace
+   card is the camera-friendly surface.
+
+Suggested narration:
+
+> "The UI is showing the important agentic moment. The model did not just answer once. It saw the
+> learner's wrong answer, chose a new next action, and re-explained with a different strategy while the
+> grounding gate kept citation evidence attached."
+
+### B. Refusal And Escalation Path
+
+1. Stay on the `Teach` tab.
+2. Click `Refusal preset`.
+3. Confirm the visible fields:
+   - Topic: `Gen Academy cafeteria menu`
+   - Style: `concise`
+   - Track lens: `low_code_no_code`
+   - Learner answer is blank
+4. Click `Run teach`.
+5. Show the refusal message, not a hallucinated answer.
+6. Show the trace card/refusal status:
+   - action `refuse_escalate` or refusal status
+   - evidence band `stop`
+   - score near zero or below the STOP threshold
+   - zero cited spans
+7. If needed, mention that the local review queue receives a mentor-review row; do not show private
+   raw corpus or full queue payloads.
+
+Suggested narration:
+
+> "This is the integrity moment. The tutor knows when the course corpus cannot support an answer, so it
+> fails closed and escalates instead of bluffing from model priors."
+
+## UI Walkthrough: Quiz Tab
+
+### A. Grounded Hidden Quiz Path
+
+1. Click the `Quiz` tab.
+2. Click `Grounded quiz preset`.
+3. Confirm the visible fields:
+   - Topic: `agent harness`
+   - Questions: `1`
+   - Answers: `A`
+   - `Show generated quiz questions (local/private only)` is unchecked
+4. Click `Run quiz`.
+5. Show the output:
+   - "Generated 1 grounded quiz question(s)."
+   - question text is hidden by default
+   - score is shown
+6. Show the trace card:
+   - evidence band `confirm`
+   - evidence score
+   - one question ID
+   - selected answer ID
+   - correctness boolean
+   - actions include retrieval, question generation, and Python grading
+7. Keep `Redacted metadata` collapsed unless you need to prove the safe trace fields. Do not expose raw
+   generated quiz question text, option text, expected answers, rationales, or keywords.
+
+Suggested narration:
+
+> "Quiz is deliberately narrower than Teach Mode. The model generates a grounded question, but Python
+> owns grading. For recording privacy, the generated question and options stay hidden by default."
+
+### B. Optional Local-Only Reveal
+
+Use this only if you have already confirmed the generated question text is public-safe.
+
+1. Keep topic `agent harness`.
+2. Check `Show generated quiz questions (local/private only)`.
+3. Click `Run quiz`.
+4. Briefly show that the UI can reveal generated question text locally.
+5. Uncheck it again before any public or shareable screenshot.
+
+Default recording recommendation: skip this reveal and keep generated quiz text hidden.
+
+### C. Optional Three-Question Capability
+
+If the app is warm and you want to show the broader Quiz Mode capability:
+
+1. Set `Questions` to `3`.
+2. Set `Answers` to `A,B,C`.
+3. Keep generated questions hidden.
+4. Click `Run quiz`.
+5. Show only the generated count, score, and safe trace fields.
+
+This is optional. The primary recording path is the reliable one-question preset.
 
 ## Commands To Run Or Show As Fallback Evidence
 
@@ -92,7 +220,18 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
     --learner-answer "It is just one prompt with no tool checks or feedback."
 ```
 
-Grounded quiz:
+Grounded quiz, matching the reliable local UI path:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_quiz_demo.py \
+    --session-id demo-quiz-agent-harness-ui-20260617 \
+    --topic "agent harness" \
+    --question-count 1 \
+    --answers A
+```
+
+Optional three-question quiz evidence:
 
 ```bash
 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
@@ -118,10 +257,10 @@ uv run python scripts/check_eval_leak.py
 
 ## Redaction Rules During Recording
 
-- OK to show: file names, scenario counts, scores, bands, action names, strategy names, citation IDs,
-  booleans, selected option IDs, and pass/fail counts.
+- OK to show: file names, scenario counts, scores, bands, action names, strategy names, citation
+  counts, booleans, selected option IDs, question IDs, and pass/fail counts.
 - Do not show: raw corpus spans, private eval questions, generated quiz question text, option text,
-  expected answers, rationales, keywords, `.env`, API keys, or full trace payloads.
+  expected answers, rationales, keywords, long citation IDs, `.env`, API keys, or full trace payloads.
 
 ## Fallback If A Live Nebius Call Is Slow
 
