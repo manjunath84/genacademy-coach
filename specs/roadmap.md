@@ -99,12 +99,17 @@ exist at every step ("demo cannot fail").
   is uploaded; provider/corpus-backed click smoke remains pending. PR review hardening added
   no-factory-reboot-by-default, pinned Week 2 dependency SHA, startup chunk-count warnings, a
   cold-click empty-corpus banner, and redacted UI error IDs backed by private server tracebacks.
+- **Demo-ready local UI polish completed.** The existing Gradio wrapper now supports preset-fill
+  buttons for the grounded and refusal demos, a readable trace summary panel generated only from the
+  safe trace allow-lists, a local-only quiz question display toggle that stays off by default for
+  recording, and a no-live-call fallback note pointing to committed redacted evidence.
 
 ### In Progress
 
 - **Demo packaging after private Space smoke.** The remaining critical path is external Google Doc
-  creation/import, video recording, and deciding whether to keep the Space framed as a deployment shell
-  or make a public-safe corpus/index available in the Space. Memory is intentionally held as a later
+  creation/import, video recording through the local Gradio UI, and deciding whether to keep the Space
+  framed as a deployment shell or make a public-safe corpus/index available in the Space. Memory is
+  intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden
   source of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable
   memory later, unnecessary for the two-day demo.

@@ -9,15 +9,23 @@ import pytest
 
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
+    DEMO_PRESET_TOPICS,
     EMPTY_CORPUS_STATUS_MESSAGE,
+    QUIZ_GROUNDED_PRESET,
     SAFE_QUIZ_TRACE_FIELDS,
     SAFE_TEACH_TRACE_FIELDS,
+    TEACH_GROUNDED_PRESET,
+    TEACH_REFUSAL_PRESET,
     UserInputError,
     _coerce_choice,
     _error_payload,
+    _format_trace_summary,
     _parse_answers,
     _require_topic,
     _space_status_message,
+    fill_quiz_grounded_preset,
+    fill_teach_grounded_preset,
+    fill_teach_refusal_preset,
     run_quiz_session,
     safe_trace_rows,
 )
@@ -119,6 +127,34 @@ def test_safe_trace_rows_omit_raw_quiz_fields_and_skip_malformed_rows(tmp_path, 
     assert "malformed trace row" in caplog.text
 
 
+def test_trace_summary_uses_only_safe_fields():
+    private_value = "PRIVATE_TRACE_TEXT"
+    metadata = {
+        "status": "ok",
+        "trace": [
+            {
+                "turn": 1,
+                "learner_message": private_value,
+                "next_action": "drill",
+                "strategy": "short_drill",
+                "evidence_score": 0.7114,
+                "evidence_band": "confirm",
+                "faithfulness_ok": True,
+                "retrieved_citation_ids": ["chunk-1", "chunk-2"],
+                "tool_calls": ["retrieve_course_corpus"],
+            }
+        ],
+    }
+
+    summary = _format_trace_summary(metadata, mode="teach")
+
+    assert "drill" in summary
+    assert "0.711" in summary
+    assert "2: chunk-1, chunk-2" in summary
+    assert private_value not in summary
+    assert "learner_message" not in summary
+
+
 def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
     private_value = "PRIVATE_PROVIDER_DETAIL"
 
@@ -183,6 +219,21 @@ def test_input_helpers_return_specific_safe_errors():
         _coerce_choice("verbose", ["concise"], "style")
 
 
+def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries():
+    assert fill_teach_grounded_preset() == TEACH_GROUNDED_PRESET
+    assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
+    assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
+
+    manifest = json.loads(Path("eval/split_manifest.json").read_text(encoding="utf-8"))
+    eval_tokens = {
+        str(value)
+        for item in manifest["items"]
+        for value in (item["id"], item["source_file"], item["source_sha256"])
+    }
+    assert DEMO_PRESET_TOPICS.isdisjoint(eval_tokens)
+    assert TEACH_REFUSAL_PRESET[0] == "Gen Academy cafeteria menu"
+
+
 def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
     def fail_runtime():
         raise AssertionError("runtime should not be built for invalid input")
@@ -193,6 +244,68 @@ def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
 
     assert message == "expected 3 answers, received 2"
     assert metadata == {"status": "invalid_input"}
+
+
+def test_run_quiz_session_hides_generated_quiz_text_by_default(tmp_path, monkeypatch):
+    private_value = "PRIVATE_GENERATED_QUIZ_TEXT"
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.71,
+                "evidence_band": "confirm",
+                "citation_ids": ["chunk-1"],
+                "question_ids": ["q1"],
+                "selected_option_ids": ["A"],
+                "correctness": [True],
+                "actions": ["retrieve_course_corpus", "generate_quiz_items", "grade_quiz"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(self, selected_option_ids=None):
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[
+                    SimpleNamespace(
+                        question_id="q1",
+                        prompt=private_value,
+                        options=[SimpleNamespace(option_id="A", text=private_value)],
+                    )
+                ],
+                grades=[
+                    SimpleNamespace(
+                        question_id="q1",
+                        selected_option_id="A",
+                        correct_option_id="A",
+                        correct=True,
+                    )
+                ],
+                score=1,
+                refusal_reason=None,
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    message, metadata = run_quiz_session("agent harness", 1, "A")
+
+    serialized = json.dumps(metadata, sort_keys=True)
+    assert "Question text is hidden by default" in message
+    assert "**Score:** 1/1" in message
+    assert "answer A" not in message
+    assert private_value not in message
+    assert private_value not in serialized
+
+    visible_message, _ = run_quiz_session("agent harness", 1, "A", show_questions=True)
+    assert private_value in visible_message
 
 
 def test_run_quiz_session_metadata_uses_safe_trace_allow_list(tmp_path, monkeypatch):
@@ -255,6 +368,24 @@ def test_web_framework_imports_stay_outside_core():
         if "import fastapi" in text or "from fastapi" in text:
             offenders.append(str(path))
     assert offenders == []
+
+
+def test_gradio_launch_does_not_enable_public_share():
+    app_text = Path("src/genacademy_coach/web/gradio_app.py").read_text(encoding="utf-8")
+
+    assert "share=False" in app_text
+    assert "share=True" not in app_text
+
+
+def test_gradio_ui_uses_genacademy_console_shell():
+    app_text = Path("src/genacademy_coach/web/gradio_app.py").read_text(encoding="utf-8")
+
+    assert "gc-app-header" in app_text
+    assert "gc-status-rail" in app_text
+    assert "gc-workbench" in app_text
+    assert "GENACADEMY_COACH_CSS" in app_text
+    assert "css=GENACADEMY_COACH_CSS" in app_text
+    assert "Evidence fallback" in app_text
 
 
 def test_hf_deploy_files_pin_port_data_and_embed_dim():

@@ -199,7 +199,7 @@ different `next_action` + `strategy` without changing Python control flow.
 | Prompts used during vibe-coding | ✅ sanitized appendix packaged | Use `docs/vibe-coding-prompt-appendix.md`; do not add secrets or private corpus/eval text |
 | Iterations tried | ✅ narrative ready | Use `docs/teach-loop-status.md`, `docs/build-learnings.md`, and the PR sequence from roadmap |
 | Learnings | ✅ narrative ready | Use `docs/build-learnings.md` plus `docs/decisions.md` |
-| ≤5-min video | ✅ script packaged / ⚠️ video not recorded | Use `docs/video-demo-script.md` |
+| ≤5-min video | ✅ script packaged / ⚠️ video not recorded | Use `docs/video-demo-script.md`; record through the local Gradio UI presets, with CLI commands as fallback |
 | GitHub | ✅ private repo | Flip to public at submission (`gh repo edit --visibility public`) |
 | Architecture diagram | ✅ `docs/architecture-diagrams.md` | Export Diagram 2 (teach loop) to PNG/SVG for the Doc/video |
 | Hugging Face deployment | ✅ private Space HTTP smoke passed / ⚠️ corpus click smoke pending | URL: `https://huggingface.co/spaces/Manjunath84/genacademy-coach`; no private corpus/index uploaded; UI marks this as a deployment shell |

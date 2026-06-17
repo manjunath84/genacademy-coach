@@ -6,11 +6,13 @@
 ## Pre-Recording Setup
 
 1. Open the repo root in the terminal.
-2. Keep one editor tab open with `docs/demo-and-deliverables.md`.
-3. Keep one editor tab open with `specs/roadmap.md`.
-4. Keep trace output views narrow enough to show metadata only: `next_action`, `strategy`,
+2. Start the local Gradio UI against the local private corpus; do not use `share=True` or a public
+   tunnel.
+3. Keep one editor tab open with `docs/demo-and-deliverables.md`.
+4. Keep one editor tab open with `specs/roadmap.md`.
+5. Keep trace output views narrow enough to show metadata only: `next_action`, `strategy`,
    `evidence_score`, `evidence_band`, `citation_ids`, `faithfulness_ok`, `refusal_reason`.
-5. Do not run `--split test`.
+6. Do not run `--split test`.
 
 Recommended terminal environment:
 
@@ -19,20 +21,33 @@ export GENACADEMY_PROVIDER=nebius
 export GENACADEMY_COACH_STOP_THRESHOLD=0.40
 ```
 
+Local UI command:
+
+```bash
+PORT=7861 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python app.py
+```
+
+Open `http://127.0.0.1:7861`. Use the preset buttons for the recording path. Leave "Show generated
+quiz questions" unchecked unless the topic and generated quiz text are safe to show.
+
 ## Shot List
 
 | Time | Screen | Say |
 |---|---|---|
 | 0:00-0:20 | README title + one-line status | "This is GenAcademy Coach: a grounded adaptive tutor built on my Week 2 RAG system. The core promise is simple: it teaches from cited course evidence, adapts when the learner stumbles, and refuses when it cannot cite." |
 | 0:20-0:45 | `specs/roadmap.md` cut list | "The first decision was scope. I cut memory, voice, admin UI, explicit LangGraph, and mock interview until the grounded teach loop worked end-to-end. That kept the demo from becoming a pile of half-features." |
-| 0:45-2:05 | Teach demo command + redacted trace metadata | "Here the learner asks about a public demo topic. The tutor retrieves course evidence, explains, asks a grounded check, and then reacts to the learner's wrong answer. The key evidence is the runtime trace: the model chooses `drill` first, then `re_explain_differently`; Python only enforces grounding and safety." |
-| 2:05-2:45 | Refusal command + review queue row count | "The failure path is load-bearing. For an out-of-corpus topic, the system does not invent an answer. Retrieval evidence is `stop`, the tutor refuses, and it writes one mentor-review queue row." |
+| 0:45-2:05 | Local Gradio Teach tab: click "Grounded demo preset" then run | "Here the learner asks about a public demo topic. The tutor retrieves course evidence, explains, asks a grounded check, and then reacts to the learner's wrong answer. The key evidence is the readable runtime trace: the model chooses `drill` first, then `re_explain_differently`; Python only enforces grounding and safety." |
+| 2:05-2:45 | Local Gradio Teach tab: click "Refusal demo preset" then run; show review queue row count only if needed | "The failure path is load-bearing. For an out-of-corpus topic, the system does not invent an answer. Retrieval evidence is `stop`, the tutor refuses, and it writes one mentor-review queue row." |
 | 2:45-3:25 | Dev eval status doc | "I did not use the held-out test split for tuning or demo prep. The redacted dev eval is `7/10` overall and `7/8` teachable. Two failures are safe refusals. The remaining teachable variance is a conservative escalation case, not a hallucination." |
 | 3:25-4:10 | Same-topic lens-switch metadata | "To show personalization without risky memory, I used controlled contrast: same topic, same learner answer, different teaching lens. The grounding metadata stays stable; the explanation shown live changes by lens." |
-| 4:10-4:45 | Quiz Mode command + redacted quiz trace metadata | "Quiz Mode is the first pull-in, not the agenticity proof. The model generates cited MCQs from retrieved spans, but Python owns the answer key and deterministic grading. The trace stores only `topic_hash`, IDs, scores, booleans, and actions." |
+| 4:10-4:45 | Local Gradio Quiz tab: click "Grounded quiz preset" then run with question text hidden | "Quiz Mode is the first pull-in, not the agenticity proof. The model generates cited MCQs from retrieved spans, but Python owns the answer key and deterministic grading. For the recording, generated quiz text stays hidden; the trace stores only `topic_hash`, IDs, scores, booleans, and actions." |
 | 4:45-5:00 | `docs/submission-google-doc-draft.md` or roadmap | "The next steps are submission packaging, then future pull-ins: memory, mock interview, or deployment polish. The main learning was to raise the floor before adding new surfaces." |
 
-## Commands To Run Or Show
+## Commands To Run Or Show As Fallback Evidence
+
+Prefer the local Gradio UI for the recording. Keep these CLI commands ready if the UI call is slow or
+if you need to show reproducibility.
 
 Grounded teach loop:
 
