@@ -104,9 +104,12 @@ exist at every step ("demo cannot fail").
   safe trace allow-lists, a local-only quiz question display toggle that stays off by default for
   recording, and a no-live-call fallback note pointing to committed redacted evidence.
 - **Submission hardening and grader path packaged.** The grading-gap audit, submission hardening runbooks,
-  Skill-Gap Diagnosis spec, README status table, and grader 5-minute path make the shipped proof visible
-  without changing behavior or using the held-out `test` split. PRs #23/#24 were independently reviewed
-  by AGY and merged.
+  README status table, and grader 5-minute path make the shipped proof visible without changing behavior
+  or using the held-out `test` split. PRs #23/#24 were independently reviewed by AGY and merged.
+- **Skill-Gap Diagnosis CLI/core pull-in completed.** The deterministic gap report composes existing
+  teach traces, quiz trace rows, review-queue events, retrieval, grounding, and typed redacted traces.
+  It produces a cited next-step plan or refuses/escalates if no citeable span exists; it does not add
+  LLM mastery grading, memory, a second agent loop, or direct `langgraph.*` imports.
 
 ### In Progress
 
@@ -127,8 +130,6 @@ exist at every step ("demo cannot fail").
 - Create the external Google Doc submission from `docs/submission-google-doc-draft.md`.
 - Keep the Hugging Face Space private/deployment-shell framed until a public-safe corpus/index decision
   is made.
-- If one more standout workflow is pulled in before final submission, use the reviewed
-  Skill-Gap Diagnosis spec path first. It is still plan-only until reviewed and implemented.
 - If memory is pulled in after submission, write a separate implementation plan that compares first-party
   persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
 - If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
@@ -162,17 +163,10 @@ same-topic lens switching, and grounded Quiz Mode are complete on the dev/demo p
 honest dev-eval reporting, and repo demo/readme packaging are complete on merged `main`; the active gate
 is final video/doc packaging. The held-out `test` split stays untouched until final evaluation.
 
-## Next Candidate
-
-Do not start another implementation unless the video and Google Doc are on track. If one more standout
-workflow is worth pulling in before final submission, use **Skill-Gap Diagnosis**: a plan-only,
-deterministic, cited next-step report from teach/quiz traces and review-queue events. It requires
-fresh-context review before code and must not add memory or a second agent loop.
-
 ## Future Pull-Ins
 
-The two-day score-lift sequence has already landed through grounded Quiz Mode and grader-path hardening.
-This list is future-only; shipped pull-ins stay in Done.
+The two-day score-lift sequence has already landed through grounded Quiz Mode, grader-path hardening,
+local UI polish, and Skill-Gap Diagnosis. This list is future-only; shipped pull-ins stay in Done.
 
 1. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
 2. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload

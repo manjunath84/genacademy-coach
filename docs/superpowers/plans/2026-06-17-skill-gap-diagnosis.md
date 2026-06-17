@@ -1,6 +1,7 @@
 # Skill-Gap Diagnosis Plan
 
-Status: spec only. Do not implement until this plan receives a fresh-context or different-model review.
+Status: implemented as a deterministic CLI/core slice after fresh-context review of the plan. The
+implementation still requires normal PR review before merge.
 
 ## Purpose
 
@@ -37,8 +38,8 @@ Inputs may contain local private text. The public output and trace must not.
    - correct quiz answer: -2
 5. For each ranked gap, call `Foundation.retrieve`.
 6. Pass retrieved spans through `require_citeable_spans`.
-7. If citeable spans exist, emit a cited "review next" item using only citation metadata and a short
-   learner-safe summary generated from retrieved context.
+7. If citeable spans exist, emit a cited "review next" item using only citation metadata and a compact
+   deterministic review target.
 8. If no citeable span exists, refuse that gap item with an escalation reason. Do not backfill from model
    priors.
 
@@ -106,7 +107,8 @@ framework imports in core.
 The demo command should run locally:
 
 ```bash
-uv run python scripts/run_skillgap_demo.py --session-id demo-grounded-main-final-20260616
+uv run python scripts/run_skillgap_demo.py \
+  --source-session-id demo-grounded-main-final-20260616
 ```
 
 Expected demo beat:

@@ -28,9 +28,9 @@ the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
 | Redacted eval + leak guard | **Shipped** | Latest dev evidence is `7/10` overall and `7/8` teachable on 2026-06-16; held-out `test` split remains unrun. |
 | Same-topic lens switch | **Shipped** | Same public topic and learner answer, different teaching lens; grounding metadata stays stable as the control. |
 | Grounded Quiz Mode | **Shipped pull-in** | Cited MCQ generation with deterministic Python grading; UI hides generated question text by default for recording. |
+| Skill-Gap Diagnosis | **Shipped CLI pull-in** | Deterministic, cited next-step report from teach/quiz traces and review-queue events; no LLM mastery grading or memory provider. |
 | Local Gradio web chat | **Shipped** | Demo-ready local UI and screenshot packet are committed; no public tunnel or private corpus exposure. |
 | Hugging Face Space | **Live deployment shell** | Private Space HTTP smoke passed; no private corpus/index uploaded, so grounded click smoke is pending. |
-| Skill-Gap Diagnosis | **Planned standout workflow** | Spec drafted only; needs fresh-context review before code. |
 | Mock Interview / admin upload / voice / memory | **Roadmap** | Deferred pull-ins; not part of the shipped Week-3 demo. |
 
 ## Grader's 5-Minute Path
@@ -53,10 +53,18 @@ the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
        --learner-answer "It is just one prompt with no tool checks or feedback."
    ```
 
-5. Open the deployment proof:
+5. Optional: run the Skill-Gap Diagnosis CLI/core pull-in over existing local trace session IDs:
+
+   ```bash
+   uv run python scripts/run_skillgap_demo.py \
+     --source-session-id demo-grounded-main-final-20260616 \
+     --source-session-id demo-quiz-agent-harness-reviewfix2-20260616
+   ```
+
+6. Open the deployment proof:
    [`https://huggingface.co/spaces/Manjunath84/genacademy-coach`](https://huggingface.co/spaces/Manjunath84/genacademy-coach).
    It is intentionally a live shell until a public-safe corpus subset is approved and uploaded.
-6. Read the hardening docs:
+7. Read the hardening docs:
    [`docs/grading-gap-audit.md`](docs/grading-gap-audit.md) and
    [`docs/submission-hardening-plan.md`](docs/submission-hardening-plan.md).
 
@@ -67,8 +75,8 @@ One agent engine with shipped teach/quiz surfaces and explicit roadmap pull-ins:
 - **Teach** *(Thursday MVP)* — explain a concept grounded in the corpus → check understanding →
   re-explain a different way until it clicks.
 - **Quiz** *(first pull-in shipped)* — cited MCQ generation with deterministic grading.
-- **Skill-Gap Diagnosis** *(planned standout workflow)* — deterministic, cited next-step report from
-  teach/quiz traces and review-queue events; spec only until reviewed.
+- **Skill-Gap Diagnosis** *(second pull-in shipped as CLI/core)* — deterministic, cited next-step
+  report from teach/quiz traces and review-queue events; no LLM mastery grading.
 - **Mock interview / admin upload / ElevenLabs voice / cross-session memory** *(roadmap pull-ins)* —
   added only after the text teach loop, refusal path, eval split, and trace are demoable end-to-end.
 
@@ -104,7 +112,7 @@ cross-session ML clustering or provider-backed memory.
 - [`docs/submission-hardening-plan.md`](docs/submission-hardening-plan.md) — P0/P1/P2 hardening plan and
   human-run submission runbooks
 - [`docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md`](docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md)
-  — spec for the planned Skill-Gap Diagnosis standout workflow
+  — reviewed plan behind the shipped Skill-Gap Diagnosis CLI/core slice
 
 ## Build track
 

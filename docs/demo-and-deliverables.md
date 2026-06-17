@@ -165,6 +165,14 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
     --answers A,B,C
 ```
 
+Skill-Gap Diagnosis CLI/core pull-in, using one or more existing trace session IDs:
+
+```bash
+uv run python scripts/run_skillgap_demo.py \
+  --source-session-id demo-grounded-main-final-20260616 \
+  --source-session-id demo-quiz-agent-harness-reviewfix2-20260616
+```
+
 Dev eval:
 
 ```bash
