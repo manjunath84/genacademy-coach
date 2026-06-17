@@ -8,8 +8,9 @@ from the course materials, and escalates the rest to a human mentor.
 > **Implementation status:** teach-loop MVP implemented, merged, live Nebius-verified, and reviewed by
 > separate Gemini/Claude contexts. The latest dev evidence remains `7/10` on the dev eval and `7/8`
 > on teachable scenarios, with two safe low-retrieval refusals. The original same-turn grading overwrite
-> is fixed; the remaining live-run variance is a confirm-band refusal/structured-output path. Private
-> corpus files remain local-only; only structure, redacted diagnostics, and leak checks are versioned.
+> is fixed; the remaining live-run variance is a confirm-band refusal/structured-output path. Grounded
+> Quiz Mode is also implemented as a deterministic MCQ pull-in. Private corpus files remain local-only;
+> only structure, redacted diagnostics, and leak checks are versioned.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
@@ -20,7 +21,7 @@ One agent engine, three modes that share it:
 
 - **Teach** *(Thursday MVP)* — explain a concept grounded in the corpus → check understanding →
   re-explain a different way until it clicks.
-- **Quiz** *(pull-in)* — adaptive MCQ with deterministic grading.
+- **Quiz** *(first pull-in shipped)* — cited MCQ generation with deterministic grading.
 - **Mock interview** *(pull-in)* — open-answer questions, grounded grading against cited expected
   points, follow-up probing, and a short gap report.
 - **Admin upload / ElevenLabs voice** *(pull-ins)* — added only after the text teach loop, refusal path,
@@ -80,6 +81,9 @@ Final merged-main evidence was captured on 2026-06-16 without using the held-out
     stayed grounded (`0.711` / `0.753 confirm`) and faithful.
   - `traces/demo-lens-code-heavy-20260616.jsonl`: same topic through the `code_heavy` lens; turns stayed
     grounded (`0.711` / `0.753 confirm`) and faithful.
+- Grounded quiz trace: `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl`
+  - `3` cited MCQs generated, evidence `0.711 confirm`, answers `A,B,C` graded deterministically as
+    `1/3`, no refusal; the trace stores `topic_hash`, not the raw topic or quiz text.
 - Dev eval artifact: `eval/runs/teach-loop-dev-main-final-20260616.json`
   - `7/10` overall, `7/8` teachable, `2` safe low-retrieval refusals.
   - Follow-up grade-boundary run fixes the original same-turn grade overwrite; latest dev evidence still
@@ -114,6 +118,17 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
     --style analogy \
     --track-lens code_heavy \
     --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Run the grounded quiz demo locally:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_quiz_demo.py \
+    --session-id demo-quiz-agent-harness-reviewfix2-20260616 \
+    --topic "agent harness" \
+    --question-count 3 \
+    --answers A,B,C
 ```
 
 Run the redacted dev eval:

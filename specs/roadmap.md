@@ -80,13 +80,18 @@ exist at every step ("demo cannot fail").
   `demo-lens-code-heavy-20260616`. Both stay grounded in the confirm band, cite retrieved spans, and
   re-explain after the same wrong answer. The trace artifacts remain gitignored; docs record only
   redacted metadata.
+- **Grounded Quiz Mode shipped.** The first pull-in generates up to 3 cited MCQs from retrieved spans,
+  grades selected option IDs deterministically in Python, refuses/escalates when retrieval is not
+  citeable, and writes a typed redacted quiz trace. Live Nebius trace
+  `demo-quiz-agent-harness-reviewfix2-20260616` generated 3 cited questions at `0.711 confirm` evidence and graded
+  answers `A,B,C` as `1/3`. The trace stores `topic_hash`, not raw topic or quiz text; the held-out
+  `test` split was not used.
 
 ### In Progress
 
-- **Grounded Quiz Mode planning.** The grade-boundary fix and same-topic lens-switch demo are captured.
-  A draft implementation plan for the smallest cited MCQ quiz slice now lives at
-  `docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`; no quiz code starts until that plan passes
-  fresh-context / different-model review. Memory is intentionally held as a later
+- **Demo packaging after Quiz Mode.** The grade-boundary fix, same-topic lens-switch demo, and grounded
+  Quiz Mode pull-in are captured. The next critical path is packaging the video and Google Doc. Memory is
+  intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden source
   of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable memory
   later, unnecessary for the two-day demo.
@@ -96,8 +101,6 @@ exist at every step ("demo cannot fail").
 - Keep the held-out `test` split unused until final evaluation/reporting.
 - Decide whether to harden the remaining confirm-band refusal variance or explain it in the demo as a
   conservative escalation case.
-- Review and approve the grounded Quiz Mode implementation plan before any quiz code starts.
-- Build grounded Quiz Mode only if the floor remains stable and the approved plan stays small.
 - If memory is pulled in after the demo floor is green, write a separate implementation plan that compares
   first-party persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
 - If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
@@ -128,11 +131,10 @@ The adaptive **teach loop**:
   until final evaluation.
 
 **Build order status.** Foundation adapter, eval scaffolding, leak guard, teach-loop core, eval
-diagnostics, retrieval triage, threshold calibration, behavior hardening, and citation-resolution
-hardening are complete on the dev split. Demo trace capture, honest dev-eval reporting, and repo
-demo/readme packaging are complete on merged `main`; the active gate is the two-day score-lift sequence:
-grading diagnostic, lens-switch demo, then grounded Quiz Mode if stable. The held-out `test` split stays
-untouched until final evaluation.
+diagnostics, retrieval triage, threshold calibration, behavior hardening, citation-resolution hardening,
+same-topic lens switching, and grounded Quiz Mode are complete on the dev/demo path. Demo trace capture,
+honest dev-eval reporting, and repo demo/readme packaging are complete on merged `main`; the active gate
+is final video/doc packaging. The held-out `test` split stays untouched until final evaluation.
 
 ## PULL-IN (if time, in priority order — SHOULD)
 
@@ -140,7 +142,7 @@ untouched until final evaluation.
 the chosen order is: stabilize teachable eval -> lens-switch demo -> grounded Quiz Mode. Mock interview
 is a Day-2 stretch only if quiz is already green.
 
-1. **Quiz mode** — adaptive MCQ, deterministic grading
+1. **Quiz mode** — shipped first pull-in: cited MCQ generation + deterministic grading
 2. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
 3. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
 4. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth

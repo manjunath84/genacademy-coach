@@ -115,28 +115,28 @@ answers from the live cohort. For this two-day quiz slice, use them conservative
 - Create: `src/genacademy_coach/quiz_types.py`
 - Create: `tests/test_quiz_types.py`
 
-- [ ] Add `QuizOption` with `option_id` and `text`.
-- [ ] Add `QuizQuestion` with `question_id`, `prompt`, `options`, `correct_option_id`,
+- [x] Add `QuizOption` with `option_id` and `text`.
+- [x] Add `QuizQuestion` with `question_id`, `prompt`, `options`, `correct_option_id`,
   `expected_answer`, `rationale`, `citation_id`, and `expected_keywords`.
-- [ ] Set Pydantic models to reject extra fields; a model-supplied `confidence` field is invalid.
-- [ ] Enforce these invariants in Pydantic validators:
+- [x] Set Pydantic models to reject extra fields; a model-supplied `confidence` field is invalid.
+- [x] Enforce these invariants in Pydantic validators:
   - option IDs normalize to uppercase short IDs such as `A`, `B`, `C`, `D`;
   - option IDs are unique;
   - option text is non-empty and unique within the question;
   - `correct_option_id` must match one provided option;
   - `expected_keywords` contains at least one non-empty normalized keyword;
   - `citation_id` is non-empty.
-- [ ] Add `QuizGrade` with `question_id`, `selected_option_id`, `correct_option_id`, `correct`, and
+- [x] Add `QuizGrade` with `question_id`, `selected_option_id`, `correct_option_id`, `correct`, and
   `citation_id`.
-- [ ] Add `QuizTraceRow` as a typed allow-list for serialized trace metadata. It may contain session ID,
-  topic, evidence score/band, citation IDs, question IDs, selected option IDs, correctness booleans,
+- [x] Add `QuizTraceRow` as a typed allow-list for serialized trace metadata. It may contain session ID,
+  topic hash, evidence score/band, citation IDs, question IDs, selected option IDs, correctness booleans,
   refusal reason, and action/tool names. It must not contain raw span text, option text, expected answer,
   rationale, expected keywords, or learner-visible quiz text.
-- [ ] Add `QuizSessionResult` for generated questions, grades, score, refusal reason, and trace path.
-- [ ] Add tests proving invalid option IDs, duplicate options, missing correct option, empty keywords,
+- [x] Add `QuizSessionResult` for generated questions, grades, score, refusal reason, and trace path.
+- [x] Add tests proving invalid option IDs, duplicate options, missing correct option, empty keywords,
   and empty citation IDs fail validation.
-- [ ] Add tests proving duplicate option text and extra `confidence` fields fail validation.
-- [ ] Add tests proving deterministic grading treats `a` and `A` as the same option and rejects unknown
+- [x] Add tests proving duplicate option text and extra `confidence` fields fail validation.
+- [x] Add tests proving deterministic grading treats `a` and `A` as the same option and rejects unknown
   selections explicitly.
 
 Acceptance:
@@ -150,15 +150,15 @@ Acceptance:
 - Create: `src/genacademy_coach/quiz_items.py`
 - Create: `tests/test_quiz_items.py`
 
-- [ ] Add a provider prompt that receives exactly one `RetrievedSpan` and requests one JSON MCQ item.
-- [ ] The prompt may receive spans from notes, slides, handouts, or transcripts, including session-2
+- [x] Add a provider prompt that receives exactly one `RetrievedSpan` and requests one JSON MCQ item.
+- [x] The prompt may receive spans from notes, slides, handouts, or transcripts, including session-2
   transcript Q&A, but it must not receive held-out eval questions.
-- [ ] Require provider calls to use `json_mode=True`, `temperature=0.0`, and bounded `max_tokens`.
-- [ ] Parse only this JSON shape:
+- [x] Require provider calls to use `json_mode=True`, `temperature=0.0`, and bounded `max_tokens`.
+- [x] Parse only this JSON shape:
 
 ```json
 {
-  "prompt": "Which statement best matches the cited span?",
+  "prompt": "Which statement is directly supported by the cited span?",
   "options": [
     {"option_id": "A", "text": "Supported answer"},
     {"option_id": "B", "text": "Distractor"},
@@ -172,15 +172,15 @@ Acceptance:
 }
 ```
 
-- [ ] Build the final `QuizQuestion` in Python with the caller-provided `citation_id`; do not accept a
+- [x] Build the final `QuizQuestion` in Python with the caller-provided `citation_id`; do not accept a
   model-supplied citation ID.
-- [ ] Reuse `keywords_for_expected_answer` from `check_items.py` or the same keyword-presence logic so
+- [x] Reuse `keywords_for_expected_answer` from `check_items.py` or the same keyword-presence logic so
   the expected answer, rationale, or correct option text must contain at least one keyword supported by
   the span.
-- [ ] Reject generated items whose correct option or rationale cannot satisfy the expected keyword
+- [x] Reject generated items whose correct option or rationale cannot satisfy the expected keyword
   contract.
-- [ ] Reject generated items unless they contain exactly 4 options with IDs `A`, `B`, `C`, and `D`.
-- [ ] Add fake-provider tests for:
+- [x] Reject generated items unless they contain exactly 4 options with IDs `A`, `B`, `C`, and `D`.
+- [x] Add fake-provider tests for:
   - happy-path item generation;
   - provider called with `json_mode=True`;
   - model-supplied citation ID ignored or absent;
@@ -199,9 +199,9 @@ Acceptance:
 - Create: `src/genacademy_coach/quiz_session.py`
 - Create: `tests/test_quiz_session.py`
 
-- [ ] Add a `QuizSession` with constructor fields similar to `CoachSession`: `session_id`, `topic`,
+- [x] Add a `QuizSession` with constructor fields similar to `CoachSession`: `session_id`, `topic`,
   `settings`, `foundation`, and `question_count`.
-- [ ] Retrieval:
+- [x] Retrieval:
   - call `foundation.retrieve(topic)`;
   - convert rows to `RetrievedSpan` using a quiz-local converter or future public shared helper; do not
     import the private teach-tool `_span_from_row()`;
@@ -209,20 +209,20 @@ Acceptance:
     `chunk_id`.
   - filter with `require_citeable_spans(..., stop_threshold=settings.stop_threshold)`;
   - compute `evidence_score` and `evidence_band` using runtime helpers.
-- [ ] Define shared quiz refusal reason constants, including `NO_CITEABLE_QUIZ_CORPUS =
+- [x] Define shared quiz refusal reason constants, including `NO_CITEABLE_QUIZ_CORPUS =
   "no citeable course corpus found for quiz"`, so escalation reasons remain greppable and do not drift
   across tests, trace rows, and docs.
-- [ ] If no citeable spans remain, return a refusal result and append one review-queue row with reason
+- [x] If no citeable spans remain, return a refusal result and append one review-queue row with reason
   `NO_CITEABLE_QUIZ_CORPUS`.
-- [ ] Generate questions from the top citeable spans, capped by `question_count`; if generation for one
+- [x] Generate questions from the top citeable spans, capped by `question_count`; if generation for one
   span fails validation, skip that span and continue.
-- [ ] If all generation attempts fail validation, refuse/escalate with reason
+- [x] If all generation attempts fail validation, refuse/escalate with reason
   `could not generate grounded quiz items`.
-- [ ] Grade selections deterministically with `grade_quiz_selection` / `grade_quiz`.
-- [ ] Write one local quiz trace JSONL row containing only session metadata, topic, evidence score/band,
-  citation IDs, question IDs, selected option IDs, correctness booleans, refusal reason, and tool/action
-  names.
-- [ ] Add tests for:
+- [x] Grade selections deterministically with `grade_quiz_selection` / `grade_quiz`.
+- [x] Write one local quiz trace JSONL row containing only session metadata, topic hash, evidence
+  score/band, citation IDs, question IDs, selected option IDs, correctness booleans, refusal reason, and
+  tool/action names.
+- [x] Add tests for:
   - retrieval below threshold refuses and writes one review-queue row;
   - citeable retrieval generates questions whose citation IDs are from retrieved spans;
   - transcript-source spans are accepted through the same citation path as other source types;
@@ -242,16 +242,16 @@ Acceptance:
 - Create: `scripts/run_quiz_demo.py`
 - Create: `tests/test_quiz_cli.py`
 
-- [ ] Add CLI args:
+- [x] Add CLI args:
   - `--topic` required;
   - `--question-count` default `3`;
   - `--answers` optional comma-separated option IDs such as `A,B,C`;
   - `--session-id` optional for repeatable traces.
-- [ ] Build `CoachSettings`, `Foundation`, and `QuizSession`.
-- [ ] Print generated question prompts, option IDs, visible citation IDs, and trace path.
-- [ ] If `--answers` is supplied, grade deterministically and print score plus per-question
+- [x] Build `CoachSettings`, `Foundation`, and `QuizSession`.
+- [x] Print generated question prompts, option IDs, visible citation IDs, and trace path.
+- [x] If `--answers` is supplied, grade deterministically and print score plus per-question
   correct/incorrect status.
-- [ ] Add tests for answer parsing and count mismatch handling. Keep CLI subprocess/live-provider testing
+- [x] Add tests for answer parsing and count mismatch handling. Keep CLI subprocess/live-provider testing
   out of unit tests.
 
 Acceptance:
@@ -265,13 +265,13 @@ Acceptance:
 - Create: `src/genacademy_coach/quiz_trace.py`
 - Create: `tests/test_quiz_trace.py`
 
-- [ ] Add a focused test that writes a quiz trace with planted raw span text, option text, correct
+- [x] Add a focused test that writes a quiz trace with planted raw span text, option text, correct
   answer, rationale, and expected keyword strings available in memory, then asserts the serialized trace
   omits those values.
-- [ ] Assert the serialized trace keeps only safe identifiers and metrics: session ID, question IDs,
+- [x] Assert the serialized trace keeps only safe identifiers and metrics: session ID, question IDs,
   citation IDs, evidence score/band, selected option IDs, correctness booleans, refusal reason, and
   action/tool names.
-- [ ] Assert `quiz_trace.py` does not depend on or serialize the teach-loop `TraceTurn` model.
+- [x] Assert `quiz_trace.py` does not depend on or serialize the teach-loop `TraceTurn` model.
 
 Acceptance:
 
@@ -286,12 +286,12 @@ Acceptance:
 - Modify: `specs/roadmap.md`
 - Optional: `docs/build-learnings.md`
 
-- [ ] Update README with the Quiz Mode command only after the CLI exists.
-- [ ] Update demo playbook to show Quiz Mode as a pull-in, behind the teach-loop evidence.
-- [ ] Update teach-loop status with a redacted quiz trace summary after a live run.
-- [ ] Update roadmap from "Quiz Mode planning" to "Quiz Mode slice shipped" only after tests and live
+- [x] Update README with the Quiz Mode command only after the CLI exists.
+- [x] Update demo playbook to show Quiz Mode as a pull-in, behind the teach-loop evidence.
+- [x] Update teach-loop status with a redacted quiz trace summary after a live run.
+- [x] Update roadmap from "Quiz Mode planning" to "Quiz Mode slice shipped" only after tests and live
   trace exist.
-- [ ] Keep raw question text, raw corpus spans, and generated trace contents out of committed docs.
+- [x] Keep raw question text, raw corpus spans, and generated trace contents out of committed docs.
 
 Acceptance:
 
@@ -300,13 +300,13 @@ Acceptance:
 
 ### Task 7: Verification and Review
 
-- [ ] Run focused tests:
+- [x] Run focused tests:
 
 ```bash
 uv run pytest tests/test_quiz_types.py tests/test_quiz_items.py tests/test_quiz_session.py tests/test_quiz_trace.py tests/test_quiz_cli.py -q
 ```
 
-- [ ] Run the existing safety checks:
+- [x] Run the existing safety checks:
 
 ```bash
 uv run pytest -q
@@ -315,21 +315,21 @@ uv run python scripts/check_eval_leak.py
 git diff --check
 ```
 
-- [ ] Run one live local quiz demo with Nebius on a public demo topic, without using the held-out
+- [x] Run one live local quiz demo with Nebius on a public demo topic, without using the held-out
   `test` split:
 
 ```bash
 GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
   uv run python scripts/run_quiz_demo.py \
-    --session-id demo-quiz-agent-harness-20260616 \
+    --session-id demo-quiz-agent-harness-reviewfix2-20260616 \
     --topic "agent harness" \
     --question-count 3 \
     --answers A,B,C
 ```
 
-- [ ] Record only redacted metadata in docs: trace ID, evidence band, citation count, question count,
+- [x] Record only redacted metadata in docs: trace ID, evidence band, citation count, question count,
   score, and refusal status.
-- [ ] Request a fresh-context / different-model review before merge.
+- [x] Request a fresh-context / different-model review before merge.
 
 Final acceptance:
 
