@@ -27,7 +27,7 @@ corpus/**
 !corpus/**/.gitkeep
 *.pdf
 *.docx
-!docs/demo-walkthrough-with-screenshots.docx
+~$*.docx
 *.pptx
 *.jsonl
 *_transcript.txt
@@ -52,6 +52,8 @@ tmp/
 
 # AI workflow runtime state (superpowers brainstorm / visual-companion) — never commit
 .superpowers/
+.playwright-cli/
+test-results/
 
 # OS / editor
 .DS_Store

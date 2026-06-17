@@ -102,7 +102,6 @@ answers from the live cohort. For this two-day quiz slice, use them conservative
   - `tests/test_quiz_cli.py`
 - Update docs after implementation:
   - `README.md`
-  - `docs/demo-and-deliverables.md`
   - `docs/teach-loop-status.md`
   - `docs/build-learnings.md` if there is a real implementation learning
   - `specs/roadmap.md`
@@ -281,13 +280,12 @@ Acceptance:
 
 **Files:**
 - Modify: `README.md`
-- Modify: `docs/demo-and-deliverables.md`
 - Modify: `docs/teach-loop-status.md`
 - Modify: `specs/roadmap.md`
 - Optional: `docs/build-learnings.md`
 
 - [x] Update README with the Quiz Mode command only after the CLI exists.
-- [x] Update demo playbook to show Quiz Mode as a pull-in, behind the teach-loop evidence.
+- [x] Update local-only handoff notes to show Quiz Mode as a pull-in, behind the teach-loop evidence.
 - [x] Update teach-loop status with a redacted quiz trace summary after a live run.
 - [x] Update roadmap from "Quiz Mode planning" to "Quiz Mode slice shipped" only after tests and live
   trace exist.

@@ -57,7 +57,7 @@ The implementation uses the Week 2 Docker pattern, with only a thin Coach view:
    `GENACADEMY_DATA_DIR=/data` for the reused Week 2 RAG layer when it needs a deploy data root.
    Trace and review-queue writes should also stay under `/data`.
 5. Configure provider secrets in the Space settings.
-6. Smoke-test with a public demo topic only after an approved corpus/index decision.
+6. Smoke-test with a public-safe sample topic only after an approved corpus/index decision.
 
 The live surface is Gradio:
 
@@ -138,12 +138,12 @@ prints whether `NEBIUS_API_KEY` was set or skipped without printing the secret v
 Private course material remains local-only unless explicitly approved for the Space. Before deployment,
 choose one of these:
 
-1. **Demo-safe public subset**: include only non-private, approved demo snippets.
+1. **Public-safe sample subset**: include only non-private, approved snippets.
 2. **Private Space**: deploy as a private Space and upload corpus artifacts through a controlled path.
 3. **No corpus upload yet**: deploy the UI shell and show refusal behavior until data seeding is
    approved.
 
-For the final public submission, the safest path is a demo-safe public subset or no public Space data.
+For a public portfolio release, the safest path is a public-safe subset or no public Space data.
 Do not upload held-out `corpus/eval-questions`.
 
 ## Smoke Test Plan
@@ -166,7 +166,7 @@ Live Space smoke:
 
 1. Open `https://huggingface.co/spaces/Manjunath84/genacademy-coach`.
 2. Verify the private Space boots and serves the Gradio app.
-3. Use public demo topic `agent harness` only after a public-safe corpus/index decision is made.
+3. Use a public-safe sample topic only after a public-safe corpus/index decision is made.
 4. Verify no raw trace/corpus/eval text is exposed.
 5. Verify the app does not print secrets in logs.
 
@@ -186,7 +186,7 @@ run because the Space intentionally does not contain private course corpus/index
 - No direct web-framework imports inside the core modules.
 - No private corpus/eval text is committed or displayed.
 - Live private Space URL returns HTTP 200.
-- Public demo topic works or safely refuses after a public-safe corpus/index decision is made.
+- Public-safe sample topic works or safely refuses after a public-safe corpus/index decision is made.
 - Empty-corpus Space state is visible in the UI as a deployment-shell status, not only in server logs.
 - `scripts/check_eval_leak.py` passes after deployment files are added.
 - README/roadmap record the Space URL and known limitations.

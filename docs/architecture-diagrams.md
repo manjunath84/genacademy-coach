@@ -1,6 +1,7 @@
 # GenAcademy Coach - Architecture & Agentic-Flow Diagrams
 
-> **Purpose:** the handout-required architecture diagram and the visual spine for the Google Doc/video.
+> **Purpose:** portfolio-ready architecture diagrams for the grounded tutor, deterministic pull-ins, and
+> privacy boundaries.
 > **Status:** shipped/planned map. The CLI + local Gradio teach/quiz surfaces are shipped; direct voice,
 > admin upload, cross-session memory, and mock interview remain planned pull-ins.
 > The constitution (`../AGENTS.md`, `../specs/*`, `docs/decisions.md`) is canonical.
@@ -196,7 +197,7 @@ flowchart TD
 
     Q --> Split["seed/dev/test manifest + checksums"]
     Split --> Test["held-out test loads only inside eval"]
-    Test -. blocked from prompts/index/demo .-> Retriever
+    Test -. blocked from prompts/index/local examples .-> Retriever
 ```
 
 ## 7. Modes and Pull-Ins
@@ -223,5 +224,5 @@ flowchart LR
 | State | Within-session profile. |
 | Human-in-the-loop | Refusal + review queue. |
 | Tool failure / recovery | Retry, validation, fallback, confidence bands, escalation, stop guard. |
-| How it worked | Held-out eval, trace, demo run, honest numbers. |
+| How it worked | Redacted eval, trace evidence, and honest numbers. |
 | Architecture diagram | Diagrams 1-7 in this file. |

@@ -7,7 +7,7 @@ implementation plan. Review the current PR/branch only. Do not edit files, commi
 
 - Constitution / guardrails: `AGENTS.md`
 - Roadmap: `specs/roadmap.md`
-- Score-lift plan: `docs/two-day-score-lift-plan.md`
+- Score-lift plan: historical local-only handoff; public roadmap summary is in `specs/roadmap.md`
 - Proposed plan: `docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`
 - Existing reusable code:
   - `src/genacademy_coach/foundation.py`
