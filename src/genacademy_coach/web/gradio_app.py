@@ -134,10 +134,16 @@ body,
   color: var(--gc-ink) !important;
 }
 
+body {
+  margin: 0 !important;
+}
+
 .gradio-container {
-  max-width: 1280px !important;
-  margin: 0 auto !important;
-  padding: 28px 24px 44px !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  padding: 24px clamp(10px, 1.1vw, 18px) 40px !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
     sans-serif !important;
 }
@@ -670,6 +676,72 @@ def _short_value(value: Any, *, limit: int = 34) -> str:
     return f"{text[: limit - 1]}..."
 
 
+def _friendly_review_target(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "the cited course material"
+    if text.lower().startswith("review "):
+        text = text[7:].strip()
+    if text.endswith("."):
+        text = text[:-1]
+    if " at " in text:
+        title_part, citation_id = text.rsplit(" at ", 1)
+    else:
+        title_part, citation_id = text, ""
+
+    title = title_part.strip()
+    metadata: list[str] = []
+    if title.endswith(")") and " (" in title:
+        title, metadata_text = title.rsplit(" (", 1)
+        metadata = [item.strip() for item in metadata_text[:-1].split(",") if item.strip()]
+
+    source_type = ""
+    source_name = citation_id
+    location = ""
+    if metadata:
+        source_type = metadata[0]
+        location = " · ".join(metadata[1:])
+    if citation_id:
+        base = citation_id.split("::", 1)[0]
+        parts = base.split("/", 1)
+        if len(parts) == 2:
+            source_type = source_type or parts[0]
+            source_name = parts[1]
+        else:
+            source_name = base
+        lowered = source_name.lower()
+        for token in ("slide", "slides", "page", "section"):
+            marker = f"{token}-"
+            if not location and marker in lowered:
+                location = source_name[lowered.rfind(marker) :].replace("-", " ")
+                source_name = source_name[: lowered.rfind(marker)].rstrip("-_ ")
+                break
+
+    if not source_name and title:
+        source_name = title
+    readable_name = source_name.replace("-", " ").replace("_", " ").strip()
+    readable_type = (source_type or "course material").replace("_", " ").strip()
+    if readable_type == "slide":
+        readable_type = "slides"
+    elif readable_type == "handout":
+        readable_type = "handout"
+    elif readable_type == "note":
+        readable_type = "notes"
+    elif readable_type == "transcript":
+        readable_type = "transcript"
+
+    label = f"the cited {readable_type}"
+    if title:
+        chunks = [f"{label}: {title.strip()}"]
+    else:
+        chunks = [label]
+    if not title and readable_name:
+        chunks.append(f"from {readable_name}")
+    if location:
+        chunks.append(f"({location})")
+    return " ".join(chunks)
+
+
 def _format_chip(value: Any) -> str:
     return f'<span class="gc-trace-pill">{escape(str(value))}</span>'
 
@@ -739,7 +811,7 @@ def _format_trace_summary(
         return "**Trace summary:** no trace rows available."
 
     cards: list[str] = []
-    for row in rows:
+    for index, row in enumerate(rows, start=1):
         if not isinstance(row, dict):
             continue
         if mode == "teach":
@@ -781,7 +853,7 @@ def _format_trace_summary(
             if refusal_reason:
                 fields.append(("Refusal", f"<code>{escape(str(refusal_reason))}</code>"))
         else:
-            title = f"Gap {_short_value(row.get('gap_id', '?'), limit=42)}"
+            title = f"Gap {index}"
             pills = [
                 _format_chip(row.get("next_action", "unknown")),
                 _format_chip(row.get("evidence_band", "unknown")),
@@ -1014,8 +1086,7 @@ def _format_skillgap_report(result: Any) -> str:
 
     sections = ["### Skill-Gap Diagnosis", ""]
     for index, item in enumerate(result.items, start=1):
-        gap_id = _short_value(item.gap_id, limit=54)
-        sections.append(f"#### {index}. Gap `{gap_id}`")
+        sections.append(f"#### {index}. Gap from teach + quiz signals")
         sections.append(
             f"Priority `{item.priority_score}` · evidence `{item.evidence_band}` "
             f"({_format_score(item.evidence_score)}) · action `{item.next_action}`"
@@ -1025,13 +1096,8 @@ def _format_skillgap_report(result: Any) -> str:
             f"struggles `{item.struggle_count}`, refusals `{item.refusal_count}`"
         )
         if item.citation_ids:
-            citation_summary = ", ".join(
-                _short_value(citation_id, limit=54) for citation_id in item.citation_ids
-            )
-            sections.append(
-                "- Next step: review cited course material "
-                f"`{citation_summary}`."
-            )
+            target = _friendly_review_target(getattr(item, "review_next", None))
+            sections.append(f"- Next step: review {target}.")
         if item.reason_code:
             sections.append(f"- Refused/escalated: `{item.reason_code}`")
         sections.append("")

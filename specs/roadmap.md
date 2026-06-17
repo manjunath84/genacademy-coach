@@ -52,13 +52,15 @@ split remains unused until final evaluation/reporting.
   next-step plan or refuses/escalates if no citeable span exists; it does not add LLM mastery grading,
   memory, a second agent loop, or direct `langgraph.*` imports.
 - **Portfolio cleanup completed.** Submission-specific documents and screenshots are local-only under
-  ignored `tmp/`; the public repository keeps stable product, architecture, safety, and verification
+  ignored `localdocs/`; the public repository keeps stable product, architecture, safety, and verification
   docs.
 
 ### In Progress
 
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or upload a small approved public-safe corpus/index. Do not upload private course material.
+- **Review and land PR #28.** The Skill-Gap UI wrapper is a thin Gradio tab over the shipped core and
+  safe trace allow-list.
 
 ### Pending
 

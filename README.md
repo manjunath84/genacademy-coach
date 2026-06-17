@@ -23,6 +23,7 @@ author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
 | Mock interview / admin upload / voice / cross-session memory | Roadmap | Deferred until they earn separate plans and privacy reviews. |
 
 Private course material, traces, review queues, screenshots, and handoff packaging stay local-only.
+Local handoff materials can live under ignored `localdocs/`.
 The repository tracks structure, code, redacted metrics, and safety checks.
 
 ## Architecture

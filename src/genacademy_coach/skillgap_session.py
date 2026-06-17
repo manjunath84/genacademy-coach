@@ -43,6 +43,14 @@ def _span_from_row(row: dict[str, Any]) -> RetrievedSpan:
     )
 
 
+def _review_next_for_span(span: RetrievedSpan) -> str:
+    metadata = [span.source_type.strip()] if span.source_type.strip() else []
+    if span.page_or_section is not None and str(span.page_or_section).strip():
+        metadata.append(str(span.page_or_section).strip())
+    suffix = f" ({', '.join(metadata)})" if metadata else ""
+    return f"Review {span.title}{suffix} at {span.citation_id}."
+
+
 @dataclass
 class _GapAggregate:
     gap_id: str
@@ -281,7 +289,7 @@ class SkillGapSession:
             struggle_count=gap.struggle_count,
             refusal_count=gap.refusal_count,
             next_action="review_next",
-            review_next=f"Review {span.title} at {span.citation_id}.",
+            review_next=_review_next_for_span(span),
         )
 
     def _write_trace(self, items: list[SkillGapItem]) -> Path:

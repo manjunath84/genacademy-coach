@@ -229,10 +229,12 @@ def test_skillgap_trace_summary_uses_only_safe_fields():
     summary = _format_trace_summary(metadata, mode="skillgap")
 
     assert "gc-trace-card" in summary
+    assert "Gap 1" in summary
     assert "review_next" in summary
     assert "0.911" in summary
     assert "2 cited spans" in summary
     assert "2 sessions" in summary
+    assert "note/agent-harness::0" not in summary
     assert "chunk-1" not in summary
     assert "chunk-2" not in summary
     assert private_value not in summary
@@ -521,13 +523,16 @@ def test_run_skillgap_session_returns_redacted_report_and_metadata(tmp_path, mon
                         next_action="review_next",
                         evidence_score=0.91,
                         evidence_band="proceed",
-                        citation_ids=["chunk-1"],
+                        citation_ids=["slide/week1-session1-slide-47::3"],
                         quiz_correct=0,
                         quiz_total=1,
                         struggle_count=1,
                         refusal_count=0,
                         reason_code=None,
-                        review_next=private_value,
+                        review_next=(
+                            "Review Week 1 Session 1 (slide, slide 47) "
+                            "at slide/week1-session1-slide-47::3."
+                        ),
                     )
                 ],
             )
@@ -539,8 +544,10 @@ def test_run_skillgap_session_returns_redacted_report_and_metadata(tmp_path, mon
 
     serialized = json.dumps(metadata, sort_keys=True)
     assert "Skill-Gap Diagnosis" in message
-    assert "review cited course material" in message
-    assert "chunk-1" in message
+    assert "review the cited slides: Week 1 Session 1 (slide 47)" in message
+    assert "note/agent-harness::0" not in message
+    assert "chunk-1" not in message
+    assert "slide/week1-session1-slide-47::3" not in message
     assert metadata["status"] == "ok"
     assert private_value not in message
     assert private_value not in serialized

@@ -13,7 +13,7 @@ report plus redacted trace cards.
 
 - Add a third Gradio tab: `Skill-Gap`.
 - Input: comma- or newline-separated source session IDs.
-- Output: ranked gaps, deterministic signals, cited next-step IDs, refusal/escalation reason when no
+- Output: ranked gaps, deterministic signals, cited source type/location, refusal/escalation reason when no
   citeable span exists.
 - Metadata: allow-listed `SkillGapTraceRow` fields only.
 - Preset: local demo session IDs already used by the submission walkthrough.

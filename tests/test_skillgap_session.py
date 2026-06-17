@@ -107,6 +107,7 @@ def test_skillgap_ranks_gaps_and_writes_cited_redacted_trace(tmp_path):
     assert first.next_action == "review_next"
     assert first.citation_ids == ["handout/review::0"]
     assert "Agent Field Guide" in first.review_next
+    assert "p.1" in first.review_next
     assert foundation.queries[:2] == ["note/agent-harness::0", "note/tools::0"]
 
     serialized = Path(result.trace_path).read_text(encoding="utf-8")
