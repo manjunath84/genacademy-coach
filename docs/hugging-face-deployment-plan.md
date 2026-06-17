@@ -94,7 +94,6 @@ Still pending before claiming provider/corpus-backed live behavior:
 
 - approved decision on whether to upload a private Chroma index under `/data/chroma`.
 - click smoke that exercises retrieval/provider calls against that approved index.
-- update this doc, README, and roadmap with the actual Space URL and smoke result.
 
 ## Required Space Settings
 

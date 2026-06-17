@@ -1,7 +1,7 @@
 # Hugging Face Coach Deploy Implementation Plan
 
-> Status: implementation in progress. PR #19 adds the thin Gradio/Docker wrapper, local Docker smoke,
-> and private Hugging Face Space HTTP smoke. Provider/corpus-backed Space click smoke remains pending
+> Status: implemented in PR #19. The thin Gradio/Docker wrapper, local Docker smoke,
+> and private Hugging Face Space HTTP smoke are complete. Provider/corpus-backed Space click smoke remains pending
 > because no private corpus/index is uploaded.
 
 ## Goal

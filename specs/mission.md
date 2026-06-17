@@ -42,18 +42,19 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
 - **Item-quality eval** on a hard-split, **held-out** chat-question test set; a **runtime-decision trace**
   as the agenticity proof and the demo centerpiece.
 - One learner session, end-to-end, with the option to switch teaching lenses.
+- Grounded Quiz Mode as the first pull-in: cited MCQs generated from retrieved spans and graded
+  deterministically in Python.
 - A minimal Hugging Face/Gradio demo surface for teach and quiz, kept as a thin wrapper over the same
   core engine; no cohort auth, admin upload, memory, or private corpus publishing.
 
 ## Out of scope (Week 3 — see `roadmap.md` for when each is earned)
 
-- Quiz and mock-interview modes (the top two pull-ins). Mock interview reuses the same grounded engine:
-  it asks open-ended questions, grades against cited expected points, follows up on gaps, and produces a
-  session report.
+- Mock-interview mode. It reuses the same grounded engine: it asks open-ended questions, grades against
+  cited expected points, follows up on gaps, and produces a session report.
 - Track-aware *retrieval* (Week-3 track = prompt-level style only).
 - Admin upload for new docs/quiz questions (low-priority pull-in after the MVP is demoable).
 - ElevenLabs voice (pull-in idea over the same text engine; text transcript stays source of truth).
-- Cross-session memory (Mem0), caching at scale, multimodal, cohort rollout/auth, and production-grade
+- Cross-session memory, caching at scale, multimodal, cohort rollout/auth, and production-grade
   deployment operations.
 
 ## How I'll know it worked
