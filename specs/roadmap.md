@@ -162,29 +162,31 @@ same-topic lens switching, and grounded Quiz Mode are complete on the dev/demo p
 honest dev-eval reporting, and repo demo/readme packaging are complete on merged `main`; the active gate
 is final video/doc packaging. The held-out `test` split stays untouched until final evaluation.
 
-## Pull-Ins And Future Work
+## Next Candidate
 
-The two-day score-lift sequence has already landed through grounded Quiz Mode and the grader-path
-hardening. Do not start a new pull-in unless the video and Google Doc are on track. If there is still
-time, the next highest-ratio item is the plan-only Skill-Gap Diagnosis workflow because it composes
-existing traces, quiz grades, and review-queue events without adding memory or a second agent loop.
+Do not start another implementation unless the video and Google Doc are on track. If one more standout
+workflow is worth pulling in before final submission, use **Skill-Gap Diagnosis**: a plan-only,
+deterministic, cited next-step report from teach/quiz traces and review-queue events. It requires
+fresh-context review before code and must not add memory or a second agent loop.
 
-1. **Quiz mode** — shipped first pull-in: cited MCQ generation + deterministic grading
-2. **Skill-Gap Diagnosis** — spec only: deterministic cited next-step report from teach/quiz traces and
-   review-queue events; requires fresh-context review before code
-3. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
-4. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
-5. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth
-6. **Track-aware retrieval** — corpus tagged by track
-7. **Cross-session memory** — evaluate first-party persisted profile, LangMem, Mem0 open source, and Zep
+## Future Pull-Ins
+
+The two-day score-lift sequence has already landed through grounded Quiz Mode and grader-path hardening.
+This list is future-only; shipped pull-ins stay in Done.
+
+1. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
+2. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
+3. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth
+4. **Track-aware retrieval** — corpus tagged by track
+5. **Cross-session memory** — evaluate first-party persisted profile, LangMem, Mem0 open source, and Zep
    Cloud; memory may personalize style/struggle history, but course facts still require citations
-8. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
+6. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
    coordination outgrow `create_agent`
-9. **Caching (L1/L4/L5) + model tiering**
-10. **Multimodal slide questions**
-11. **Cohort rollout** — multi-user / auth / per-user cost caps
-12. **Flashcards / mind-map artifacts**
-13. **GraphRAG** (course knowledge graph)
+7. **Caching (L1/L4/L5) + model tiering**
+8. **Multimodal slide questions**
+9. **Cohort rollout** — multi-user / auth / per-user cost caps
+10. **Flashcards / mind-map artifacts**
+11. **GraphRAG** (course knowledge graph)
 
 ## NORTH STAR (not this week)
 
