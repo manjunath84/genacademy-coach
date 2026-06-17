@@ -1,0 +1,16 @@
+.env
+.env*
+.git
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+**/*.pyc
+corpus/
+data/
+eval/runs/
+review_queue.jsonl
+tmp/
+traces/

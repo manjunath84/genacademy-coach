@@ -10,7 +10,9 @@ from the course materials, and escalates the rest to a human mentor.
 > on teachable scenarios, with two safe low-retrieval refusals. The original same-turn grading overwrite
 > is fixed; the remaining live-run variance is a confirm-band refusal/structured-output path. Grounded
 > Quiz Mode is also implemented as a deterministic MCQ pull-in. Private corpus files remain local-only;
-> only structure, redacted diagnostics, and leak checks are versioned.
+> only structure, redacted diagnostics, and leak checks are versioned. A private Hugging Face Space
+> deployment shell is live-smoked at
+> `https://huggingface.co/spaces/Manjunath84/genacademy-coach`; no private corpus/index is uploaded.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).
@@ -50,7 +52,7 @@ topic.
 - [`docs/vibe-coding-prompt-appendix.md`](docs/vibe-coding-prompt-appendix.md) — sanitized prompts and
   workflow examples for the submission
 - [`docs/hugging-face-deployment-plan.md`](docs/hugging-face-deployment-plan.md) — Hugging Face Spaces
-  deployment plan and smoke-test checklist, based on the Week 2 deployment pattern
+  deployment wrapper, settings, and smoke-test checklist, based on the Week 2 deployment pattern
 - [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted live trace and eval evidence
 - [`docs/two-day-score-lift-plan.md`](docs/two-day-score-lift-plan.md) — final score-lift sequence:
   grading diagnostic, lens-switch demo, then grounded Quiz Mode

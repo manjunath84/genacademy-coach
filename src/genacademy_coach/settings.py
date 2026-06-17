@@ -77,7 +77,12 @@ class CoachSettings:
             ).resolve(),
             eval_dir=eval_dir,
             eval_manifest_path=eval_dir / "split_manifest.json",
-            review_queue_path=repo_root / "review_queue.jsonl",
+            review_queue_path=Path(
+                _env_value(
+                    "GENACADEMY_COACH_REVIEW_QUEUE_PATH",
+                    repo_root / "review_queue.jsonl",
+                )
+            ).resolve(),
             trace_dir=Path(
                 _env_value("GENACADEMY_COACH_TRACE_DIR", repo_root / "traces")
             ).resolve(),
