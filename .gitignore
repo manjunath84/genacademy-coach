@@ -27,6 +27,7 @@ corpus/**
 !corpus/**/.gitkeep
 *.pdf
 *.docx
+!docs/demo-walkthrough-with-screenshots.docx
 *.pptx
 *.jsonl
 *_transcript.txt

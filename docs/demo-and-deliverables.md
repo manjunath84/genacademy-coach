@@ -33,7 +33,8 @@ surface reliable enough to record:
 - Quiz generated question/option text is hidden by default. Only the generated count, score, and safe
   trace metadata should be visible in the video.
 - UI baseline and function-state screenshots are committed for future visual refinement in
-  `docs/ui-screenshot-inventory.md` and `docs/assets/pr22-ui-screenshots/`.
+  `docs/ui-screenshot-inventory.md` and `docs/assets/pr22-ui-screenshots/`. A rehearsal-ready DOCX
+  packet is available at `docs/demo-walkthrough-with-screenshots.docx`.
 - If the browser still shows orange default tabs, stacked quiz buttons, or `Questions = 3` after a
   restart, hard-refresh. That is the stale pre-PR #22 UI.
 

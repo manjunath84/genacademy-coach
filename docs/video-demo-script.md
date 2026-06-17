@@ -2,6 +2,9 @@
 
 > Target: <=5 minutes. Use this as the spoken script and screen checklist. Do not show raw corpus text,
 > private eval questions, `.env`, API keys, or full trace payloads on screen.
+>
+> Companion prep packet: `docs/demo-walkthrough-with-screenshots.docx` embeds the key screenshots with
+> click steps, on-screen callouts, and narration prompts.
 
 ## Pre-Recording Setup
 
@@ -62,6 +65,10 @@ Use this section as the exact click script during recording.
 
 ### A. Grounded Adaptive Teach Path
 
+Reference screenshot:
+
+![Teach grounded output](assets/pr22-ui-screenshots/desktop-1440x1000-teach-grounded-output.png)
+
 1. Open `http://127.0.0.1:7861`.
 2. Click the `Teach` tab.
 3. Click `Grounded preset`.
@@ -97,6 +104,10 @@ Suggested narration:
 
 ### B. Refusal And Escalation Path
 
+Reference screenshot:
+
+![Teach refusal output](assets/pr22-ui-screenshots/desktop-1440x1000-teach-refusal-output.png)
+
 1. Stay on the `Teach` tab.
 2. Click `Refusal preset`.
 3. Confirm the visible fields:
@@ -122,6 +133,10 @@ Suggested narration:
 ## UI Walkthrough: Quiz Tab
 
 ### A. Grounded Hidden Quiz Path
+
+Reference screenshot:
+
+![Quiz hidden output](assets/pr22-ui-screenshots/desktop-1440x1000-quiz-hidden-output.png)
 
 1. Click the `Quiz` tab.
 2. Click `Grounded quiz preset`.
@@ -153,6 +168,10 @@ Suggested narration:
 ### B. Optional Local-Only Reveal
 
 Use this only if you have already confirmed the generated question text is public-safe.
+
+Reference screenshot:
+
+![Quiz reveal control before output](assets/pr22-ui-screenshots/desktop-1440x1000-quiz-reveal-control-no-output.png)
 
 1. Keep topic `agent harness`.
 2. Check `Show generated quiz questions (local/private only)`.
