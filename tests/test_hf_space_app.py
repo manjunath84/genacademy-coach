@@ -9,6 +9,7 @@ import pytest
 
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
+    DEFAULT_LOCAL_SERVER_NAME,
     DEMO_PRESET_TOPICS,
     EMPTY_CORPUS_STATUS_MESSAGE,
     QUIZ_GROUNDED_PRESET,
@@ -22,6 +23,7 @@ from genacademy_coach.web.gradio_app import (
     _format_trace_summary,
     _parse_answers,
     _require_topic,
+    _server_name,
     _space_status_message,
     fill_quiz_grounded_preset,
     fill_teach_grounded_preset,
@@ -377,6 +379,16 @@ def test_gradio_launch_does_not_enable_public_share():
     assert "share=True" not in app_text
 
 
+def test_gradio_launch_binds_locally_by_default_and_all_interfaces_when_configured(
+    monkeypatch,
+):
+    monkeypatch.delenv("GENACADEMY_COACH_SERVER_NAME", raising=False)
+    assert _server_name() == DEFAULT_LOCAL_SERVER_NAME
+
+    monkeypatch.setenv("GENACADEMY_COACH_SERVER_NAME", "0.0.0.0")
+    assert _server_name() == "0.0.0.0"
+
+
 def test_gradio_ui_uses_genacademy_console_shell():
     app_text = Path("src/genacademy_coach/web/gradio_app.py").read_text(encoding="utf-8")
 
@@ -400,6 +412,8 @@ def test_hf_deploy_files_pin_port_data_and_embed_dim():
     assert "server_port=int(os.environ.get(\"PORT\", \"7860\"))" in Path(
         "src/genacademy_coach/web/gradio_app.py"
     ).read_text(encoding="utf-8")
+    assert "GENACADEMY_COACH_SERVER_NAME" in start_script
+    assert "0.0.0.0" in start_script
     assert "GENACADEMY_EMBED_DIM" in start_script
     assert "space_startup_check.py || true" in start_script
     assert "logging.basicConfig" in Path("src/genacademy_coach/web/gradio_app.py").read_text(

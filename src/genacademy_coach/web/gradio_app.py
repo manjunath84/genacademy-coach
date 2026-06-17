@@ -53,6 +53,7 @@ CORPUS_STATUS_UNAVAILABLE_MESSAGE = (
     "**Deployment status:** corpus status could not be checked. The app fails closed "
     "when course evidence is unavailable; check the private Space logs for the error ID."
 )
+DEFAULT_LOCAL_SERVER_NAME = "127.0.0.1"
 
 SAFE_TEACH_TRACE_FIELDS = (
     "turn",
@@ -618,6 +619,10 @@ def _space_status_message() -> str | None:
     return None
 
 
+def _server_name() -> str:
+    return os.environ.get("GENACADEMY_COACH_SERVER_NAME", DEFAULT_LOCAL_SERVER_NAME)
+
+
 def _input_error_payload(message: str) -> tuple[str, dict[str, Any]]:
     return message, {"status": "invalid_input"}
 
@@ -966,7 +971,7 @@ def launch() -> None:
         format="%(levelname)s:%(name)s:%(message)s",
     )
     demo.launch(
-        server_name="0.0.0.0",
+        server_name=_server_name(),
         server_port=int(os.environ.get("PORT", "7860")),
         show_error=False,
         share=False,
