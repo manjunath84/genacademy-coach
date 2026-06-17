@@ -41,6 +41,12 @@ topic.
 - [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) — the agentic flow, visualized
 - [`docs/demo-and-deliverables.md`](docs/demo-and-deliverables.md) — final demo script, evidence, and
   submission checklist
+- [`docs/submission-packaging-item.md`](docs/submission-packaging-item.md) — what the current
+  submission-packaging item is, what it produces, and its guardrails
+- [`docs/submission-google-doc-draft.md`](docs/submission-google-doc-draft.md) — external Google Doc
+  draft, kept free of private corpus/eval text
+- [`docs/vibe-coding-prompt-appendix.md`](docs/vibe-coding-prompt-appendix.md) — sanitized prompts and
+  workflow examples for the submission
 - [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted live trace and eval evidence
 - [`docs/two-day-score-lift-plan.md`](docs/two-day-score-lift-plan.md) — final score-lift sequence:
   grading diagnostic, lens-switch demo, then grounded Quiz Mode
