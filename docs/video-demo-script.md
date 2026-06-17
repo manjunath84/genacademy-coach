@@ -12,7 +12,8 @@
 4. Open `http://127.0.0.1:7861` in the browser and hard-refresh before recording.
 5. Keep one editor tab open with `docs/demo-and-deliverables.md`.
 6. Keep one editor tab open with `specs/roadmap.md`.
-7. Use `docs/ui-screenshot-inventory.md` for safe baseline screenshots if you need static UI reference.
+7. Use `docs/ui-screenshot-inventory.md` for baseline and function-state screenshots if you need static
+   UI reference.
 8. Do not run `--split test`.
 
 Fixed UI check before recording:
