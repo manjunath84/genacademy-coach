@@ -133,6 +133,10 @@ Do not run `--split test` for demo preparation.
 
 ## Google Doc outline (the human-reasoning version)
 
+Current packaging item: `docs/submission-packaging-item.md`. Full repo draft:
+`docs/submission-google-doc-draft.md`. Sanitized prompt appendix:
+`docs/vibe-coding-prompt-appendix.md`.
+
 1. **Problem framing** (1 p) — "Cohort members re-watch lectures and still don't get it. The gap is
    personalization, not content."
 2. **Options I considered** (½ p) — the scorecard from `genacademy-coach-brainstorm-options.md`; why the
@@ -189,9 +193,9 @@ different `next_action` + `strategy` without changing Python control flow.
 
 | Requirement | Status | Action |
 |---|---|---|
-| Google Doc (overview, datasets, prompts, iterations, learnings) | ⚠️ repo narrative ready, external Doc not created | Use the outline and exact evidence above; keep private corpus/eval text out |
+| Google Doc (overview, datasets, prompts, iterations, learnings) | ✅ repo draft packaged; external Doc still to create | Use `docs/submission-google-doc-draft.md`; keep private corpus/eval text out |
 | Datasets | ✅ narrative ready | Describe `corpus/notes`, `corpus/slides`, `corpus/handouts`, `corpus/transcripts`, and the never-indexed `corpus/eval-questions` test source |
-| Prompts used during vibe-coding | ⚠️ not packaged as a standalone prompt appendix | Pull from the chat/worklog if required; do not invent missing prompts |
+| Prompts used during vibe-coding | ✅ sanitized appendix packaged | Use `docs/vibe-coding-prompt-appendix.md`; do not add secrets or private corpus/eval text |
 | Iterations tried | ✅ narrative ready | Use `docs/teach-loop-status.md`, `docs/build-learnings.md`, and the PR sequence from roadmap |
 | Learnings | ✅ narrative ready | Use `docs/build-learnings.md` plus `docs/decisions.md` |
 | ≤5-min video | ⚠️ script ready, video not recorded | Use the script and commands above |

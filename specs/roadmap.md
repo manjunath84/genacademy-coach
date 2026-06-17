@@ -86,15 +86,19 @@ exist at every step ("demo cannot fail").
   `demo-quiz-agent-harness-reviewfix2-20260616` generated 3 cited questions at `0.711 confirm` evidence and graded
   answers `A,B,C` as `1/3`. The trace stores `topic_hash`, not raw topic or quiz text; the held-out
   `test` split was not used.
+- **Submission packaging started.** `docs/submission-packaging-item.md` defines the active packaging
+  item, `docs/submission-google-doc-draft.md` turns the demo playbook into a Google-Doc-shaped
+  narrative, and `docs/vibe-coding-prompt-appendix.md` packages sanitized prompt examples without
+  private corpus/eval text, API keys, or raw generated quiz content.
 
 ### In Progress
 
-- **Demo packaging after Quiz Mode.** The grade-boundary fix, same-topic lens-switch demo, and grounded
-  Quiz Mode pull-in are captured. The next critical path is packaging the video and Google Doc. Memory is
-  intentionally held as a later
-  personalization pull-in because it adds persistence/privacy surface and must not become a hidden source
-  of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable memory
-  later, unnecessary for the two-day demo.
+- **Demo packaging after Quiz Mode.** The grade-boundary fix, same-topic lens-switch demo, grounded
+  Quiz Mode pull-in, Google Doc draft, prompt appendix, and packaging-item explainer are captured. The
+  next critical path is recording the video and creating the external Google Doc. Memory is intentionally
+  held as a later personalization pull-in because it adds persistence/privacy surface and must not become
+  a hidden source of course facts. Explicit LangGraph remains deferred for the same reason: useful for
+  durable memory later, unnecessary for the two-day demo.
 
 ### Pending Before MVP Demo
 
@@ -106,7 +110,7 @@ exist at every step ("demo cannot fail").
 - If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
   current pure-core / thin-view boundary.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
-- Create the Google Doc submission from the prepared outline and evidence table.
+- Create the external Google Doc submission from `docs/submission-google-doc-draft.md`.
 - Flip the repo public at submission time if required.
 
 ## Teach-Loop MVP
