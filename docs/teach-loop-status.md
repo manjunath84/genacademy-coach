@@ -375,6 +375,38 @@ The one metadata field that changes is turn-1 `strategy` (`short_drill` vs `anal
 model's own chosen teaching strategy. `strategy` is distinct from the `--style` input flag; in the
 code-heavy run the chosen strategy happens to share the `analogy` name with the requested style.
 
+## Grounded Quiz Mode Evidence
+
+Quiz Mode was implemented as the first pull-in after the teach loop, not as a second agenticity proof.
+It reuses the same retrieval foundation, citation IDs, evidence bands, refusal queue, and local trace
+discipline. The model generates cited MCQ text from retrieved spans; Python grades only the selected
+option IDs against the pinned answer key.
+
+Command:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_quiz_demo.py \
+    --session-id demo-quiz-agent-harness-reviewfix2-20260616 \
+    --topic "agent harness" \
+    --question-count 3 \
+    --answers A,B,C
+```
+
+Trace: `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl`
+
+Redacted trace summary:
+
+- Evidence: `0.711 confirm`.
+- Generated questions: `3`.
+- Retrieved citation count: `3`.
+- Selected option IDs: `A,B,C`.
+- Deterministic grade: `1/3` (`[true, false, false]`).
+- Refusal reason: `null`.
+- Raw topic in trace: absent; only `topic_hash` is stored.
+- Actions: retrieval, quiz-item generation, deterministic grading.
+- The held-out `test` split was not used.
+
 ## Review Notes
 
 - Builder did not self-approve.

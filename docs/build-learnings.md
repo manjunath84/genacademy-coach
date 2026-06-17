@@ -10,6 +10,22 @@
 
 ---
 
+## 2026-06-16 — A second mode is safer when the model creates content but Python owns correctness
+
+**What I believed:** adding Quiz Mode might require another agent loop or an LLM judge to decide whether
+the learner picked the right answer.
+
+**What I found:** the safer first slice was simpler: let the model generate MCQ text from a retrieved
+span, then pin the answer key and grade only option IDs in Python. The privacy-sensitive part was not the
+grade; it was the trace. A typed allow-list trace kept IDs, scores, actions, and booleans while excluding
+span text, option text, rationales, expected answers, and keywords.
+
+**Principle:** for a demo pull-in, separate creative generation from correctness. The model can draft a
+grounded artifact, but the system should own the answer key, grading, refusal boundary, and public
+evidence surface.
+
+---
+
 ## 2026-06-16 — A demo can prove adaptivity without adding a new feature
 
 **What I believed:** making personalization visible might require cross-session memory, a new hint action,

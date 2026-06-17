@@ -24,7 +24,7 @@ first 10 seconds.
 | 2:30–3:15 | **Deliberate failure:** out-of-corpus topic `Gen Academy cafeteria menu` → **refuses + escalation queue row**. Show `traces/demo-refusal-main-final-20260616.jsonl` and the single matching review-queue row. | Won't-bluff brand |
 | 3:15–4:00 | **Honest eval:** "I did not touch the held-out test split. On the redacted dev eval, the latest evidence is `7/10` overall and `7/8` teachable. Two failures are safe refusals; the original grade-boundary bug is fixed, and the remaining teachable variance is a conservative escalation case." | Technical thinking + integrity |
 | 4:00–4:45 | **Standout move:** same learner asks for the same concept through two teaching lenses — low-code/no-code workflow explanation, then code-heavy implementation lens. Show `demo-lens-low-code-20260616` and `demo-lens-code-heavy-20260616`, both grounded and faithful. | Creativity + personalization |
-| 4:45–5:00 | "Next: quiz, interview, admin upload, and voice — same engine, after the text tutor works." + architecture thumbnail. | Forward momentum |
+| 4:45–5:00 | **First pull-in:** grounded Quiz Mode generates cited MCQs and grades `A,B,C` deterministically as `1/3`. Close with "Next: interview, admin upload, and voice — same engine, after the text tutor works." | Forward momentum |
 
 ## Exact evidence to show
 
@@ -37,6 +37,7 @@ private eval questions or raw corpus snippets.
 | Refusal path | `traces/demo-refusal-main-final-20260616.jsonl` + `review_queue.jsonl` | "No citeable course material means refusal and one mentor-review queue row, not a model-prior answer." |
 | Honest eval | `eval/runs/teach-loop-dev-main-final-20260616.json` + `eval/runs/teach-loop-dev-grade-boundary.json` | "`7/10` dev scenarios passed, `7/8` teachable scenarios passed, with two safe refusals. The grade-boundary bug is fixed; one conservative escalation variance remains." |
 | Same-topic lens switch | `traces/demo-lens-low-code-20260616.jsonl` + `traces/demo-lens-code-heavy-20260616.jsonl` | "The topic and learner answer stay constant; only the track lens changes. Both runs cite evidence and re-explain after the same wrong answer. The grounding metadata stays stable as the control; the on-screen explanation is what changes by lens." |
+| Grounded quiz | `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` | "Quiz Mode is not the agenticity proof; it is the first deterministic assessment pull-in. The model generates cited MCQs from retrieved spans; Python grades option IDs. The trace stores `topic_hash` and metadata only, not raw topic or quiz text." |
 | Safety guard | `scripts/check_eval_leak.py` output in `docs/teach-loop-status.md` | "The held-out `test` split stays frozen and unused; leak checks pass locally." |
 | Scope discipline | `specs/roadmap.md` | "Quiz, interview, admin upload, and voice were intentionally kept as pull-ins until the teach loop worked." |
 | Instructor review | `review_queue.jsonl` + redacted traces | "The failure path already creates the human-review surface; no admin UI is needed for the demo." |
@@ -49,8 +50,9 @@ current plan is captured in `docs/two-day-score-lift-plan.md`:
 
 1. Fix or explain the remaining teachable dev diagnostic.
 2. Capture a same-topic lens-switch demo before any larger pull-in. Done: both lens traces are captured.
-3. Build grounded Quiz Mode as the first real pull-in if the floor stays stable. Draft plan:
-   `docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`; implement only after review approval.
+3. Build grounded Quiz Mode as the first real pull-in. Done: the reviewed slice generates 3 cited MCQs,
+   grades selected option IDs deterministically, writes a redacted quiz trace, and refuses if retrieval is
+   not citeable.
 4. Treat cross-session memory as a personalization roadmap item, not a two-day build item. The safe next
    memory step is a separate plan comparing first-party persisted profile, LangMem, Mem0 open source, and
    Zep Cloud after the core floor is green.
@@ -104,6 +106,17 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
     --style analogy \
     --track-lens code_heavy \
     --learner-answer "It is just one prompt with no tool checks or feedback."
+```
+
+Grounded quiz:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/run_quiz_demo.py \
+    --session-id demo-quiz-agent-harness-reviewfix2-20260616 \
+    --topic "agent harness" \
+    --question-count 3 \
+    --answers A,B,C
 ```
 
 Dev eval:

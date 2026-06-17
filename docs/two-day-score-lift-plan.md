@@ -1,8 +1,7 @@
 # Two-Day Score-Lift Plan
 
-Status: active final-two-day sequence. The grade-boundary fix and same-topic lens-switch evidence are
-captured; the grounded Quiz Mode implementation plan is drafted for review before code. The held-out
-`test` split remains untouched.
+Status: active final-two-day sequence. The grade-boundary fix, same-topic lens-switch evidence, and
+grounded Quiz Mode pull-in are captured. The held-out `test` split remains untouched.
 
 ## Goal
 
@@ -23,7 +22,7 @@ The score-lift strategy is to raise the floor first, then add one visible pull-i
 |---|---|---|---|---|
 | 1 | Fix the same-turn grade-boundary overwrite | Done | Low | Original `grade_not_correct` scenario now passes; raw teachable dev score stayed `7/8` because a different confirm-band refusal surfaced. |
 | 2 | Same-topic lens-switch demo | Done | Very low | Makes "adaptive" visible using the existing engine: same concept, different teaching lenses. |
-| 3 | Grounded Quiz Mode | High | Low/medium | Adds a real second mode while reusing retrieval, citations, refusal, and deterministic grading. |
+| 3 | Grounded Quiz Mode | Done | Low/medium | Adds a real second mode while reusing retrieval, citations, refusal, and deterministic grading. |
 | 4 | Mock interview | Highest ceiling | High | Strong agentic story, but open-answer grading and follow-up probing are risky in two days. Stretch only. |
 
 ## External Examples Used As Scope Checks
@@ -92,15 +91,14 @@ Build only the smallest grounded quiz slice:
 - Add focused tests for question shape, grading, and refusal.
 - Update README, roadmap, and demo docs.
 
-Quiz Mode has its own draft implementation plan at
-`docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`. That plan still needs fresh-context /
-different-model review before implementation per AGENTS sections 2 and 8; this sequencing doc is not
-build approval.
+Quiz Mode shipped from the reviewed implementation plan at
+`docs/superpowers/plans/2026-06-16-grounded-quiz-mode.md`. The live demo trace is
+`demo-quiz-agent-harness-reviewfix2-20260616`: 3 cited MCQs, `0.711 confirm` evidence, deterministic grading
+`1/3` for answers `A,B,C`, `topic_hash` instead of raw topic, and no held-out `test` split use.
 
 Hard stop:
 
-- If quiz is not green and stable by end of Day 1, cut it from the live demo and keep it as a
-  documented stretch.
+- Completed; keep mock interview as a stretch only if packaging remains clean.
 
 ### Day 2: Package, Then Stretch Only If Clean
 
