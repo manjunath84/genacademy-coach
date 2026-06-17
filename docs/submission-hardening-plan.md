@@ -20,7 +20,7 @@ go/no-go.
 
 | Item | Outcome | Guardrail |
 |---|---|---|
-| Skill-Gap Diagnosis workflow | Deterministic, cited next-step plan from traces + quiz grades + review queue; demoable in under 60 seconds. | Separate spec/review/build; no LLM mastery grading; no new deps or memory provider. |
+| Skill-Gap Diagnosis workflow | Deterministic, cited next-step plan from traces + quiz grades + review queue; demoable in under 60 seconds from the CLI/core slice. | Shipped as a deterministic pull-in; no LLM mastery grading, new deps, memory provider, or second agent loop. |
 | Prompt-injection / unsupported-advice eval scenario | Show that the tutor refuses or escalates unsupported course claims and unsafe instruction overrides. | Add only dev/seed scenario unless official final reporting authorizes `test`; do not leak prompt text. |
 | Leak guard fails loud on missing eval sources | Avoid false confidence when private eval files are absent locally. | Test missing-source behavior without committing private eval files. |
 | Diagram shipped-vs-planned labels | Architecture diagrams match current shipped UI and pull-in roadmap. | No claims that voice, memory, admin, or interview shipped. |
@@ -30,7 +30,7 @@ go/no-go.
 | Item | Why it matters | Required gate |
 |---|---|---|
 | Cross-session memory | Personalization beyond one session. | Separate plan covering privacy, deletion, provider choice, and citation boundary. |
-| Quiz + Skill-Gap on live Space | Turns deployment shell into interactive public demo. | Public-safe corpus subset approved and uploaded; no private corpus/eval text. |
+| Quiz + Skill-Gap on live Space | Turns deployment shell into interactive public demo. | Public-safe corpus subset approved and uploaded; no private corpus/eval text; current Skill-Gap surface is CLI/core only. |
 | End-to-end multi-mode test | Regression guard across teach -> quiz -> gap report. | Core remains pure; no browser dependency in core tests. |
 | Rubric-aware project feedback | The tutor can review a learner's project against a rubric. | Official rubric available and citeable; no invented grading criteria. |
 
@@ -121,5 +121,5 @@ This is gated and must happen immediately before any public repo flip.
 | `pytest`, `ruff`, leak guard green | Done for PR #24; rerun before final public submission |
 | Held-out `test` split remains unrun | Required |
 | Pre-public secret and screenshot scans complete | Pending human action |
-| Skill-Gap Diagnosis demoable in under 60 seconds | Spec only; pending review/build |
+| Skill-Gap Diagnosis demoable in under 60 seconds | Implemented as CLI/core pull-in; use only redacted trace output in submission |
 | Repo public flip and all links resolve | Pending human action |

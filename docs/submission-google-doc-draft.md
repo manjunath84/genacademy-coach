@@ -43,6 +43,9 @@ runbooks are in `docs/submission-hardening-plan.md`.
 - A first pull-in, **Grounded Quiz Mode**: generate up to 3 cited MCQs from retrieved spans, pin the
   answer key, grade selected option IDs deterministically in Python, and write a typed redacted quiz
   trace.
+- A second pull-in, **Skill-Gap Diagnosis**: rank gaps deterministically from teach traces, quiz grades,
+  and review-queue events; retrieve citeable next-step material; then emit either a cited review target
+  or a refusal/escalation.
 
 ## Dataset And Privacy
 
@@ -78,8 +81,10 @@ The project keeps a pure core and thin interface:
   deterministic grading helpers.
 - `src/genacademy_coach/quiz_session.py` and `src/genacademy_coach/quiz_items.py` implement the first
   pull-in without turning Quiz Mode into a second agent loop.
-- `scripts/run_teach_demo.py`, `scripts/eval_teach_loop.py`, and `scripts/run_quiz_demo.py` are CLI
-  surfaces over the core.
+- `src/genacademy_coach/skillgap_session.py` implements deterministic gap ranking and cited next-step
+  selection from existing artifacts.
+- `scripts/run_teach_demo.py`, `scripts/eval_teach_loop.py`, `scripts/run_quiz_demo.py`, and
+  `scripts/run_skillgap_demo.py` are CLI surfaces over the core.
 
 LangChain `create_agent` provides the agent loop on LangGraph's runtime. I intentionally did not import
 `langgraph.*` directly this week. Direct graph/checkpointer/store code is reserved for a future delta
@@ -101,6 +106,7 @@ reproduces only the redacted metadata that is safe to commit or show in the exte
 | Grade-boundary follow-up | `eval/runs/teach-loop-dev-grade-boundary.json` | The original same-turn grade overwrite bug is fixed. |
 | Same-topic lens switch | `traces/demo-lens-low-code-20260616.jsonl` and `traces/demo-lens-code-heavy-20260616.jsonl` | The same public topic and learner answer can be taught through different lenses while the grounding floor stays stable. |
 | Grounded quiz | Local UI hidden-question run + `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` fallback | The UI demo keeps generated quiz text hidden, grades answer IDs deterministically, and shows only safe trace metadata. The fallback trace demonstrates the three-question path. |
+| Skill-Gap Diagnosis | `scripts/run_skillgap_demo.py` + typed skill-gap trace rows | The gap report uses deterministic quiz/teach/refusal signals, retrieves citeable next-step material, and serializes only allow-listed metadata. |
 | Submission hardening | `README.md`, `docs/grading-gap-audit.md`, `docs/submission-hardening-plan.md` | The shipped proof path, overclaim checks, gated runbooks, and remaining human submission actions are explicit. |
 
 The honest eval story matters. I did not hide the failures: two dev failures are safe low-retrieval
@@ -160,6 +166,9 @@ The project improved through several loops:
   fixed-UI cues before recording.
 - The final documentation pass converted scattered proof into a grader path: shipped-vs-roadmap status,
   hardening audit, live Space limitation, and a checklist of what still requires human action.
+- Skill-Gap Diagnosis was added only after the visible teach/quiz proof path was stable. It stays
+  deterministic: Python ranks gaps from existing trace metadata, retrieval supplies citeable next steps,
+  and the trace row remains an allow-list.
 
 ## Learnings
 
@@ -194,9 +203,6 @@ I deliberately deferred:
 - Explicit LangGraph graphs/checkpointers/stores: useful later, but unnecessary while `create_agent`
   keeps the loop understandable.
 - Mock interview: promising, but it would need open-answer grading and a fresh grounding plan.
-- Skill-Gap Diagnosis: the next standout workflow is specified but not built; it needs a separate review
-  before code because it composes traces, quiz grades, and review-queue events into a cited next-step
-  plan.
 - Admin UI and gradebook: the existing `review_queue.jsonl` plus traces already give an instructor
   review surface for the demo.
 - Voice and multimodal: good polish, but not the core Week 3 proof.
@@ -210,6 +216,7 @@ I deliberately deferred:
    hardening links.
 5. If there is time after the recording, decide whether to explain or harden the remaining confirm-band
    conservative escalation case.
-6. Treat Skill-Gap Diagnosis as the next reviewed standout workflow if a final pull-in is needed.
+6. Use Skill-Gap Diagnosis as the optional final standout CLI shot only if it does not crowd the
+   teach/refusal/quiz walkthrough.
 7. Treat memory as the next personalization plan after submission: first-party persisted profile first,
    then compare LangMem, Mem0 open source, and Zep Cloud under a privacy/deletion review.
