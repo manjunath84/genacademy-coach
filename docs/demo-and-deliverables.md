@@ -199,7 +199,7 @@ different `next_action` + `strategy` without changing Python control flow.
 | Prompts used during vibe-coding | ✅ sanitized appendix packaged | Use `docs/vibe-coding-prompt-appendix.md`; do not add secrets or private corpus/eval text |
 | Iterations tried | ✅ narrative ready | Use `docs/teach-loop-status.md`, `docs/build-learnings.md`, and the PR sequence from roadmap |
 | Learnings | ✅ narrative ready | Use `docs/build-learnings.md` plus `docs/decisions.md` |
-| ≤5-min video | ✅ recording script packaged; video not recorded | Use `docs/video-demo-script.md` |
+| ≤5-min video | ✅ script packaged / ⚠️ video not recorded | Use `docs/video-demo-script.md` |
 | GitHub | ✅ private repo | Flip to public at submission (`gh repo edit --visibility public`) |
 | Architecture diagram | ✅ `docs/architecture-diagrams.md` | Export Diagram 2 (teach loop) to PNG/SVG for the Doc/video |
 | Hugging Face deployment | ⚠️ plan ready, implementation not started | Use `docs/hugging-face-deployment-plan.md`; needs thin Space UI before live deploy |

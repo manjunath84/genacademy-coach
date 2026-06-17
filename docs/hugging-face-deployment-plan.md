@@ -38,7 +38,8 @@ Use the Week 2 Docker pattern, but add only a thin Coach view:
 1. Add a tiny Gradio or FastAPI wrapper outside the core.
 2. Keep `src/genacademy_coach/*` free of web-framework imports.
 3. Run the same retrieval/teach/quiz core through the wrapper.
-4. Store data under a deploy data directory such as `/data`.
+4. Store data under `/data` by setting `GENACADEMY_COACH_DATA_DIR=/data` for Coach-owned files and
+   `GENACADEMY_DATA_DIR=/data` for the reused Week 2 RAG layer when it needs a deploy data root.
 5. Configure provider secrets in the Space settings.
 6. Smoke-test with a public demo topic only.
 
@@ -88,8 +89,11 @@ Variables:
 - `GENACADEMY_COACH_CONFIRM_THRESHOLD=0.85`
 - `GENACADEMY_COACH_COLLECTION=coach_course`
 - `GENACADEMY_COACH_SOURCE_PRIORITY=slide,handout,note,transcript`
+- `GENACADEMY_COACH_DATA_DIR=/data`
+- `GENACADEMY_DATA_DIR=/data`
 - `GENACADEMY_EMBEDDINGS=local`
 - `GENACADEMY_EMBED_MODEL=all-MiniLM-L6-v2`
+- `GENACADEMY_EMBED_DIM=384`
 - `GENACADEMY_RERANK_ENABLED=false`
 
 Do not put `.env` in the Space repository.
@@ -128,6 +132,8 @@ Live Space smoke:
 ## Acceptance Criteria
 
 - Space boots without requiring local `.env`.
+- Embed model and dimension match the uploaded Chroma collection:
+  `all-MiniLM-L6-v2` / `384`.
 - No direct web-framework imports inside the core modules.
 - No private corpus/eval text is committed or displayed.
 - Public demo topic works or safely refuses.

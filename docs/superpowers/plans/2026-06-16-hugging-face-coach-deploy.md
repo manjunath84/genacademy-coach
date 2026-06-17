@@ -1,7 +1,8 @@
 # Hugging Face Coach Deploy Implementation Plan
 
-> Status: draft, not approved for code. This plan exists because Hugging Face deployment adds a new
-> public/runtime surface. Review before implementation.
+> Status: reviewed in PR #18; approved for implementation after the required environment/dimension
+> clarifications are merged. This plan exists because Hugging Face deployment adds a new public/runtime
+> surface.
 
 ## Goal
 
@@ -15,6 +16,8 @@ smoke test, while preserving the current privacy, grounding, and pure-core bound
   variables.
 - Week 2 reference: `genacademy-rag` deployed through a Docker Space with `Dockerfile`,
   `scripts/start_hf_space.sh`, `/data`, and port `7860`.
+- Same-embedder rule: the deployed variables must match the uploaded Chroma collection:
+  `GENACADEMY_EMBED_MODEL=all-MiniLM-L6-v2` and `GENACADEMY_EMBED_DIM=384`.
 
 ## Key Decision
 
@@ -90,7 +93,8 @@ Out of scope:
 ### Task 3 — Deployment Packaging
 
 - Add Docker/Space files.
-- Configure `/data` or equivalent for deploy-time artifacts.
+- Configure `GENACADEMY_COACH_DATA_DIR=/data` for Coach-owned files and `GENACADEMY_DATA_DIR=/data`
+  for the reused Week 2 RAG layer when it needs a deploy data root.
 - Document required secrets and variables.
 - Do not include private corpus.
 
@@ -112,6 +116,7 @@ Out of scope:
 ## Acceptance Criteria
 
 - Space boots.
+- Embed model and dimension match the uploaded collection (`all-MiniLM-L6-v2` / `384`).
 - The UI can run a public demo topic or safely refuse.
 - No private corpus/eval text is committed or displayed.
 - No held-out `test` split use.

@@ -15,7 +15,8 @@
 Recommended terminal environment:
 
 ```bash
-GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40
+export GENACADEMY_PROVIDER=nebius
+export GENACADEMY_COACH_STOP_THRESHOLD=0.40
 ```
 
 ## Shot List
