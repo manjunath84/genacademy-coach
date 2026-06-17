@@ -9,15 +9,25 @@ import pytest
 
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
+    DEFAULT_LOCAL_SERVER_NAME,
+    DEMO_PRESET_TOPICS,
     EMPTY_CORPUS_STATUS_MESSAGE,
+    QUIZ_GROUNDED_PRESET,
     SAFE_QUIZ_TRACE_FIELDS,
     SAFE_TEACH_TRACE_FIELDS,
+    TEACH_GROUNDED_PRESET,
+    TEACH_REFUSAL_PRESET,
     UserInputError,
     _coerce_choice,
     _error_payload,
+    _format_trace_summary,
     _parse_answers,
     _require_topic,
+    _server_name,
     _space_status_message,
+    fill_quiz_grounded_preset,
+    fill_teach_grounded_preset,
+    fill_teach_refusal_preset,
     run_quiz_session,
     safe_trace_rows,
 )
@@ -119,6 +129,38 @@ def test_safe_trace_rows_omit_raw_quiz_fields_and_skip_malformed_rows(tmp_path, 
     assert "malformed trace row" in caplog.text
 
 
+def test_trace_summary_uses_only_safe_fields():
+    private_value = "PRIVATE_TRACE_TEXT"
+    metadata = {
+        "status": "ok",
+        "trace": [
+            {
+                "turn": 1,
+                "learner_message": private_value,
+                "next_action": "drill",
+                "strategy": "short_drill",
+                "evidence_score": 0.7114,
+                "evidence_band": "confirm",
+                "faithfulness_ok": True,
+                "retrieved_citation_ids": ["chunk-1", "chunk-2"],
+                "tool_calls": ["retrieve_course_corpus"],
+            }
+        ],
+    }
+
+    summary = _format_trace_summary(metadata, mode="teach")
+
+    assert "gc-trace-card" in summary
+    assert "drill" in summary
+    assert "0.711" in summary
+    assert "2 cited spans" in summary
+    assert "chunk-1" not in summary
+    assert "chunk-2" not in summary
+    assert "| turn |" not in summary
+    assert private_value not in summary
+    assert "learner_message" not in summary
+
+
 def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
     private_value = "PRIVATE_PROVIDER_DETAIL"
 
@@ -130,6 +172,9 @@ def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
     assert metadata["status"] == "error"
     assert len(metadata["error_id"]) == 8
     assert metadata["error_id"] in message
+    assert "failed closed" in message
+    assert "hard-refresh" in message
+    assert "approved Chroma index" in message
     assert private_value not in message
     assert private_value not in json.dumps(metadata)
     assert private_value in caplog.text
@@ -183,6 +228,45 @@ def test_input_helpers_return_specific_safe_errors():
         _coerce_choice("verbose", ["concise"], "style")
 
 
+def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries():
+    assert fill_teach_grounded_preset() == TEACH_GROUNDED_PRESET
+    assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
+    assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
+    assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", False)
+
+    manifest = json.loads(Path("eval/split_manifest.json").read_text(encoding="utf-8"))
+    eval_tokens = {
+        str(value)
+        for item in manifest["items"]
+        for value in (item["id"], item["source_file"], item["source_sha256"])
+    }
+    assert DEMO_PRESET_TOPICS.isdisjoint(eval_tokens)
+    assert TEACH_REFUSAL_PRESET[0] == "Gen Academy cafeteria menu"
+
+
+def test_runtime_reuses_foundation_for_local_demo(monkeypatch):
+    settings = object()
+    foundation = object()
+    build_calls = []
+
+    gradio_app._runtime.cache_clear()
+    monkeypatch.setattr(gradio_app.CoachSettings, "from_env", lambda: settings)
+
+    def fake_build(value):
+        build_calls.append(value)
+        return foundation
+
+    monkeypatch.setattr(gradio_app.Foundation, "build", fake_build)
+
+    try:
+        assert gradio_app._runtime() == (settings, foundation)
+        assert gradio_app._runtime() == (settings, foundation)
+    finally:
+        gradio_app._runtime.cache_clear()
+
+    assert build_calls == [settings]
+
+
 def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
     def fail_runtime():
         raise AssertionError("runtime should not be built for invalid input")
@@ -193,6 +277,68 @@ def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
 
     assert message == "expected 3 answers, received 2"
     assert metadata == {"status": "invalid_input"}
+
+
+def test_run_quiz_session_hides_generated_quiz_text_by_default(tmp_path, monkeypatch):
+    private_value = "PRIVATE_GENERATED_QUIZ_TEXT"
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.71,
+                "evidence_band": "confirm",
+                "citation_ids": ["chunk-1"],
+                "question_ids": ["q1"],
+                "selected_option_ids": ["A"],
+                "correctness": [True],
+                "actions": ["retrieve_course_corpus", "generate_quiz_items", "grade_quiz"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(self, selected_option_ids=None):
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[
+                    SimpleNamespace(
+                        question_id="q1",
+                        prompt=private_value,
+                        options=[SimpleNamespace(option_id="A", text=private_value)],
+                    )
+                ],
+                grades=[
+                    SimpleNamespace(
+                        question_id="q1",
+                        selected_option_id="A",
+                        correct_option_id="A",
+                        correct=True,
+                    )
+                ],
+                score=1,
+                refusal_reason=None,
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    message, metadata = run_quiz_session("agent harness", 1, "A")
+
+    serialized = json.dumps(metadata, sort_keys=True)
+    assert "Question text is hidden by default" in message
+    assert "**Score:** 1/1" in message
+    assert "answer A" not in message
+    assert private_value not in message
+    assert private_value not in serialized
+
+    visible_message, _ = run_quiz_session("agent harness", 1, "A", show_questions=True)
+    assert private_value in visible_message
 
 
 def test_run_quiz_session_metadata_uses_safe_trace_allow_list(tmp_path, monkeypatch):
@@ -257,6 +403,38 @@ def test_web_framework_imports_stay_outside_core():
     assert offenders == []
 
 
+def test_gradio_launch_does_not_enable_public_share():
+    app_text = Path("src/genacademy_coach/web/gradio_app.py").read_text(encoding="utf-8")
+
+    assert "share=False" in app_text
+    assert "share=True" not in app_text
+
+
+def test_gradio_launch_binds_locally_by_default_and_all_interfaces_when_configured(
+    monkeypatch,
+):
+    monkeypatch.delenv("GENACADEMY_COACH_SERVER_NAME", raising=False)
+    assert _server_name() == DEFAULT_LOCAL_SERVER_NAME
+
+    monkeypatch.setenv("GENACADEMY_COACH_SERVER_NAME", "0.0.0.0")
+    assert _server_name() == "0.0.0.0"
+
+
+def test_gradio_ui_uses_genacademy_console_shell():
+    app_text = Path("src/genacademy_coach/web/gradio_app.py").read_text(encoding="utf-8")
+
+    assert "gc-app-header" in app_text
+    assert "gc-status-rail" in app_text
+    assert "gc-workbench" in app_text
+    assert "gc-action-row" in app_text
+    assert "min-height: 44px" in app_text
+    assert "_Awaiting teach run._" in app_text
+    assert "_Awaiting quiz run._" in app_text
+    assert "GENACADEMY_COACH_CSS" in app_text
+    assert "css=GENACADEMY_COACH_CSS" in app_text
+    assert "Evidence fallback" in app_text
+
+
 def test_hf_deploy_files_pin_port_data_and_embed_dim():
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
     start_script = Path("scripts/start_hf_space.sh").read_text(encoding="utf-8")
@@ -269,6 +447,8 @@ def test_hf_deploy_files_pin_port_data_and_embed_dim():
     assert "server_port=int(os.environ.get(\"PORT\", \"7860\"))" in Path(
         "src/genacademy_coach/web/gradio_app.py"
     ).read_text(encoding="utf-8")
+    assert "GENACADEMY_COACH_SERVER_NAME" in start_script
+    assert "0.0.0.0" in start_script
     assert "GENACADEMY_EMBED_DIM" in start_script
     assert "space_startup_check.py || true" in start_script
     assert "logging.basicConfig" in Path("src/genacademy_coach/web/gradio_app.py").read_text(

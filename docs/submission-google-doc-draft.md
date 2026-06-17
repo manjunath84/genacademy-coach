@@ -31,6 +31,9 @@ move at runtime within that safe boundary.
   writes a local mentor-review queue row instead of bluffing.
 - A redacted **runtime trace**: each turn records safe metadata such as evidence score, evidence band,
   next action, strategy, citation IDs, and faithfulness result.
+- A polished local **recording UI**: preset-driven Teach and Quiz paths, local-only launch, collapsed
+  metadata by default, camera-safe decision-trace cards, and hidden generated quiz text unless explicitly
+  enabled for local/private inspection.
 - A redacted **dev eval harness**: multi-turn scenarios report pass/fail diagnostics without exposing
   private question text.
 - A first pull-in, **Grounded Quiz Mode**: generate up to 3 cited MCQs from retrieved spans, pin the
@@ -93,7 +96,7 @@ reproduces only the redacted metadata that is safe to commit or show in the exte
 | Dev eval | `eval/runs/teach-loop-dev-main-final-20260616.json` | Latest dev evidence: `7/10` overall and `7/8` teachable, with two safe low-retrieval refusals. |
 | Grade-boundary follow-up | `eval/runs/teach-loop-dev-grade-boundary.json` | The original same-turn grade overwrite bug is fixed. |
 | Same-topic lens switch | `traces/demo-lens-low-code-20260616.jsonl` and `traces/demo-lens-code-heavy-20260616.jsonl` | The same public topic and learner answer can be taught through different lenses while the grounding floor stays stable. |
-| Grounded quiz | `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` | Quiz Mode generated 3 cited MCQs at `0.711 confirm` evidence and graded `A,B,C` as `1/3` deterministically. |
+| Grounded quiz | Local UI hidden-question run + `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` fallback | The UI demo keeps generated quiz text hidden, grades answer IDs deterministically, and shows only safe trace metadata. The fallback trace demonstrates the three-question path. |
 
 The honest eval story matters. I did not hide the failures: two dev failures are safe low-retrieval
 refusals, and the remaining teachable variance is a conservative escalation case. The held-out test
@@ -139,12 +142,24 @@ The project improved through several loops:
 - Same-topic lens switching became the safer personalization demo than rushing memory.
 - Quiz Mode shipped only after the teach-loop floor was stable, and it keeps model generation separate
   from deterministic grading.
+- A strict UI review found that the first demo polish pass still felt too much like a raw Gradio app:
+  the run buttons could fall below the fold, empty states looked unfinished, touch targets were small,
+  and raw trace tables were hard to read on camera. The fix moved the main actions higher, added
+  recording-safe empty states, improved mobile touch targets, and replaced the trace table with
+  decision-trace cards.
+- Manual scenario testing found that the three-question quiz path was valid but too brittle as the
+  default live recording path. The fix made the UI preset prove the same safety contract with one hidden
+  question by default, while leaving the three-question CLI artifact as optional deeper evidence.
+- Manual retries also exposed an operational lesson: stale local Gradio processes and browser cache can
+  make a fixed branch look broken. The final script now includes a hard-refresh/restart check and visible
+  fixed-UI cues before recording.
 
 ## Learnings
 
-The deeper learning was scope discipline. The tempting route was to add memory, explicit LangGraph, a
-gradebook UI, or voice. The better route was to make the grounded tutor harder to break, then show one
-small pull-in that reused the same safety rules.
+The deeper learning was scope discipline plus demo honesty. The tempting route was to add memory,
+explicit LangGraph, a gradebook UI, or voice. The better route was to make the grounded tutor harder to
+break, then make the proof easy to understand on camera: one reliable teach path, one refusal path, one
+hidden quiz path, and trace cards that show the safety decisions without exposing raw private text.
 
 Reusable principles:
 
@@ -154,6 +169,12 @@ Reusable principles:
 - When Python owns a correctness signal, the model's later tool calls should not overwrite it.
 - Personalization can be demonstrated with controlled contrast before adding durable memory.
 - A second mode is safer when the model creates content but Python owns correctness.
+- Demo defaults are product decisions. The first click should prove the promise with the fewest live
+  failure points.
+- A trace needs both safety and legibility. Citation counts and decision cards are better for video than
+  long internal IDs in a raw table.
+- A local demo needs an operational checklist: kill stale servers, hard-refresh, confirm fixed UI
+  defaults, and keep generated quiz text hidden unless it is explicitly public-safe.
 
 Full learning notes are in `docs/build-learnings.md`.
 
@@ -172,7 +193,7 @@ I deliberately deferred:
 
 ## Next Steps
 
-1. Record the <=5-minute video using `docs/demo-and-deliverables.md`.
+1. Record the <=5-minute video using `docs/video-demo-script.md` and the local Gradio presets.
 2. Create the external Google Doc from this draft.
 3. Keep the held-out `test` split unused until final reporting.
 4. If there is time after the recording, decide whether to explain or harden the remaining confirm-band
