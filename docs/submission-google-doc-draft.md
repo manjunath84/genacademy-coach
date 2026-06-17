@@ -20,6 +20,10 @@ The important design choice was not to make a generic chatbot. The tutor is allo
 retrieved course spans. Python enforces the grounding and refusal gates; the model decides the teaching
 move at runtime within that safe boundary.
 
+For a fast grader pass, the repo now starts with a shipped-vs-roadmap table and a "Grader's 5-minute
+path" in `README.md`. The submission-hardening audit is in `docs/grading-gap-audit.md`, and the gated
+runbooks are in `docs/submission-hardening-plan.md`.
+
 ## What I Built
 
 - A text-first **Teach Mode**: retrieve course evidence, explain, ask a grounded check, grade the
@@ -97,6 +101,7 @@ reproduces only the redacted metadata that is safe to commit or show in the exte
 | Grade-boundary follow-up | `eval/runs/teach-loop-dev-grade-boundary.json` | The original same-turn grade overwrite bug is fixed. |
 | Same-topic lens switch | `traces/demo-lens-low-code-20260616.jsonl` and `traces/demo-lens-code-heavy-20260616.jsonl` | The same public topic and learner answer can be taught through different lenses while the grounding floor stays stable. |
 | Grounded quiz | Local UI hidden-question run + `traces/demo-quiz-agent-harness-reviewfix2-20260616.jsonl` fallback | The UI demo keeps generated quiz text hidden, grades answer IDs deterministically, and shows only safe trace metadata. The fallback trace demonstrates the three-question path. |
+| Submission hardening | `README.md`, `docs/grading-gap-audit.md`, `docs/submission-hardening-plan.md` | The shipped proof path, overclaim checks, gated runbooks, and remaining human submission actions are explicit. |
 
 The honest eval story matters. I did not hide the failures: two dev failures are safe low-retrieval
 refusals, and the remaining teachable variance is a conservative escalation case. The held-out test
@@ -153,6 +158,8 @@ The project improved through several loops:
 - Manual retries also exposed an operational lesson: stale local Gradio processes and browser cache can
   make a fixed branch look broken. The final script now includes a hard-refresh/restart check and visible
   fixed-UI cues before recording.
+- The final documentation pass converted scattered proof into a grader path: shipped-vs-roadmap status,
+  hardening audit, live Space limitation, and a checklist of what still requires human action.
 
 ## Learnings
 
@@ -187,6 +194,9 @@ I deliberately deferred:
 - Explicit LangGraph graphs/checkpointers/stores: useful later, but unnecessary while `create_agent`
   keeps the loop understandable.
 - Mock interview: promising, but it would need open-answer grading and a fresh grounding plan.
+- Skill-Gap Diagnosis: the next standout workflow is specified but not built; it needs a separate review
+  before code because it composes traces, quiz grades, and review-queue events into a cited next-step
+  plan.
 - Admin UI and gradebook: the existing `review_queue.jsonl` plus traces already give an instructor
   review surface for the demo.
 - Voice and multimodal: good polish, but not the core Week 3 proof.
@@ -196,7 +206,10 @@ I deliberately deferred:
 1. Record the <=5-minute video using `docs/video-demo-script.md` and the local Gradio presets.
 2. Create the external Google Doc from this draft.
 3. Keep the held-out `test` split unused until final reporting.
-4. If there is time after the recording, decide whether to explain or harden the remaining confirm-band
+4. Use `README.md` as the grader's table of contents: shipped-vs-roadmap status, 5-minute path, and
+   hardening links.
+5. If there is time after the recording, decide whether to explain or harden the remaining confirm-band
    conservative escalation case.
-5. Treat memory as the next personalization plan after submission: first-party persisted profile first,
+6. Treat Skill-Gap Diagnosis as the next reviewed standout workflow if a final pull-in is needed.
+7. Treat memory as the next personalization plan after submission: first-party persisted profile first,
    then compare LangMem, Mem0 open source, and Zep Cloud under a privacy/deletion review.

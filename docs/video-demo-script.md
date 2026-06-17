@@ -14,10 +14,11 @@
    tunnel.
 4. Open `http://127.0.0.1:7861` in the browser and hard-refresh before recording.
 5. Keep one editor tab open with `docs/demo-and-deliverables.md`.
-6. Keep one editor tab open with `specs/roadmap.md`.
-7. Use `docs/ui-screenshot-inventory.md` for baseline and function-state screenshots if you need static
+6. Keep one editor tab open with `README.md` at the Grader's 5-minute path.
+7. Keep one editor tab open with `specs/roadmap.md`.
+8. Use `docs/ui-screenshot-inventory.md` for baseline and function-state screenshots if you need static
    UI reference.
-8. Do not run `--split test`.
+9. Do not run `--split test`.
 
 Fixed UI check before recording:
 
@@ -57,7 +58,7 @@ environment variables shown above.
 | 2:45-3:25 | Dev eval status doc | "I did not use the held-out test split for tuning or demo prep. The redacted dev eval is `7/10` overall and `7/8` teachable. Two failures are safe refusals. The remaining teachable variance is a conservative escalation case, not a hallucination." |
 | 3:25-4:10 | Same-topic lens-switch metadata | "To show personalization without risky memory, I used controlled contrast: same topic, same learner answer, different teaching lens. The grounding metadata stays stable; the explanation shown live changes by lens." |
 | 4:10-4:45 | Local Gradio Quiz tab: click `Grounded quiz preset`, then `Run quiz` with question text hidden | "Quiz Mode is the first pull-in, not the agenticity proof. The model generates a cited MCQ from retrieved spans, but Python owns the answer key and deterministic grading. For the recording, generated quiz text stays hidden; the trace stores only safe metadata." |
-| 4:45-5:00 | `docs/submission-google-doc-draft.md` or roadmap | "The next steps are submission packaging, then future pull-ins: memory, mock interview, or deployment polish. The main learning was to raise the floor before adding new surfaces." |
+| 4:45-5:00 | README Grader's 5-minute path or `docs/submission-google-doc-draft.md` | "The proof path is now explicit: shipped surfaces, honest dev eval, local UI walkthrough, and the live Space limitation. The next reviewed standout workflow is Skill-Gap Diagnosis; memory and mock interview stay on the roadmap." |
 
 ## UI Walkthrough: Teach Tab
 
