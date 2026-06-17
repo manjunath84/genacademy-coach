@@ -2,8 +2,10 @@
 
 > **Purpose:** portfolio-ready architecture diagrams for the grounded tutor, deterministic pull-ins, and
 > privacy boundaries.
-> **Status:** shipped/planned map. The CLI + local Gradio teach/quiz surfaces are shipped; direct voice,
-> admin upload, cross-session memory, and mock interview remain planned pull-ins.
+> **Status:** shipped/planned map. The CLI + local Gradio teach/quiz/Skill-Gap surfaces are shipped.
+> The private Hugging Face Space is
+> a live deployment shell with no private corpus uploaded.
+> Direct voice, admin upload, cross-session memory, and mock interview remain planned pull-ins.
 > The constitution (`../AGENTS.md`, `../specs/*`, `docs/decisions.md`) is canonical.
 
 ## The Spine
@@ -13,77 +15,122 @@
 > the learner's style and chosen teaching lens, checks understanding, and when the learner stumbles,
 > chooses a different explanation strategy at runtime. The same learner can switch between
 > no-code/low-code, code-heavy, or bridge explanations for the same topic. It hands off to a human
-> mentor when it cannot cite the answer, and I know it works when held-out learner-sim scenarios reach a
-> correct grounded answer 8 times out of 10.
+> mentor when it cannot cite the answer. The current dated dev evidence is `7/10` overall and `7/8`
+> teachable, with safe refusals preserved instead of forcing unsupported answers.
 
 | Framework field | Coach |
 |---|---|
 | **Agent goal** | Teach one course concept until the learner can pass a grounded check-question. |
-| **Where used** | Local Gradio web chat and CLI for the MVP; ElevenLabs voice is a pull-in over the same engine. |
-| **Steps** | intake -> retrieve -> explain -> check -> grade -> runtime decide -> update profile -> loop/report. |
-| **Tools** | `retrieve_course_corpus` (READ), `generate_check_item` (Nebius), `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` (WRITE/HITL). |
+| **Where used** | Local Gradio web chat and CLI for teach/quiz/Skill-Gap; Hugging Face shell for deployment proof; ElevenLabs voice is a later pull-in over the same engine. |
+| **Steps** | teach: intake -> retrieve -> explain -> check -> grade -> runtime decide -> update profile -> loop/report. Quiz and Skill-Gap compose the same retrieval, grounding, trace, and refusal primitives. |
+| **Tools** | Teach tools: `retrieve_course_corpus` (READ), `generate_check_item` (Nebius), `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` (WRITE/HITL). Deterministic pull-ins reuse the same retrieval, grading, trace, and review-queue primitives. |
 | **State** | Within-session learner profile: style, track lens, optional bridge source, known, struggled, coverage, turn budget, transcript. |
 | **Never do** | Answer from model priors, fabricate citations, index held-out eval questions, or silently skip failure handling. |
 | **HITL** | Refuse and write a review-queue entry when confidence is low, evidence is missing, or the learner flags an issue. |
 | **Failure handling** | Retry/tool validation, confidence thresholds, source fallback, human escalation, stop/progress guard. |
-| **Success measure** | Held-out chat-question scenarios; deterministic grounded grader; citations resolve to retrieved spans. |
+| **Success measure** | Dated dev eval and redacted traces; deterministic grounded grader; citations resolve to retrieved spans; held-out `test` split remains unused. |
 
-## 1. System Architecture
+## 1. Product Surface and Deployment Boundary
 
-One `create_agent` loop on LangGraph's internal runtime, one source-prioritized retriever over the
-extended Week-2 corpus, and local trace/eval artifacts. Most tools read; only escalation writes. The
-diagrams below label the architecture; current shipped surfaces are CLI + local Gradio teach/quiz, while
-voice, memory, admin upload, and mock interview remain planned.
+The shipped application surface is local-first because it runs against the private course corpus. The Hugging
+Face Space proves deployability, but it intentionally stays a shell until a public-safe corpus subset is
+approved and uploaded.
+
+```mermaid
+flowchart LR
+    Learner["Learner / reviewer"]
+
+    subgraph Local["Local app with private corpus"]
+        Gradio["Local Gradio UI\nTeach · Quiz · Skill-Gap (PR #28)"]
+        CLI["CLI entry points\nteach · quiz · skill-gap"]
+    end
+
+    subgraph Space["Private Hugging Face Space"]
+        Shell["Deployment shell\nHTTP 200 + empty-corpus notice"]
+        NoCorpus["No private corpus/index uploaded"]
+    end
+
+    subgraph Core["Shared Coach core"]
+        Teach["Teach agent"]
+        Quiz["Grounded quiz"]
+        SkillGap["Skill-Gap diagnosis"]
+    end
+
+    Learner --> Gradio
+    Learner --> CLI
+    Learner -. smoke only .-> Shell
+    Gradio --> Core
+    CLI --> Core
+    Shell --> NoCorpus
+    Shell -. same app shell, no private data .-> Core
+```
+
+## 2. System Architecture
+
+One LangChain `create_agent` loop handles the adaptive teach mode on LangGraph's internal runtime.
+Quiz Mode and Skill-Gap Diagnosis are deterministic pull-ins over the same retrieval, grounding, trace,
+and refusal primitives. Most tools read; only escalation/review-queue writes.
 
 ```mermaid
 flowchart TD
-    User["Cohort learner"]
-    Intake["Intake: topic · style · track lens"]
+    UI["Thin views\nGradio + CLI"]
 
-    subgraph Agent["Coach Agent - LangChain create_agent"]
-        Reason["REASON: choose next_action + strategy"]
+    subgraph Modes["Mode layer"]
+        TeachMode["Teach mode\nagentic runtime decision"]
+        QuizMode["Quiz mode\ndeterministic assessment"]
+        SkillGapMode["Skill-Gap mode\ndeterministic next-step report"]
+    end
+
+    subgraph Agent["Teach Agent - LangChain create_agent"]
+        Reason["Model chooses\nnext_action + strategy"]
         Profile[("Within-session profile")]
-        Trace["Local JSON trace + CLI pretty print"]
     end
 
-    subgraph Tools["Tools"]
-        R["retrieve_course_corpus(query, preferred_sources)"]
-        Gen["generate_check_item(span) - Nebius"]
-        Grade["grade_understanding(answer, key, citation)"]
-        Update["update_profile"]
-        Esc["escalate_to_mentor - WRITE"]
+    subgraph SharedCore["Shared safety/core primitives"]
+        R["retrieve_course_corpus"]
+        Ground["evidence_score + evidence_band\nrequire_citeable_spans"]
+        Gen["generate_check_item / quiz item\nNebius provider"]
+        Grade["Python deterministic grading"]
+        Trace["Typed redacted trace writers"]
+        Esc["escalate_to_mentor\nreview_queue.jsonl"]
     end
 
-    subgraph Corpus["Extended Week-2 collection"]
-        Slides["slides - primary"]
-        Handouts["handouts - primary"]
-        Notes["notes - gap fill"]
-        Transcripts["transcripts - support/fallback"]
+    subgraph Foundation["Week-2 genacademy-rag foundation"]
+        Corpus["Extended course Chroma collection\nslides · handouts · notes · transcripts"]
+        Provider["Nebius/OpenAI-compatible provider"]
+        Eval["Eval harness + split manifest\nheld-out test never indexed"]
     end
 
-    Eval["Held-out chat-question eval - never indexed"]
-    Mentor["Human mentor / review queue"]
-    LangSmith["LangSmith traces - optional"]
+    UI --> Modes
+    Modes --> TeachMode
+    Modes --> QuizMode
+    Modes --> SkillGapMode
 
-    User --> Intake --> Reason
+    TeachMode --> Reason
     Reason <--> Profile
     Reason --> R
-    R --> Slides
-    R --> Handouts
-    R --> Notes
-    R --> Transcripts
     Reason --> Gen
     Reason --> Grade
-    Reason --> Update
-    Reason --> Esc
     Reason --> Trace
-    Trace -. optional export/debug .-> LangSmith
-    Esc --> Mentor
-    Eval -. eval only .-> Reason
-    Reason --> User
+    Reason --> Esc
+
+    QuizMode --> R
+    QuizMode --> Ground
+    QuizMode --> Gen
+    QuizMode --> Grade
+    QuizMode --> Trace
+
+    SkillGapMode --> Trace
+    SkillGapMode --> R
+    SkillGapMode --> Ground
+    SkillGapMode --> Esc
+
+    R --> Corpus
+    Gen --> Provider
+    Eval -. dev regression only .-> Modes
 ```
 
-## 2. Adaptive Teach Loop
+## 3. Adaptive Teach Loop
 
 The MVP is agentic only if the model chooses the next action from observations. Python enforces
 thresholds, schema, citation presence, max turns, and stop conditions.
@@ -110,7 +157,7 @@ flowchart TD
     Continue -->|no| Report
 ```
 
-## 3. One ReAct Turn
+## 4. Teach Agent Orchestration
 
 ```mermaid
 sequenceDiagram
@@ -139,7 +186,81 @@ sequenceDiagram
     end
 ```
 
-## 4. Failure Handling
+## 5. Grounded Quiz Mode Flow
+
+Quiz Mode is a deterministic assessment pull-in. The model may draft a multiple-choice item from a
+retrieved span, but Python pins the citation, validates grounding, owns the answer key, and grades the
+selected option.
+
+```mermaid
+flowchart TD
+    Topic["Topic + question count"] --> Retrieve["Retrieve raw spans"]
+    Retrieve --> Score["Compute evidence score/band\nbefore filtering"]
+    Score --> Citeable{"Any citeable span?"}
+    Citeable -->|no| Refuse["Refuse quiz + queue review"]
+    Citeable -->|yes| Draft["Provider drafts MCQ\nwithout citation authority"]
+    Draft --> Pin["Python pins citation_id\nfrom retrieved span"]
+    Pin --> Validate{"Grounded content?\ncorrect option + answer + rationale + keywords"}
+    Validate -->|no| NextSpan{"More spans?"}
+    NextSpan -->|yes| Draft
+    NextSpan -->|no| Refuse
+    Validate -->|yes| Question["QuizQuestion"]
+    Question --> Grade["Python deterministic grade\nselected option == answer key"]
+    Grade --> Trace["QuizTraceRow allow-list\ntopic_hash · IDs · scores · booleans"]
+    Trace --> UI["UI shows score + metadata\nquestion text hidden by default"]
+```
+
+## 6. Skill-Gap Diagnosis Flow
+
+Skill-Gap Diagnosis is the standout workflow. It composes existing evidence instead of adding a memory
+provider or a second agent loop: quiz grades, teach trace struggles, and review-queue events produce a
+ranked gap list; each gap then retrieves citeable next-step material or refuses/escalates.
+
+```mermaid
+flowchart TD
+    SourceIDs["Source session IDs"] --> Read["Read local teach traces\nquiz traces · review_queue"]
+    Read --> Signals["Derive deterministic signals\nquiz misses · struggled[] · refusals"]
+    Signals --> Rank["Rank gaps\nNO LLM mastery grading"]
+    Rank --> Retrieve["Retrieve review material per gap"]
+    Retrieve --> Citeable{"Citeable review span?"}
+    Citeable -->|yes| Plan["Cited next-step plan"]
+    Citeable -->|no| Escalate["refuse_escalate + review queue"]
+    Plan --> Trace["SkillGapTraceRow allow-list\ntopic_hash · counts · scores · actions"]
+    Escalate --> Trace
+    Trace --> UI["UI report\nfriendly gap labels + source location"]
+    Trace -. exact IDs for audit only .-> JSON["Collapsed metadata JSON"]
+```
+
+## 7. Local UI Flow and Redaction Boundary
+
+The UI is a thin view. It makes the grounded tutor legible without moving private data into public
+surfaces or adding web-framework imports to the core.
+
+```mermaid
+flowchart TD
+    Gradio["Local Gradio app\nshare=false"]
+    TeachTab["Teach tab\npreset -> run teach"]
+    QuizTab["Quiz tab\nquestion text hidden by default"]
+    SkillGapTab["Skill-Gap tab\nsource sessions -> diagnosis"]
+    Core["Pure Coach core"]
+    SafeTrace["safe_trace_rows allow-list"]
+    Cards["Readable trace cards\ncounts · scores · actions"]
+    JSON["Collapsed metadata JSON\nexact IDs for audit"]
+    Private["Never publish\nraw spans · eval prompts · secrets · quiz text"]
+
+    Gradio --> TeachTab
+    Gradio --> QuizTab
+    Gradio --> SkillGapTab
+    TeachTab --> Core
+    QuizTab --> Core
+    SkillGapTab --> Core
+    Core --> SafeTrace
+    SafeTrace --> Cards
+    SafeTrace --> JSON
+    Core -. blocked .-> Private
+```
+
+## 8. Failure Handling
 
 ```mermaid
 flowchart TD
@@ -154,7 +275,7 @@ flowchart TD
     Loop["Stalled/runaway"] --> Stop["Stop/progress guard"]
 ```
 
-## 5. State
+## 9. State
 
 ```mermaid
 flowchart TD
@@ -177,7 +298,7 @@ flowchart TD
     Session -. promote after MVP .-> Later
 ```
 
-## 6. Corpus and Eval Boundary
+## 10. Corpus and Eval Boundary
 
 ```mermaid
 flowchart TD
@@ -200,22 +321,22 @@ flowchart TD
     Test -. blocked from prompts/index/local examples .-> Retriever
 ```
 
-## 7. Modes and Pull-Ins
+## 11. Modes and Pull-Ins
 
 ```mermaid
 flowchart LR
     MVP["SHIPPED: text teach loop\nCLI + local Gradio"]
     MVP --> Quiz["SHIPPED PULL-IN: quiz mode"]
-    Quiz --> SkillGap["SPEC ONLY: skill-gap diagnosis\ncited next-step plan"]
+    Quiz --> SkillGap["SHIPPED CORE: skill-gap diagnosis\nCLI + PR #28 local Gradio"]
     SkillGap --> Interview["ROADMAP: mock interview\nopen answer -> cited grading -> follow-up -> report"]
-    MVP --> Admin["Low-priority pull-in: admin upload"]
-    MVP --> Voice["Pull-in: ElevenLabs voice"]
-    MVP --> Memory["Later: cross-session memory"]
+    MVP --> Admin["ROADMAP: admin upload"]
+    MVP --> Voice["ROADMAP: ElevenLabs voice"]
+    MVP --> Memory["ROADMAP: cross-session memory"]
 
     style MVP fill:#EAFF00,stroke:#0F1419,stroke-width:2px
 ```
 
-## 8. Deliverable Mapping
+## 12. Deliverable Mapping
 
 | Handout requirement | Architecture answer |
 |---|---|
@@ -224,5 +345,6 @@ flowchart LR
 | State | Within-session profile. |
 | Human-in-the-loop | Refusal + review queue. |
 | Tool failure / recovery | Retry, validation, fallback, confidence bands, escalation, stop guard. |
-| How it worked | Redacted eval, trace evidence, and honest numbers. |
-| Architecture diagram | Diagrams 1-7 in this file. |
+| How it worked | Dev eval, redacted traces, local UI screenshots, Skill-Gap evidence, and honest numbers; held-out `test` remains unused. |
+| Assessment/gap diagnosis pull-ins | Quiz and Skill-Gap diagrams show deterministic grading/ranking over shared grounded primitives, not second agent loops. |
+| Architecture diagram | Diagrams 1-11 in this file. |

@@ -49,6 +49,7 @@ eval/runs/
 .ipynb_checkpoints/
 scratch/
 tmp/
+localdocs/
 
 # AI workflow runtime state (superpowers brainstorm / visual-companion) — never commit
 .superpowers/

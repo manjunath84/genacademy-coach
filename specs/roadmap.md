@@ -2,10 +2,10 @@
 
 Status updated: 2026-06-17.
 
-The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the teach/quiz local
-Gradio UI are shipped on `main`. Future work is intentionally separated from the grounded core so the
-project stays honest: course facts still come from retrieved citations, grading remains deterministic,
-and the held-out `test` split remains unused until final evaluation/reporting.
+The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
+are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
+course facts still come from retrieved citations, grading remains deterministic, and the held-out `test`
+split remains unused until final evaluation/reporting.
 
 ## Status Snapshot
 
@@ -44,23 +44,23 @@ and the held-out `test` split remains unused until final evaluation/reporting.
 - **Hugging Face deployment shell shipped.** A thin Gradio/Docker Space wrapper builds with CPU-only
   `torch`, boots locally in Docker, and serves a private Hugging Face Space. No private corpus/index is
   uploaded; the Space shows an empty-corpus notice until a public-safe corpus decision is made.
-- **Local Gradio UI shipped for teach/quiz.** The UI is a thin view over the core teach and quiz
-  workflows. It uses safe trace allow-lists, hides generated quiz text by default, and keeps the core
-  free of web imports.
-- **Skill-Gap Diagnosis core/CLI shipped.** The deterministic gap report composes existing teach traces,
-  quiz trace rows, review-queue events, retrieval, grounding, and typed redacted traces. It produces a
-  cited next-step plan or refuses/escalates if no citeable span exists; it does not add LLM mastery
-  grading, memory, a second agent loop, or direct `langgraph.*` imports.
-- **Portfolio cleanup completed on main.** Submission-specific documents and screenshots are local-only
-  under ignored `tmp/`; the public repository keeps stable product, architecture, safety, and
-  verification docs.
+- **Local Gradio UI shipped.** The UI is a thin view over the core teach, quiz, and skill-gap workflows.
+  It uses safe trace allow-lists, hides generated quiz text by default, and keeps the core free of web
+  imports.
+- **Skill-Gap Diagnosis shipped.** The deterministic gap report composes existing teach traces, quiz
+  trace rows, review-queue events, retrieval, grounding, and typed redacted traces. It produces a cited
+  next-step plan or refuses/escalates if no citeable span exists; it does not add LLM mastery grading,
+  memory, a second agent loop, or direct `langgraph.*` imports.
+- **Portfolio cleanup completed.** Submission-specific documents and screenshots are local-only under
+  ignored `localdocs/`; the public repository keeps stable product, architecture, safety, and verification
+  docs.
 
 ### In Progress
 
-- **Skill-Gap UI wrapper.** PR #28 adds a thin Gradio tab over the shipped Skill-Gap core and safe trace
-  allow-list. Until that PR lands, `main` exposes Skill-Gap via CLI/core.
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or upload a small approved public-safe corpus/index. Do not upload private course material.
+- **Review and land PR #28.** The Skill-Gap UI wrapper is a thin Gradio tab over the shipped core and
+  safe trace allow-list.
 
 ### Pending
 
