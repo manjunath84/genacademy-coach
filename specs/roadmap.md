@@ -1,6 +1,6 @@
 # Roadmap
 
-Status updated: 2026-06-16.
+Status updated: 2026-06-17.
 
 Everything is kept, but only the teach-loop MVP is on the critical path. Pull-ins land by priority after
 the grounded teach loop, eval, refusal path, and trace are demonstrably working. A shippable demo must
@@ -103,8 +103,8 @@ exist at every step ("demo cannot fail").
 ### In Progress
 
 - **Demo packaging after private Space smoke.** The remaining critical path is external Google Doc
-  creation/import, video recording, PR review/merge for the Space wrapper, and deciding whether to make a
-  public-safe corpus/index available in the Space. Memory is intentionally held as a later
+  creation/import, video recording, and deciding whether to make a public-safe corpus/index available in
+  the Space. Memory is intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden
   source of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable
   memory later, unnecessary for the two-day demo.
@@ -120,8 +120,7 @@ exist at every step ("demo cannot fail").
   current pure-core / thin-view boundary.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
 - Create the external Google Doc submission from `docs/submission-google-doc-draft.md`.
-- Review and merge the Hugging Face Space wrapper PR; keep the Space private until a public-safe
-  corpus/index decision is made.
+- Keep the Hugging Face Space private until a public-safe corpus/index decision is made.
 - Flip the repo public at submission time if required.
 
 ## Teach-Loop MVP
