@@ -5,11 +5,13 @@ description = "Adaptive grounded tutor over Gen Academy course materials"
 requires-python = ">=3.12"
 dependencies = [
     "genacademy-rag",
+    "gradio>=6.0.1",
     "langchain>=1.1",
     "langchain-openai>=1.0",
     "pydantic>=2",
     "python-docx",
     "python-pptx",
+    "torch>=2.11.0",
 ]
 
 [build-system]
@@ -24,6 +26,14 @@ dev = [
 
 [tool.uv.sources]
 genacademy-rag = { path = "../../Week2-RAG_ContextEngineering/genacademy-rag", editable = true }
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100

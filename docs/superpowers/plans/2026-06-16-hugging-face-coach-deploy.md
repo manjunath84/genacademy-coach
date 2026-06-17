@@ -1,8 +1,8 @@
 # Hugging Face Coach Deploy Implementation Plan
 
-> Status: reviewed in PR #18; approved for implementation after the required environment/dimension
-> clarifications are merged. This plan exists because Hugging Face deployment adds a new public/runtime
-> surface.
+> Status: implementation in progress. PR #19 adds the thin Gradio/Docker wrapper, local Docker smoke,
+> and private Hugging Face Space HTTP smoke. Provider/corpus-backed Space click smoke remains pending
+> because no private corpus/index is uploaded.
 
 ## Goal
 
@@ -18,6 +18,10 @@ smoke test, while preserving the current privacy, grounding, and pure-core bound
   `scripts/start_hf_space.sh`, `/data`, and port `7860`.
 - Same-embedder rule: the deployed variables must match the uploaded Chroma collection:
   `GENACADEMY_EMBED_MODEL=all-MiniLM-L6-v2` and `GENACADEMY_EMBED_DIM=384`.
+- Local Docker verification found that Linux `torch` must be routed to the PyTorch CPU index; otherwise
+  the build pulls CUDA/NVIDIA wheels and becomes too large for practical CPU Space iteration.
+- PR #19 review hardened the deploy path: no default factory reboot, Week 2 dependency pinned by commit
+  SHA, startup chunk-count warning, and redacted UI errors with server-side tracebacks.
 
 ## Key Decision
 
@@ -38,7 +42,8 @@ In scope:
 - Docker Space packaging.
 - Space secrets/variables documentation.
 - Local smoke check.
-- Live Space smoke check.
+- Live Space HTTP smoke check.
+- Provider/corpus-backed Space click smoke after a public-safe corpus/index decision.
 - README/roadmap update with URL and limitations after smoke.
 
 Out of scope:
@@ -95,6 +100,9 @@ Out of scope:
 - Add Docker/Space files.
 - Configure `GENACADEMY_COACH_DATA_DIR=/data` for Coach-owned files and `GENACADEMY_DATA_DIR=/data`
   for the reused Week 2 RAG layer when it needs a deploy data root.
+- Configure `GENACADEMY_COACH_TRACE_DIR=/data/traces` and
+  `GENACADEMY_COACH_REVIEW_QUEUE_PATH=/data/review_queue.jsonl` so runtime writes do not depend on
+  the repository checkout being writable.
 - Document required secrets and variables.
 - Do not include private corpus.
 
@@ -116,8 +124,15 @@ Out of scope:
 ## Acceptance Criteria
 
 - Space boots.
+- Runtime write paths for data, traces, and review queue stay under `/data`.
 - Embed model and dimension match the uploaded collection (`all-MiniLM-L6-v2` / `384`).
-- The UI can run a public demo topic or safely refuse.
+- Docker build uses CPU-only `torch` on Linux; no CUDA/NVIDIA packages appear in `uv.lock`.
+- Docker build pins `genacademy-rag` to commit
+  `517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4`.
+- Deploy restarts do not factory-reboot unless `GENACADEMY_HF_FACTORY_REBOOT=true`.
+- Startup logs chunk count and warns when `/data/chroma` has no indexed corpus.
+- The private Space URL returns HTTP 200.
+- The UI can run a public demo topic or safely refuse after a public-safe corpus/index decision.
 - No private corpus/eval text is committed or displayed.
 - No held-out `test` split use.
 - `uv run pytest -q`, `uv run ruff check .`, `git diff --check`, and

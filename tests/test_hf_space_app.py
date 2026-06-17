@@ -1,0 +1,311 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from genacademy_coach.web import gradio_app
+from genacademy_coach.web.gradio_app import (
+    SAFE_QUIZ_TRACE_FIELDS,
+    SAFE_TEACH_TRACE_FIELDS,
+    UserInputError,
+    _coerce_choice,
+    _error_payload,
+    _parse_answers,
+    _require_topic,
+    run_quiz_session,
+    safe_trace_rows,
+)
+
+
+def load_deploy_script():
+    script_path = Path("scripts/deploy_hf_space.py").resolve()
+    spec = importlib.util.spec_from_file_location("deploy_hf_space", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_safe_trace_rows_omit_raw_teach_fields(tmp_path):
+    trace_path = tmp_path / "trace.jsonl"
+    private_value = "PRIVATE_TOPIC_AND_GENERATED_TEXT"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "turn": 1,
+                "learner_input": private_value,
+                "learner_message": private_value,
+                "next_action": "drill",
+                "strategy": "short_drill",
+                "evidence_score": 0.71,
+                "evidence_band": "confirm",
+                "retrieved_citation_ids": ["chunk-1"],
+                "tool_calls": ["retrieve_course_corpus"],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    rows = safe_trace_rows(str(trace_path), SAFE_TEACH_TRACE_FIELDS)
+
+    serialized = json.dumps(rows, sort_keys=True)
+    assert rows == [
+        {
+            "turn": 1,
+            "next_action": "drill",
+            "strategy": "short_drill",
+            "evidence_score": 0.71,
+            "evidence_band": "confirm",
+            "retrieved_citation_ids": ["chunk-1"],
+            "tool_calls": ["retrieve_course_corpus"],
+        }
+    ]
+    assert private_value not in serialized
+    assert "learner_input" not in serialized
+    assert "learner_message" not in serialized
+
+
+def test_safe_trace_rows_omit_raw_quiz_fields_and_skip_malformed_rows(tmp_path, caplog):
+    trace_path = tmp_path / "quiz.jsonl"
+    private_value = "PRIVATE_QUIZ_TEXT"
+    trace_path.write_text(
+        "\n".join(
+            [
+                "{bad json",
+                json.dumps(
+                    {
+                        "topic_hash": "abc123",
+                        "prompt": private_value,
+                        "expected_answer": private_value,
+                        "rationale": private_value,
+                        "evidence_score": 0.71,
+                        "evidence_band": "confirm",
+                        "citation_ids": ["chunk-1"],
+                        "question_ids": ["q1"],
+                        "selected_option_ids": ["A"],
+                        "correctness": [True],
+                        "actions": ["retrieve_course_corpus"],
+                    }
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    rows = safe_trace_rows(str(trace_path), SAFE_QUIZ_TRACE_FIELDS)
+
+    serialized = json.dumps(rows, sort_keys=True)
+    assert rows == [
+        {
+            "topic_hash": "abc123",
+            "evidence_score": 0.71,
+            "evidence_band": "confirm",
+            "citation_ids": ["chunk-1"],
+            "question_ids": ["q1"],
+            "selected_option_ids": ["A"],
+            "correctness": [True],
+            "actions": ["retrieve_course_corpus"],
+        }
+    ]
+    assert private_value not in serialized
+    assert "malformed trace row" in caplog.text
+
+
+def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
+    private_value = "PRIVATE_PROVIDER_DETAIL"
+
+    try:
+        raise RuntimeError(private_value)
+    except RuntimeError as exc:
+        message, metadata = _error_payload(exc)
+
+    assert metadata["status"] == "error"
+    assert len(metadata["error_id"]) == 8
+    assert metadata["error_id"] in message
+    assert private_value not in message
+    assert private_value not in json.dumps(metadata)
+    assert private_value in caplog.text
+
+
+def test_input_helpers_return_specific_safe_errors():
+    assert _parse_answers("a, B,c ") == ["A", "B", "C"]
+    assert _parse_answers(" ") is None
+
+    with pytest.raises(UserInputError, match="topic is required"):
+        _require_topic(" ")
+    with pytest.raises(UserInputError, match="answers must use option IDs"):
+        _parse_answers("A,Z")
+    with pytest.raises(UserInputError, match="style must be one of"):
+        _coerce_choice("verbose", ["concise"], "style")
+
+
+def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
+    def fail_runtime():
+        raise AssertionError("runtime should not be built for invalid input")
+
+    monkeypatch.setattr(gradio_app, "_runtime", fail_runtime)
+
+    message, metadata = run_quiz_session("agent harness", 3, "A,B")
+
+    assert message == "expected 3 answers, received 2"
+    assert metadata == {"status": "invalid_input"}
+
+
+def test_run_quiz_session_metadata_uses_safe_trace_allow_list(tmp_path, monkeypatch):
+    private_value = "PRIVATE_GENERATED_QUIZ_TEXT"
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "prompt": private_value,
+                "expected_answer": private_value,
+                "rationale": private_value,
+                "evidence_score": 0.71,
+                "evidence_band": "confirm",
+                "citation_ids": ["chunk-1"],
+                "question_ids": [],
+                "selected_option_ids": [],
+                "correctness": [],
+                "refusal_reason": "no citeable course corpus found for quiz",
+                "actions": ["retrieve_course_corpus", "refuse_escalate"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(self, selected_option_ids=None):
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[],
+                grades=[],
+                score=0,
+                refusal_reason="no citeable course corpus found for quiz",
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    message, metadata = run_quiz_session("agent harness", 1, "")
+
+    serialized = json.dumps(metadata, sort_keys=True)
+    assert message == "I could not generate a grounded quiz for this topic."
+    assert metadata["status"] == "ok"
+    assert private_value not in serialized
+    assert "prompt" not in serialized
+
+
+def test_web_framework_imports_stay_outside_core():
+    offenders = []
+    for path in Path("src/genacademy_coach").rglob("*.py"):
+        if "/web/" in path.as_posix():
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "import gradio" in text or "from gradio" in text:
+            offenders.append(str(path))
+        if "import fastapi" in text or "from fastapi" in text:
+            offenders.append(str(path))
+    assert offenders == []
+
+
+def test_hf_deploy_files_pin_port_data_and_embed_dim():
+    dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
+    start_script = Path("scripts/start_hf_space.sh").read_text(encoding="utf-8")
+
+    assert "EXPOSE 7860" in dockerfile
+    assert "GENACADEMY_EMBED_DIM=384" in dockerfile
+    assert "GENACADEMY_COACH_DATA_DIR=/data" in dockerfile
+    assert "GENACADEMY_DATA_DIR=/data" in dockerfile
+    assert "ARG GENACADEMY_RAG_REF=517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4" in dockerfile
+    assert "server_port=int(os.environ.get(\"PORT\", \"7860\"))" in Path(
+        "src/genacademy_coach/web/gradio_app.py"
+    ).read_text(encoding="utf-8")
+    assert "GENACADEMY_EMBED_DIM" in start_script
+    assert "space_startup_check.py" in start_script
+
+
+def test_hf_deploy_upload_allow_list_excludes_private_data():
+    module = load_deploy_script()
+    serialized_allow = " ".join(module.ALLOW_PATTERNS)
+    serialized_ignore = " ".join(module.IGNORE_PATTERNS)
+
+    assert ".env" not in serialized_allow
+    assert "corpus/" not in serialized_allow
+    assert "data/" not in serialized_allow
+    assert "traces/" not in serialized_allow
+    assert ".env*" in serialized_ignore
+    assert "corpus/**" in serialized_ignore
+    assert "data/**" in serialized_ignore
+    assert "traces/**" in serialized_ignore
+    assert "**/__pycache__/**" in serialized_ignore
+    assert "**/*.pyc" in serialized_ignore
+    assert "eval/**" in serialized_ignore
+    assert "scripts/space_startup_check.py" in module.ALLOW_PATTERNS
+    assert module.SPACE_VARIABLES["GENACADEMY_EMBED_DIM"] == "384"
+
+
+def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
+    module = load_deploy_script()
+
+    class FakeApi:
+        def __init__(self, token):
+            self.token = token
+            self.secrets = []
+            self.factory_reboot = None
+
+        def create_repo(self, **kwargs):
+            return "https://huggingface.co/spaces/Manjunath84/genacademy-coach"
+
+        def add_space_variable(self, *args, **kwargs):
+            pass
+
+        def add_space_secret(self, *args, **kwargs):
+            self.secrets.append(args)
+
+        def upload_folder(self, **kwargs):
+            return SimpleNamespace(oid="abc123")
+
+        def restart_space(self, repo_id, *, factory_reboot):
+            self.factory_reboot = factory_reboot
+
+    fake = FakeApi("token")
+    monkeypatch.setattr(module, "HfApi", lambda token: fake)
+    monkeypatch.setenv("HF_TOKEN", "token")
+    monkeypatch.delenv("NEBIUS_API_KEY", raising=False)
+    monkeypatch.delenv("GENACADEMY_HF_FACTORY_REBOOT", raising=False)
+
+    module.main()
+
+    assert fake.factory_reboot is False
+    assert fake.secrets == []
+    out = capsys.readouterr().out
+    assert "factory_reboot=False" in out
+    assert "secret_NEBIUS_API_KEY=skipped" in out
+
+
+def test_hf_deploy_factory_reboot_is_explicit_opt_in(monkeypatch):
+    module = load_deploy_script()
+
+    monkeypatch.setenv("GENACADEMY_HF_FACTORY_REBOOT", "true")
+
+    assert module._bool_from_env("GENACADEMY_HF_FACTORY_REBOOT", default=False) is True
+
+
+def test_hf_deploy_requires_token(monkeypatch):
+    module = load_deploy_script()
+
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+
+    with pytest.raises(SystemExit, match="HF_TOKEN is required"):
+        module.main()

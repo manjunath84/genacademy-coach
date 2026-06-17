@@ -18,8 +18,25 @@ The Week 2 `genacademy-rag` project already has a Hugging Face deployment patter
 - secrets and variables are configured in Hugging Face Space settings.
 - private data is not committed.
 
-GenAcademy Coach is different today: it is a pure core plus CLI scripts, not a web app. That is good for
-testing and the Week 3 demo, but Hugging Face Spaces needs an interactive surface or server process.
+GenAcademy Coach started as a pure core plus CLI scripts. PR #19 adds a thin Gradio surface and Docker
+packaging outside the core so Hugging Face Spaces has an interactive server process without changing the
+teach/quiz engine.
+
+Implementation status:
+
+- Gradio wrapper added at `src/genacademy_coach/web/gradio_app.py` with root `app.py`.
+- Docker Space packaging added with CPU-only PyTorch resolution to avoid CUDA-sized images.
+- Docker build pins the Week 2 `genacademy-rag` dependency to commit
+  `517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4` instead of a moving branch.
+- Startup logs the Chroma chunk count and warns when `/data/chroma` has no indexed corpus.
+- Local app launch smoke passed.
+- Local Docker image build passed.
+- Local Docker container smoke passed: `HTTP/1.1 200 OK` from `http://127.0.0.1:7863`.
+- Live private Hugging Face Space push/smoke passed:
+  `https://huggingface.co/spaces/Manjunath84/genacademy-coach`
+  (`aefac2cf3d4c3f02eaac82c843071354777e7adc`, `HTTP/2 200` from the Gradio app).
+- Provider/corpus-backed click smoke is still pending because no private corpus/index has been uploaded
+  to the Space.
 
 ## Current Hugging Face Spaces Facts Checked
 
@@ -40,6 +57,7 @@ Use the Week 2 Docker pattern, but add only a thin Coach view:
 3. Run the same retrieval/teach/quiz core through the wrapper.
 4. Store data under `/data` by setting `GENACADEMY_COACH_DATA_DIR=/data` for Coach-owned files and
    `GENACADEMY_DATA_DIR=/data` for the reused Week 2 RAG layer when it needs a deploy data root.
+   Trace and review-queue writes should also stay under `/data`.
 5. Configure provider secrets in the Space settings.
 6. Smoke-test with a public demo topic only.
 
@@ -57,20 +75,26 @@ Do not expose raw trace JSON in the UI.
 
 ## Files The Implementation Slice Should Add
 
-Planned files:
+Implemented files:
 
-- `app.py` or `src/genacademy_coach/web/gradio_app.py` for the thin Space UI.
-- `Dockerfile` if using a Docker Space.
+- `app.py` plus `src/genacademy_coach/web/gradio_app.py` for the thin Space UI.
+- `Dockerfile` for a Docker Space.
 - `.dockerignore`.
 - `scripts/start_hf_space.sh`.
-- `docs/hugging-face-deployment-plan.md` updates with the actual Space URL and smoke result.
-- tests that assert no web-framework imports enter the core.
+- tests that assert no web-framework imports enter the core and trace metadata stays redacted.
 
-If using non-Docker Gradio instead, add:
+Completed deployment setup:
 
-- `app.py`.
-- `requirements.txt` generated from the lockfile.
-- Hugging Face README metadata for `sdk: gradio`.
+- private Hugging Face Space repo created/updated.
+- deployment variables configured by `scripts/deploy_hf_space.py`.
+- `NEBIUS_API_KEY` configured as a Space secret.
+- local app, local Docker, and live private Space HTTP smokes passed.
+
+Still pending before claiming provider/corpus-backed live behavior:
+
+- approved decision on whether to upload a private Chroma index under `/data/chroma`.
+- click smoke that exercises retrieval/provider calls against that approved index.
+- update this doc, README, and roadmap with the actual Space URL and smoke result.
 
 ## Required Space Settings
 
@@ -90,6 +114,8 @@ Variables:
 - `GENACADEMY_COACH_COLLECTION=coach_course`
 - `GENACADEMY_COACH_SOURCE_PRIORITY=slide,handout,note,transcript`
 - `GENACADEMY_COACH_DATA_DIR=/data`
+- `GENACADEMY_COACH_TRACE_DIR=/data/traces`
+- `GENACADEMY_COACH_REVIEW_QUEUE_PATH=/data/review_queue.jsonl`
 - `GENACADEMY_DATA_DIR=/data`
 - `GENACADEMY_EMBEDDINGS=local`
 - `GENACADEMY_EMBED_MODEL=all-MiniLM-L6-v2`
@@ -97,6 +123,15 @@ Variables:
 - `GENACADEMY_RERANK_ENABLED=false`
 
 Do not put `.env` in the Space repository.
+
+Deploy-specific dependency note: `pyproject.toml` explicitly routes Linux `torch` installs to the
+PyTorch CPU wheel index. Without that, the Docker build pulls CUDA/NVIDIA transitive wheels and becomes
+too large/slow for a practical CPU Space iteration loop.
+
+Deploy-script persistence note: `scripts/deploy_hf_space.py` restarts the Space without
+`factory_reboot` by default so future `/data` corpus/index artifacts are not wiped. Set
+`GENACADEMY_HF_FACTORY_REBOOT=true` only when deliberately resetting the Space runtime. The script also
+prints whether `NEBIUS_API_KEY` was set or skipped without printing the secret value.
 
 ## Data And Corpus Boundary
 
@@ -115,28 +150,43 @@ Do not upload held-out `corpus/eval-questions`.
 
 Local container smoke:
 
-1. Build the image.
-2. Run it with environment variables.
-3. Open `http://127.0.0.1:7860`.
-4. Run topic `agent harness`.
-5. Confirm the UI returns either a grounded response with citation metadata or a safe refusal.
+1. Build the image: `docker build --progress=plain -t genacademy-coach-hf .`.
+2. Run it with environment variables:
+   `docker run --rm -p 7863:7860 -e GENACADEMY_PROVIDER=nebius genacademy-coach-hf`.
+3. Open `http://127.0.0.1:7863`.
+4. Confirm the UI boots.
+5. If provider secrets and an approved corpus/index are available, run topic `agent harness`.
+6. Confirm the UI returns either a grounded response with citation metadata or a safe refusal.
+
+Observed local result on 2026-06-17: CPU-only Docker build passed, container booted, and localhost
+returned `HTTP/1.1 200 OK`. Provider-backed click smoke was not run inside the container because the
+live Space secrets/corpus decision is still pending.
 
 Live Space smoke:
 
-1. Open `https://huggingface.co/spaces/<user>/<space>`.
-2. Use public demo topic `agent harness`.
-3. Verify no raw trace/corpus/eval text is exposed.
-4. Verify the app does not print secrets in logs.
-5. Record the Space URL and result here before merge.
+1. Open `https://huggingface.co/spaces/Manjunath84/genacademy-coach`.
+2. Verify the private Space boots and serves the Gradio app.
+3. Use public demo topic `agent harness` only after a public-safe corpus/index decision is made.
+4. Verify no raw trace/corpus/eval text is exposed.
+5. Verify the app does not print secrets in logs.
+
+Observed live result on 2026-06-17: private Space is `RUNNING`; runtime logs show Gradio serving on
+`0.0.0.0:7860`; authenticated live URL smoke returned `HTTP/2 200`. No provider-backed click smoke was
+run because the Space intentionally does not contain private course corpus/index artifacts.
 
 ## Acceptance Criteria
 
 - Space boots without requiring local `.env`.
+- Runtime write paths for data, traces, and review queue stay under `/data`.
 - Embed model and dimension match the uploaded Chroma collection:
   `all-MiniLM-L6-v2` / `384`.
+- Week 2 dependency is pinned by commit SHA in the Docker build.
+- Deploy restarts do not factory-reboot by default.
+- Startup logs chunk count and warns clearly when no corpus/index is present.
 - No direct web-framework imports inside the core modules.
 - No private corpus/eval text is committed or displayed.
-- Public demo topic works or safely refuses.
+- Live private Space URL returns HTTP 200.
+- Public demo topic works or safely refuses after a public-safe corpus/index decision is made.
 - `scripts/check_eval_leak.py` passes after deployment files are added.
 - README/roadmap record the Space URL and known limitations.
 
