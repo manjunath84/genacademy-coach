@@ -20,6 +20,8 @@ smoke test, while preserving the current privacy, grounding, and pure-core bound
   `GENACADEMY_EMBED_MODEL=all-MiniLM-L6-v2` and `GENACADEMY_EMBED_DIM=384`.
 - Local Docker verification found that Linux `torch` must be routed to the PyTorch CPU index; otherwise
   the build pulls CUDA/NVIDIA wheels and becomes too large for practical CPU Space iteration.
+- PR #19 review hardened the deploy path: no default factory reboot, Week 2 dependency pinned by commit
+  SHA, startup chunk-count warning, and redacted UI errors with server-side tracebacks.
 
 ## Key Decision
 
@@ -125,6 +127,10 @@ Out of scope:
 - Runtime write paths for data, traces, and review queue stay under `/data`.
 - Embed model and dimension match the uploaded collection (`all-MiniLM-L6-v2` / `384`).
 - Docker build uses CPU-only `torch` on Linux; no CUDA/NVIDIA packages appear in `uv.lock`.
+- Docker build pins `genacademy-rag` to commit
+  `517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4`.
+- Deploy restarts do not factory-reboot unless `GENACADEMY_HF_FACTORY_REBOOT=true`.
+- Startup logs chunk count and warns when `/data/chroma` has no indexed corpus.
 - The private Space URL returns HTTP 200.
 - The UI can run a public demo topic or safely refuse after a public-safe corpus/index decision.
 - No private corpus/eval text is committed or displayed.

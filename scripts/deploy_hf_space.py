@@ -14,6 +14,7 @@ ALLOW_PATTERNS = [
     "pyproject.toml",
     "uv.lock",
     "scripts/start_hf_space.sh",
+    "scripts/space_startup_check.py",
     "src/**",
 ]
 IGNORE_PATTERNS = [
@@ -84,6 +85,9 @@ def main() -> None:
     nebius_key = os.environ.get("NEBIUS_API_KEY")
     if nebius_key:
         api.add_space_secret(repo_id, "NEBIUS_API_KEY", nebius_key)
+        secret_status = "set"
+    else:
+        secret_status = "skipped"
 
     commit = api.upload_folder(
         repo_id=repo_id,
@@ -94,11 +98,16 @@ def main() -> None:
         delete_patterns=["src/**/__pycache__/**", "src/**/*.pyc"],
         commit_message="Deploy GenAcademy Coach Space wrapper",
     )
-    api.restart_space(repo_id, factory_reboot=True)
+    # Factory reboot can wipe persistent `/data` storage. Keep it opt-in for the
+    # rare case where the operator deliberately wants a clean Space runtime.
+    factory_reboot = _bool_from_env("GENACADEMY_HF_FACTORY_REBOOT", default=False)
+    api.restart_space(repo_id, factory_reboot=factory_reboot)
 
     print(f"space={repo_url}")
     print(f"commit={commit.oid}")
     print(f"private={private}")
+    print(f"factory_reboot={factory_reboot}")
+    print(f"secret_NEBIUS_API_KEY={secret_status}")
     print("uploaded=deployment allow-list only")
 
 

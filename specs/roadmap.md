@@ -96,7 +96,9 @@ exist at every step ("demo cannot fail").
 - **Hugging Face deployment shell live-smoked privately.** A thin Gradio/Docker Space wrapper builds
   with CPU-only `torch`, boots locally in Docker, and serves a private Hugging Face Space at
   `https://huggingface.co/spaces/Manjunath84/genacademy-coach` (`HTTP/2 200`). No private corpus/index
-  is uploaded; provider/corpus-backed click smoke remains pending.
+  is uploaded; provider/corpus-backed click smoke remains pending. PR review hardening added
+  no-factory-reboot-by-default, pinned Week 2 dependency SHA, startup chunk-count warnings, and redacted
+  UI error IDs backed by private server tracebacks.
 
 ### In Progress
 

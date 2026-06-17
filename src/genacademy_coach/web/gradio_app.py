@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import uuid
 from pathlib import Path
@@ -15,6 +16,8 @@ from genacademy_coach.quiz_session import QuizSession
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.teach_session import CoachSession
 from genacademy_coach.teach_types import LearnerProfile
+
+logger = logging.getLogger(__name__)
 
 STYLE_CHOICES = ["concise", "analogy", "step_by_step"]
 TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
@@ -44,17 +47,28 @@ SAFE_QUIZ_TRACE_FIELDS = (
 )
 
 
+class UserInputError(ValueError):
+    """Raised for UI input errors safe to display to the learner."""
+
+
 def _require_topic(topic: str) -> str:
     value = topic.strip()
     if not value:
-        raise ValueError("topic is required")
+        raise UserInputError("topic is required")
     return value
 
 
 def _coerce_choice(value: str, choices: list[str], label: str) -> str:
     if value not in choices:
-        raise ValueError(f"{label} must be one of: {', '.join(choices)}")
+        raise UserInputError(f"{label} must be one of: {', '.join(choices)}")
     return value
+
+
+def _coerce_question_count(value: int | float) -> int:
+    count = int(value)
+    if count < 1 or count > 3:
+        raise UserInputError("question count must be between 1 and 3")
+    return count
 
 
 def _parse_answers(raw: str) -> list[str] | None:
@@ -63,8 +77,13 @@ def _parse_answers(raw: str) -> list[str] | None:
     answers = [item.strip().upper() for item in raw.split(",") if item.strip()]
     invalid = sorted(set(answers) - VALID_OPTION_IDS)
     if invalid:
-        raise ValueError("answers must use option IDs A, B, C, or D")
+        raise UserInputError("answers must use option IDs A, B, C, or D")
     return answers
+
+
+def _validate_answer_count(selected: list[str] | None, count: int) -> None:
+    if selected is not None and len(selected) != count:
+        raise UserInputError(f"expected {count} answers, received {len(selected)}")
 
 
 def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[dict[str, Any]]:
@@ -72,10 +91,25 @@ def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[di
     if not path.exists():
         return []
     rows: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
-        payload = json.loads(line)
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            logger.warning(
+                "skipping malformed trace row path=%s line=%d",
+                path.name,
+                line_number,
+            )
+            continue
+        if not isinstance(payload, dict):
+            logger.warning(
+                "skipping non-object trace row path=%s line=%d",
+                path.name,
+                line_number,
+            )
+            continue
         rows.append({field: payload[field] for field in allowed_fields if field in payload})
     return rows
 
@@ -85,11 +119,17 @@ def _runtime() -> tuple[CoachSettings, Foundation]:
     return settings, Foundation.build(settings)
 
 
+def _input_error_payload(message: str) -> tuple[str, dict[str, Any]]:
+    return message, {"status": "invalid_input"}
+
+
 def _error_payload(exc: Exception) -> tuple[str, dict[str, Any]]:
+    error_id = uuid.uuid4().hex[:8]
+    logger.exception("space handler failed error_id=%s", error_id)
     return (
         "I could not run the demo safely. Check the Space settings, provider key, "
-        "and corpus setup.",
-        {"status": "error", "error_type": type(exc).__name__},
+        f"and corpus setup. Error ID: {error_id}.",
+        {"status": "error", "error_id": error_id},
     )
 
 
@@ -136,6 +176,8 @@ def run_teach_session(
             "trace": safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS),
         }
         return "\n".join(sections), metadata
+    except UserInputError as exc:
+        return _input_error_payload(str(exc))
     except Exception as exc:
         return _error_payload(exc)
 
@@ -147,8 +189,9 @@ def run_quiz_session(
 ) -> tuple[str, dict[str, Any]]:
     try:
         clean_topic = _require_topic(topic)
-        count = int(question_count)
+        count = _coerce_question_count(question_count)
         selected = _parse_answers(answers)
+        _validate_answer_count(selected, count)
         settings, foundation = _runtime()
         session = QuizSession(
             session_id=f"hf-quiz-{uuid.uuid4().hex[:10]}",
@@ -185,6 +228,8 @@ def run_quiz_session(
                     f"(selected {grade.selected_option_id}, answer {grade.correct_option_id})"
                 )
         return "\n".join(sections).strip(), metadata
+    except UserInputError as exc:
+        return _input_error_payload(str(exc))
     except Exception as exc:
         return _error_payload(exc)
 

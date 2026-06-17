@@ -20,10 +20,13 @@ RUN apt-get update \
 RUN useradd -m -u 1000 user
 
 ARG GENACADEMY_RAG_GIT_URL=https://github.com/manjunath84/genacademy-rag.git
-ARG GENACADEMY_RAG_REF=main
+ARG GENACADEMY_RAG_REF=517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4
 RUN mkdir -p /workspace/Week2-RAG_ContextEngineering \
-    && git clone --depth 1 --branch "${GENACADEMY_RAG_REF}" "${GENACADEMY_RAG_GIT_URL}" \
-        /workspace/Week2-RAG_ContextEngineering/genacademy-rag
+    && git clone --filter=blob:none --no-checkout "${GENACADEMY_RAG_GIT_URL}" \
+        /workspace/Week2-RAG_ContextEngineering/genacademy-rag \
+    && cd /workspace/Week2-RAG_ContextEngineering/genacademy-rag \
+    && git fetch --depth 1 origin "${GENACADEMY_RAG_REF}" \
+    && git checkout --detach FETCH_HEAD
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project

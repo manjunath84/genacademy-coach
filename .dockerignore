@@ -10,7 +10,7 @@ __pycache__
 **/*.pyc
 corpus/
 data/
-eval/runs/
+eval/
 review_queue.jsonl
 tmp/
 traces/

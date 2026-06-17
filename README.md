@@ -12,7 +12,8 @@ from the course materials, and escalates the rest to a human mentor.
 > Quiz Mode is also implemented as a deterministic MCQ pull-in. Private corpus files remain local-only;
 > only structure, redacted diagnostics, and leak checks are versioned. A private Hugging Face Space
 > deployment shell is live-smoked at
-> `https://huggingface.co/spaces/Manjunath84/genacademy-coach`; no private corpus/index is uploaded.
+> `https://huggingface.co/spaces/Manjunath84/genacademy-coach`; no private corpus/index is uploaded, so
+> provider/corpus-backed click smoke remains pending.
 
 Built as the **Week-3 (The Agentic Leap)** project of the *Mastering Agentic AI* Bootcamp, layered on
 the author's Week-2 RAG system (`genacademy-rag` / *GenAcademy Compass*).

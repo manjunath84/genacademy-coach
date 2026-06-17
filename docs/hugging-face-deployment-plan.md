@@ -26,12 +26,15 @@ Implementation status:
 
 - Gradio wrapper added at `src/genacademy_coach/web/gradio_app.py` with root `app.py`.
 - Docker Space packaging added with CPU-only PyTorch resolution to avoid CUDA-sized images.
+- Docker build pins the Week 2 `genacademy-rag` dependency to commit
+  `517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4` instead of a moving branch.
+- Startup logs the Chroma chunk count and warns when `/data/chroma` has no indexed corpus.
 - Local app launch smoke passed.
 - Local Docker image build passed.
 - Local Docker container smoke passed: `HTTP/1.1 200 OK` from `http://127.0.0.1:7863`.
 - Live private Hugging Face Space push/smoke passed:
   `https://huggingface.co/spaces/Manjunath84/genacademy-coach`
-  (`3839fce7c04390ea52af99b49a291cdea45958e5`, `HTTP/2 200` from the Gradio app).
+  (`aefac2cf3d4c3f02eaac82c843071354777e7adc`, `HTTP/2 200` from the Gradio app).
 - Provider/corpus-backed click smoke is still pending because no private corpus/index has been uploaded
   to the Space.
 
@@ -80,11 +83,17 @@ Implemented files:
 - `scripts/start_hf_space.sh`.
 - tests that assert no web-framework imports enter the core and trace metadata stays redacted.
 
-Still pending before claiming live deployment:
+Completed deployment setup:
 
-- create or update the Hugging Face Space repo.
-- configure secrets and variables below.
-- run local and live smoke tests.
+- private Hugging Face Space repo created/updated.
+- deployment variables configured by `scripts/deploy_hf_space.py`.
+- `NEBIUS_API_KEY` configured as a Space secret.
+- local app, local Docker, and live private Space HTTP smokes passed.
+
+Still pending before claiming provider/corpus-backed live behavior:
+
+- approved decision on whether to upload a private Chroma index under `/data/chroma`.
+- click smoke that exercises retrieval/provider calls against that approved index.
 - update this doc, README, and roadmap with the actual Space URL and smoke result.
 
 ## Required Space Settings
@@ -118,6 +127,11 @@ Do not put `.env` in the Space repository.
 Deploy-specific dependency note: `pyproject.toml` explicitly routes Linux `torch` installs to the
 PyTorch CPU wheel index. Without that, the Docker build pulls CUDA/NVIDIA transitive wheels and becomes
 too large/slow for a practical CPU Space iteration loop.
+
+Deploy-script persistence note: `scripts/deploy_hf_space.py` restarts the Space without
+`factory_reboot` by default so future `/data` corpus/index artifacts are not wiped. Set
+`GENACADEMY_HF_FACTORY_REBOOT=true` only when deliberately resetting the Space runtime. The script also
+prints whether `NEBIUS_API_KEY` was set or skipped without printing the secret value.
 
 ## Data And Corpus Boundary
 
@@ -166,6 +180,9 @@ run because the Space intentionally does not contain private course corpus/index
 - Runtime write paths for data, traces, and review queue stay under `/data`.
 - Embed model and dimension match the uploaded Chroma collection:
   `all-MiniLM-L6-v2` / `384`.
+- Week 2 dependency is pinned by commit SHA in the Docker build.
+- Deploy restarts do not factory-reboot by default.
+- Startup logs chunk count and warns clearly when no corpus/index is present.
 - No direct web-framework imports inside the core modules.
 - No private corpus/eval text is committed or displayed.
 - Live private Space URL returns HTTP 200.
