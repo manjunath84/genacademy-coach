@@ -126,6 +126,9 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - `docs/build-learnings.md` — non-obvious build decisions + build-in-public log (format: belief → finding
   → principle, newest first). Read before planning: the log captures the *surprise*, `decisions.md`
   captures the *settled choice*.
+- `docs/ui-screenshot-inventory.md` — safe committed UI baselines for visual refinements. Use this before
+  asking future agents to compare Gradio layout changes, and keep provider-backed/corpus-bearing captures
+  out of git unless reviewed as public-safe.
 - *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
   board, the option scorecards, and the improvements ledger — the long-form trail behind
   `docs/decisions.md`. Historical `D##` labels live only in that archive; settled decisions in this
