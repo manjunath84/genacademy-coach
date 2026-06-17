@@ -9,6 +9,7 @@ import pytest
 
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
+    EMPTY_CORPUS_STATUS_MESSAGE,
     SAFE_QUIZ_TRACE_FIELDS,
     SAFE_TEACH_TRACE_FIELDS,
     UserInputError,
@@ -16,6 +17,7 @@ from genacademy_coach.web.gradio_app import (
     _error_payload,
     _parse_answers,
     _require_topic,
+    _space_status_message,
     run_quiz_session,
     safe_trace_rows,
 )
@@ -133,6 +135,42 @@ def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
     assert private_value in caplog.text
 
 
+def test_space_status_message_explains_empty_corpus_without_private_data(
+    tmp_path,
+    monkeypatch,
+):
+    private_value = "PRIVATE_CORPUS_PATH_OR_TEXT"
+
+    class EmptyStore:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def get_all_chunks(self):
+            return []
+
+    monkeypatch.setenv("GENACADEMY_COACH_DATA_DIR", str(tmp_path / private_value))
+    monkeypatch.setattr(gradio_app, "ChromaStore", EmptyStore)
+
+    message = _space_status_message()
+
+    assert message == EMPTY_CORPUS_STATUS_MESSAGE
+    assert private_value not in message
+
+
+def test_space_status_message_omits_banner_when_corpus_exists(tmp_path, monkeypatch):
+    class NonEmptyStore:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def get_all_chunks(self):
+            return [object()]
+
+    monkeypatch.setenv("GENACADEMY_COACH_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(gradio_app, "ChromaStore", NonEmptyStore)
+
+    assert _space_status_message() is None
+
+
 def test_input_helpers_return_specific_safe_errors():
     assert _parse_answers("a, B,c ") == ["A", "B", "C"]
     assert _parse_answers(" ") is None
@@ -232,7 +270,10 @@ def test_hf_deploy_files_pin_port_data_and_embed_dim():
         "src/genacademy_coach/web/gradio_app.py"
     ).read_text(encoding="utf-8")
     assert "GENACADEMY_EMBED_DIM" in start_script
-    assert "space_startup_check.py" in start_script
+    assert "space_startup_check.py || true" in start_script
+    assert "logging.basicConfig" in Path("src/genacademy_coach/web/gradio_app.py").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_hf_deploy_upload_allow_list_excludes_private_data():

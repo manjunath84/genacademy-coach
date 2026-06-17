@@ -97,14 +97,14 @@ exist at every step ("demo cannot fail").
   with CPU-only `torch`, boots locally in Docker, and serves a private Hugging Face Space at
   `https://huggingface.co/spaces/Manjunath84/genacademy-coach` (`HTTP/2 200`). No private corpus/index
   is uploaded; provider/corpus-backed click smoke remains pending. PR review hardening added
-  no-factory-reboot-by-default, pinned Week 2 dependency SHA, startup chunk-count warnings, and redacted
-  UI error IDs backed by private server tracebacks.
+  no-factory-reboot-by-default, pinned Week 2 dependency SHA, startup chunk-count warnings, a
+  cold-click empty-corpus banner, and redacted UI error IDs backed by private server tracebacks.
 
 ### In Progress
 
 - **Demo packaging after private Space smoke.** The remaining critical path is external Google Doc
-  creation/import, video recording, and deciding whether to make a public-safe corpus/index available in
-  the Space. Memory is intentionally held as a later
+  creation/import, video recording, and deciding whether to keep the Space framed as a deployment shell
+  or make a public-safe corpus/index available in the Space. Memory is intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden
   source of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable
   memory later, unnecessary for the two-day demo.
@@ -120,7 +120,8 @@ exist at every step ("demo cannot fail").
   current pure-core / thin-view boundary.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
 - Create the external Google Doc submission from `docs/submission-google-doc-draft.md`.
-- Keep the Hugging Face Space private until a public-safe corpus/index decision is made.
+- Keep the Hugging Face Space private/deployment-shell framed until a public-safe corpus/index decision
+  is made.
 - Flip the repo public at submission time if required.
 
 ## Teach-Loop MVP

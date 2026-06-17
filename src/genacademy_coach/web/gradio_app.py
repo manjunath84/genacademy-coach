@@ -7,9 +7,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
-
-import gradio as gr
+from genacademy_rag.core.vectorstore import ChromaStore
 
 from genacademy_coach.foundation import Foundation
 from genacademy_coach.quiz_session import QuizSession
@@ -17,11 +15,24 @@ from genacademy_coach.settings import CoachSettings
 from genacademy_coach.teach_session import CoachSession
 from genacademy_coach.teach_types import LearnerProfile
 
+os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
+
+import gradio as gr
+
 logger = logging.getLogger(__name__)
 
 STYLE_CHOICES = ["concise", "analogy", "step_by_step"]
 TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
 VALID_OPTION_IDS = frozenset({"A", "B", "C", "D"})
+EMPTY_CORPUS_STATUS_MESSAGE = (
+    "**Deployment shell:** no approved corpus/index is loaded in this Space. "
+    "Teach and quiz requests will safely refuse until an approved Chroma index "
+    "is available under `/data/chroma`; see the recorded demo for grounded behavior."
+)
+CORPUS_STATUS_UNAVAILABLE_MESSAGE = (
+    "**Deployment status:** corpus status could not be checked. The app fails closed "
+    "when course evidence is unavailable; check the private Space logs for the error ID."
+)
 
 SAFE_TEACH_TRACE_FIELDS = (
     "turn",
@@ -117,6 +128,24 @@ def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[di
 def _runtime() -> tuple[CoachSettings, Foundation]:
     settings = CoachSettings.from_env()
     return settings, Foundation.build(settings)
+
+
+def _corpus_chunk_count(settings: CoachSettings) -> int:
+    store = ChromaStore(persist_dir=settings.chroma_dir, collection=settings.course_collection)
+    return len(store.get_all_chunks())
+
+
+def _space_status_message() -> str | None:
+    try:
+        settings = CoachSettings.from_env()
+        chunk_count = _corpus_chunk_count(settings)
+    except Exception:
+        error_id = uuid.uuid4().hex[:8]
+        logger.exception("space corpus status check failed error_id=%s", error_id)
+        return f"{CORPUS_STATUS_UNAVAILABLE_MESSAGE} `{error_id}`."
+    if chunk_count == 0:
+        return EMPTY_CORPUS_STATUS_MESSAGE
+    return None
 
 
 def _input_error_payload(message: str) -> tuple[str, dict[str, Any]]:
@@ -234,9 +263,11 @@ def run_quiz_session(
         return _error_payload(exc)
 
 
-def build_demo() -> gr.Blocks:
+def build_demo(status_message: str | None = None) -> gr.Blocks:
     with gr.Blocks(title="GenAcademy Coach") as demo:
         gr.Markdown("# GenAcademy Coach")
+        if status_message is not None:
+            gr.Markdown(status_message)
         with gr.Tab("Teach"):
             teach_topic = gr.Textbox(label="Topic", value="agent harness")
             with gr.Row():
@@ -277,10 +308,14 @@ def build_demo() -> gr.Blocks:
     return demo
 
 
-demo = build_demo()
+demo = build_demo(_space_status_message())
 
 
 def launch() -> None:
+    logging.basicConfig(
+        level=os.environ.get("GENACADEMY_LOG_LEVEL", "INFO"),
+        format="%(levelname)s:%(name)s:%(message)s",
+    )
     demo.launch(
         server_name="0.0.0.0",
         server_port=int(os.environ.get("PORT", "7860")),
