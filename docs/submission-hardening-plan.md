@@ -10,11 +10,11 @@ go/no-go.
 
 | Item | Outcome | Owner action | Verification |
 |---|---|---|---|
-| Grader 5-minute path | First README screen links the core proof: UI walkthrough, dev eval JSON, runnable teach command, Space URL with shell limitation, screenshot inventory, and hardening docs. | PR 2 edits README only. | README links resolve; no raw private trace JSON committed. |
-| Overclaim micro-fixes | Web chat, HF shell, personalization, Mock Interview, and dev-only metrics are worded precisely. | PR 2 edits README and diagram note. | Review confirms no shipped/planned confusion. |
-| Verification evidence | PR body includes `pytest`, `ruff`, leak guard, and dev eval output. | Run read-only commands on PR 2. | Outputs pasted; `--split test` not run. |
+| Grader 5-minute path | First README screen links the core proof: UI walkthrough, dev eval JSON, runnable teach command, Space URL with shell limitation, screenshot inventory, and hardening docs. | Done in PR #24. | README links resolve; no raw private trace JSON committed. |
+| Overclaim micro-fixes | Web chat, HF shell, personalization, Mock Interview, and dev-only metrics are worded precisely. | Done in PR #24. | AGY review returned GO for PRs #23/#24 with no nits. |
+| Verification evidence | PR body includes `pytest`, `ruff`, leak guard, and dev eval output. | Done in PR #24. | Outputs pasted; `--split test` not run. |
 | Video script | Canonical script stays `docs/demo-walkthrough-with-screenshots.docx`; README links it instead of duplicating. | Human records after PR review. | Video under time cap; no generated quiz text or raw corpus snippets visible. |
-| Live URL framing | Space is either honestly labeled as deployment shell or backed by a public-safe corpus subset. | Human decides using runbook below. | Cold click cannot be mistaken for broken product. |
+| Live URL framing | Space is either honestly labeled as deployment shell or backed by a public-safe corpus subset. | Done as deployment-shell framing; public-safe corpus upload remains gated. | Cold click is framed as shell, not grounded live tutor. |
 
 ## P1 - Strong Follow-Up If Time Allows
 
@@ -109,16 +109,16 @@ This is gated and must happen immediately before any public repo flip.
 
 | Check | Status |
 |---|---|
-| Status table + grader path added to README | Pending PR 2 |
+| Status table + grader path added to README | Done in PR #24 |
 | <=5-minute video recorded from canonical DOCX | Pending human action |
 | External Google Doc created from repo draft | Pending human action |
 | Public-safe screenshots only | Pending human review |
-| Live URL shows grounded teach + safe refusal, or is clearly framed as deployment shell | Pending human decision |
+| Live URL shows grounded teach + safe refusal, or is clearly framed as deployment shell | Done as deployment-shell framing; grounded public subset remains gated |
 | Public-safe corpus uploaded if live grounded Space is required | Gated; not executed |
-| Overclaims reconciled: web chat, HF shell, personalization, Mock Interview, dev-only metrics | Pending PR 2 |
+| Overclaims reconciled: web chat, HF shell, personalization, Mock Interview, dev-only metrics | Done in PR #24 |
 | Injection/unsupported-advice test added | P1 |
 | Leak guard fails loud on missing eval sources | P1 |
-| `pytest`, `ruff`, leak guard green | Pending PR 2 verification |
+| `pytest`, `ruff`, leak guard green | Done for PR #24; rerun before final public submission |
 | Held-out `test` split remains unrun | Required |
 | Pre-public secret and screenshot scans complete | Pending human action |
 | Skill-Gap Diagnosis demoable in under 60 seconds | Spec only; pending review/build |

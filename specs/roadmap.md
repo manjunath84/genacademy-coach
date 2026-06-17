@@ -105,32 +105,34 @@ exist at every step ("demo cannot fail").
   recording, and a no-live-call fallback note pointing to committed redacted evidence.
 - **Submission hardening and grader path packaged.** The grading-gap audit, submission hardening runbooks,
   Skill-Gap Diagnosis spec, README status table, and grader 5-minute path make the shipped proof visible
-  without changing behavior or using the held-out `test` split.
+  without changing behavior or using the held-out `test` split. PRs #23/#24 were independently reviewed
+  by AGY and merged.
 
 ### In Progress
 
-- **Demo packaging after private Space smoke.** The remaining critical path is different-model review of
-  the hardening PRs, external Google Doc creation/import, video recording through the local Gradio UI,
-  and deciding whether to keep the Space framed as a deployment shell or make a public-safe corpus/index
-  available in the Space. Memory is
+- **Demo packaging after private Space smoke.** The remaining critical path is external Google Doc
+  creation/import, video recording through the local Gradio UI, and deciding whether to keep the Space
+  framed as a deployment shell or make a public-safe corpus/index available in the Space. Memory is
   intentionally held as a later
   personalization pull-in because it adds persistence/privacy surface and must not become a hidden
   source of course facts. Explicit LangGraph remains deferred for the same reason: useful for durable
   memory later, unnecessary for the two-day demo.
 
-### Pending Before MVP Demo
+### Pending Before Final Submission
 
 - Keep the held-out `test` split unused until final evaluation/reporting.
 - Decide whether to harden the remaining confirm-band refusal variance or explain it in the demo as a
   conservative escalation case.
-- If memory is pulled in after the demo floor is green, write a separate implementation plan that compares
-  first-party persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
-- If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
-  current pure-core / thin-view boundary.
 - Record the <=5-minute video from `docs/demo-and-deliverables.md`.
 - Create the external Google Doc submission from `docs/submission-google-doc-draft.md`.
 - Keep the Hugging Face Space private/deployment-shell framed until a public-safe corpus/index decision
   is made.
+- If one more standout workflow is pulled in before final submission, use the reviewed
+  Skill-Gap Diagnosis spec path first. It is still plan-only until reviewed and implemented.
+- If memory is pulled in after submission, write a separate implementation plan that compares first-party
+  persisted profile, LangMem, Mem0 open source, and Zep Cloud before code.
+- If explicit LangGraph is pulled in after memory or HITL earns it, write the delta first and preserve the
+  current pure-core / thin-view boundary.
 - Flip the repo public at submission time if required.
 
 ## Teach-Loop MVP
@@ -160,26 +162,29 @@ same-topic lens switching, and grounded Quiz Mode are complete on the dev/demo p
 honest dev-eval reporting, and repo demo/readme packaging are complete on merged `main`; the active gate
 is final video/doc packaging. The held-out `test` split stays untouched until final evaluation.
 
-## PULL-IN (if time, in priority order — SHOULD)
+## Pull-Ins And Future Work
 
-**Two-day priority.** Do not pull in features straight down this list blindly. For the final demo window,
-the chosen order is: stabilize teachable eval -> lens-switch demo -> grounded Quiz Mode. Mock interview
-is a Day-2 stretch only if quiz is already green.
+The two-day score-lift sequence has already landed through grounded Quiz Mode and the grader-path
+hardening. Do not start a new pull-in unless the video and Google Doc are on track. If there is still
+time, the next highest-ratio item is the plan-only Skill-Gap Diagnosis workflow because it composes
+existing traces, quiz grades, and review-queue events without adding memory or a second agent loop.
 
 1. **Quiz mode** — shipped first pull-in: cited MCQ generation + deterministic grading
-2. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
-3. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
-4. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth
-5. **Track-aware retrieval** — corpus tagged by track
-6. **Cross-session memory** — evaluate first-party persisted profile, LangMem, Mem0 open source, and Zep
+2. **Skill-Gap Diagnosis** — spec only: deterministic cited next-step report from teach/quiz traces and
+   review-queue events; requires fresh-context review before code
+3. **Mock-interview mode** — open-answer grounded grading + follow-up probing + cited gap report
+4. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2 auth/upload
+5. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth
+6. **Track-aware retrieval** — corpus tagged by track
+7. **Cross-session memory** — evaluate first-party persisted profile, LangMem, Mem0 open source, and Zep
    Cloud; memory may personalize style/struggle history, but course facts still require citations
-7. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
+8. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
    coordination outgrow `create_agent`
-8. **Caching (L1/L4/L5) + model tiering**
-9. **Multimodal slide questions**
-10. **Cohort rollout** — multi-user / auth / per-user cost caps
-11. **Flashcards / mind-map artifacts**
-12. **GraphRAG** (course knowledge graph)
+9. **Caching (L1/L4/L5) + model tiering**
+10. **Multimodal slide questions**
+11. **Cohort rollout** — multi-user / auth / per-user cost caps
+12. **Flashcards / mind-map artifacts**
+13. **GraphRAG** (course knowledge graph)
 
 ## NORTH STAR (not this week)
 

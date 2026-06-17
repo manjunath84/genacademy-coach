@@ -14,7 +14,7 @@ moment. The framing is a low-stakes mastery loop: the learner can keep trying wh
 stays grounded in cited course evidence. Use this exact phrasing in the Google Doc opening and the video's
 first 10 seconds.
 
-## Project delivery status for PR #22
+## Local UI Delivery Status
 
 PR #22 is the local recording polish pass. It does not change the core agent contract; it makes the demo
 surface reliable enough to record:
