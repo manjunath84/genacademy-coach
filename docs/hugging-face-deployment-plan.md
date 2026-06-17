@@ -29,6 +29,8 @@ Implementation status:
 - Docker build pins the Week 2 `genacademy-rag` dependency to commit
   `517faffbfdf37f8972f5bf3076e21eb2ab0ba7b4` instead of a moving branch.
 - Startup logs the Chroma chunk count and warns when `/data/chroma` has no indexed corpus.
+- The Gradio page shows a deployment-shell banner when no approved corpus/index is loaded, so a cold
+  visitor does not mistake safe refusals for a broken app.
 - Local app launch smoke passed.
 - Local Docker image build passed.
 - Local Docker container smoke passed: `HTTP/1.1 200 OK` from `http://127.0.0.1:7863`.
@@ -38,30 +40,26 @@ Implementation status:
 - Provider/corpus-backed click smoke is still pending because no private corpus/index has been uploaded
   to the Space.
 
-## Current Hugging Face Spaces Facts Checked
+## Shipped Hugging Face Space Shape
 
-Current Hugging Face docs confirm:
+The shipped path is a private Docker Space with a root `app.py`, a thin Gradio wrapper outside the core,
+and a Dockerfile-managed `uv` environment. Secrets and variables are configured in Hugging Face Space
+settings, never hard-coded or committed.
 
-- A Gradio Space can run from an `app.py` file at the repository root.
-- Python dependencies belong in `requirements.txt`.
-- Docker Spaces can expose port `7860`.
-- Secrets and variables should be configured in Space settings, not hard-coded.
-- For non-static Spaces, secrets and variables are exposed to the app as environment variables.
+## Deployment Path
 
-## Recommended Deployment Path
+The implementation uses the Week 2 Docker pattern, with only a thin Coach view:
 
-Use the Week 2 Docker pattern, but add only a thin Coach view:
-
-1. Add a tiny Gradio or FastAPI wrapper outside the core.
+1. Add a tiny Gradio wrapper outside the core.
 2. Keep `src/genacademy_coach/*` free of web-framework imports.
 3. Run the same retrieval/teach/quiz core through the wrapper.
 4. Store data under `/data` by setting `GENACADEMY_COACH_DATA_DIR=/data` for Coach-owned files and
    `GENACADEMY_DATA_DIR=/data` for the reused Week 2 RAG layer when it needs a deploy data root.
    Trace and review-queue writes should also stay under `/data`.
 5. Configure provider secrets in the Space settings.
-6. Smoke-test with a public demo topic only.
+6. Smoke-test with a public demo topic only after an approved corpus/index decision.
 
-The smallest useful first live surface is Gradio:
+The live surface is Gradio:
 
 - Topic text input.
 - Teaching style dropdown.
@@ -69,11 +67,12 @@ The smallest useful first live surface is Gradio:
 - Learner-answer textbox.
 - "Run teach session" button.
 - Safe output: learner message plus redacted metadata summary.
-- Optional "Run quiz" tab after teach works.
+- "Run quiz" tab for the grounded deterministic assessment pull-in.
+- Deployment-shell banner when `/data/chroma` has no approved index.
 
 Do not expose raw trace JSON in the UI.
 
-## Files The Implementation Slice Should Add
+## Implemented Deployment Slice
 
 Implemented files:
 
@@ -82,6 +81,8 @@ Implemented files:
 - `.dockerignore`.
 - `scripts/start_hf_space.sh`.
 - tests that assert no web-framework imports enter the core and trace metadata stays redacted.
+- tests that assert deploy restarts avoid factory reboot, error paths are redacted in the UI and logged
+  server-side, malformed trace rows are skipped, and empty-corpus UX is explicit.
 
 Completed deployment setup:
 
@@ -186,18 +187,6 @@ run because the Space intentionally does not contain private course corpus/index
 - No private corpus/eval text is committed or displayed.
 - Live private Space URL returns HTTP 200.
 - Public demo topic works or safely refuses after a public-safe corpus/index decision is made.
+- Empty-corpus Space state is visible in the UI as a deployment-shell status, not only in server logs.
 - `scripts/check_eval_leak.py` passes after deployment files are added.
 - README/roadmap record the Space URL and known limitations.
-
-## Open Decision Before Code
-
-Pick one deployment target:
-
-1. **Gradio Space, non-Docker**: fastest if dependency install works cleanly from `requirements.txt`;
-   weaker parity with Week 2.
-2. **Docker Space**: closest to Week 2; better control over `uv`, cache dirs, and boot commands; slightly
-   more setup.
-3. **Private Space first**: safest if using private course corpus; less useful as a public demo link.
-
-Recommendation: Docker Space first, reusing the Week 2 deployment pattern, unless speed matters more
-than parity. Use a minimal Gradio UI inside Docker so the Space has something visual to test.
