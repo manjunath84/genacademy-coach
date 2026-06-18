@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -36,6 +37,15 @@ class RetrievedSpan(BaseModel):
     @property
     def citation_id(self) -> str:
         return self.chunk_id
+
+    @property
+    def source_label(self) -> str:
+        return source_label(
+            title=self.title,
+            source_type=self.source_type,
+            page_or_section=self.page_or_section,
+            citation_id=self.citation_id,
+        )
 
 
 class CheckItem(BaseModel):
@@ -95,6 +105,7 @@ class TraceTurn(BaseModel):
     evidence_band: EvidenceBand
     faithfulness_ok: bool | None = None
     retrieved_citation_ids: list[str]
+    retrieved_citation_labels: list[str] = Field(default_factory=list)
     tool_calls: list[str]
 
 
@@ -103,3 +114,54 @@ class TeachSessionResult(BaseModel):
     profile: LearnerProfile
     response: CoachAgentResponse
     trace_path: str
+
+
+def source_label(
+    *,
+    title: str,
+    source_type: str,
+    page_or_section: str | None,
+    citation_id: str,
+) -> str:
+    readable_title = _readable_title(title, citation_id)
+    location = _readable_location(page_or_section, source_type, citation_id)
+    if location:
+        return f"{readable_title} ({location})"
+    return readable_title
+
+
+def _readable_title(title: str, citation_id: str) -> str:
+    candidate = title.strip()
+    if not candidate:
+        candidate = citation_id.split("::", 1)[0].split("/", 1)[-1]
+    candidate = re.sub(r"\.[A-Za-z0-9]+$", "", candidate)
+    candidate = re.sub(r"-[0-9a-f]{8,}$", "", candidate, flags=re.IGNORECASE)
+    candidate = candidate.replace("_", " ").replace("-", " ")
+    candidate = re.sub(r"(?<=[A-Za-z])(?=\d)", " ", candidate)
+    candidate = re.sub(r"(?<=\d)(?=[A-Za-z])", " ", candidate)
+    candidate = re.sub(r"\s+", " ", candidate).strip()
+    return candidate.title() if candidate else "Course Material"
+
+
+def _readable_location(
+    page_or_section: str | None,
+    source_type: str,
+    citation_id: str,
+) -> str:
+    raw_location = str(page_or_section or "").strip()
+    if raw_location:
+        lowered = raw_location.lower()
+        if lowered.startswith(("slide", "page", "section", "chunk")):
+            return raw_location
+        if raw_location.isdigit():
+            if source_type == "slide":
+                return f"slide {raw_location}"
+            if source_type in {"handout", "transcript"}:
+                return f"page {raw_location}"
+            return f"section {raw_location}"
+        return raw_location
+
+    suffix = citation_id.split("::", 1)[1] if "::" in citation_id else ""
+    if suffix.isdigit():
+        return f"chunk {suffix}"
+    return ""

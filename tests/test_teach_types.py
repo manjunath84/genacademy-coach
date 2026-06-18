@@ -48,6 +48,22 @@ def test_retrieved_span_citation_id_is_stable():
     assert span.citation_id == "note/a::0"
 
 
+def test_retrieved_span_source_label_is_camera_friendly_for_slides():
+    span = RetrievedSpan(
+        chunk_id="slide/week1-session1-82cf85861f9f::36",
+        doc_id="slide/week1-session1",
+        text="Agent harnesses use tool checks.",
+        score=0.91,
+        title="week1-session1.pptx",
+        source_type="slide",
+        page_or_section="36",
+    )
+
+    assert span.source_label == "Week 1 Session 1 (slide 36)"
+    assert "82cf85861f9f" not in span.source_label
+    assert "slide/week1-session1" not in span.source_label
+
+
 def test_check_item_keeps_expected_keywords_lowercase():
     item = CheckItem(
         question="What does attention do?",

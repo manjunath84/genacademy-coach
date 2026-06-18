@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from genacademy_coach.teach_types import RetrievedSpan
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
     DEFAULT_AUTH_MESSAGE,
@@ -24,6 +25,7 @@ from genacademy_coach.web.gradio_app import (
     _auth_enabled,
     _coerce_choice,
     _error_payload,
+    _format_learner_message_citations,
     _format_trace_summary,
     _launch_auth,
     _parse_answers,
@@ -72,6 +74,7 @@ def test_safe_trace_rows_omit_raw_teach_fields(tmp_path):
                 "evidence_score": 0.71,
                 "evidence_band": "confirm",
                 "retrieved_citation_ids": ["chunk-1"],
+                "retrieved_citation_labels": ["Week 1 Session 1 (slide 36)"],
                 "tool_calls": ["retrieve_course_corpus"],
             }
         )
@@ -93,6 +96,7 @@ def test_safe_trace_rows_omit_raw_teach_fields(tmp_path):
             "evidence_score": 0.71,
             "evidence_band": "confirm",
             "retrieved_citation_ids": ["chunk-1"],
+            "retrieved_citation_labels": ["Week 1 Session 1 (slide 36)"],
             "tool_calls": ["retrieve_course_corpus"],
         }
     ]
@@ -198,7 +202,11 @@ def test_trace_summary_uses_only_safe_fields():
                 "evidence_score": 0.7114,
                 "evidence_band": "confirm",
                 "faithfulness_ok": True,
-                "retrieved_citation_ids": ["chunk-1", "chunk-2"],
+                "retrieved_citation_ids": [
+                    "slide/week1-session1-82cf85861f9f::36",
+                    "chunk-2",
+                ],
+                "retrieved_citation_labels": ["Week 1 Session 1 (slide 36)", "Tool Use"],
                 "tool_calls": ["retrieve_course_corpus"],
             }
         ],
@@ -210,11 +218,34 @@ def test_trace_summary_uses_only_safe_fields():
     assert "drill" in summary
     assert "0.711" in summary
     assert "2 cited spans" in summary
-    assert "chunk-1" not in summary
+    assert "Week 1 Session 1 (slide 36)" in summary
+    assert "slide/week1-session1-82cf85861f9f::36" not in summary
     assert "chunk-2" not in summary
     assert "| turn |" not in summary
     assert private_value not in summary
     assert "learner_message" not in summary
+
+
+def test_learner_message_replaces_raw_citation_ids_with_source_labels():
+    span = RetrievedSpan(
+        chunk_id="slide/week1-session1-82cf85861f9f::36",
+        doc_id="slide/week1-session1",
+        text="Agent harnesses use tool checks.",
+        score=0.91,
+        title="week1-session1.pptx",
+        source_type="slide",
+        page_or_section="36",
+    )
+
+    message = _format_learner_message_citations(
+        "Use a harness for tool checks. "
+        "[slide/week1-session1-82cf85861f9f::36] "
+        "See slide/week1-session1-82cf85861f9f::36.",
+        [span],
+    )
+
+    assert message.count("Week 1 Session 1 (slide 36)") == 2
+    assert "slide/week1-session1-82cf85861f9f::36" not in message
 
 
 def test_skillgap_trace_summary_uses_only_safe_fields():

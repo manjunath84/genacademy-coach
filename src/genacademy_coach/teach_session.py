@@ -235,6 +235,7 @@ class CoachSession:
                 evidence_band=self.runtime.current_evidence_band(),
                 faithfulness_ok=faithfulness_ok,
                 retrieved_citation_ids=[span.citation_id for span in self.runtime.last_spans],
+                retrieved_citation_labels=[span.source_label for span in self.runtime.last_spans],
                 tool_calls=list(self.runtime.tool_calls),
             )
         )

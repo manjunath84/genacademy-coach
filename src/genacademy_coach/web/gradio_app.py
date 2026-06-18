@@ -15,7 +15,7 @@ from genacademy_coach.quiz_session import QuizSession
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.skillgap_session import SkillGapSession, validate_skillgap_session_id
 from genacademy_coach.teach_session import CoachSession
-from genacademy_coach.teach_types import LearnerProfile
+from genacademy_coach.teach_types import LearnerProfile, RetrievedSpan
 from genacademy_coach.web.auth import (
     DEFAULT_AUTH_MESSAGE,
     CoachAuth,
@@ -79,6 +79,7 @@ SAFE_TEACH_TRACE_FIELDS = (
     "evidence_band",
     "faithfulness_ok",
     "retrieved_citation_ids",
+    "retrieved_citation_labels",
     "tool_calls",
 )
 SAFE_QUIZ_TRACE_FIELDS = (
@@ -775,6 +776,20 @@ def _format_list_summary(
     return f"{count} {plural}<br><code>{samples}{escape(suffix)}</code>"
 
 
+def _format_learner_message_citations(message: str, spans: list[RetrievedSpan]) -> str:
+    rendered = message
+    for span in spans:
+        rendered = rendered.replace(f"[{span.citation_id}]", f"[{span.source_label}]")
+        rendered = rendered.replace(span.citation_id, span.source_label)
+    return rendered
+
+
+def _current_spans(session: Any) -> list[RetrievedSpan]:
+    runtime = getattr(session, "runtime", None)
+    spans = getattr(runtime, "last_spans", None)
+    return spans if isinstance(spans, list) else []
+
+
 def _format_bool(value: Any) -> str:
     if isinstance(value, bool):
         return "yes" if value else "no"
@@ -838,9 +853,10 @@ def _format_trace_summary(
                 (
                     "Citations",
                     _format_list_summary(
-                        row.get("retrieved_citation_ids", []),
+                        row.get("retrieved_citation_labels")
+                        or row.get("retrieved_citation_ids", []),
                         unit="cited span",
-                        show_samples=False,
+                        show_samples=bool(row.get("retrieved_citation_labels")),
                     ),
                 ),
                 ("Tools", _format_list_summary(row.get("tool_calls", []), unit="tool call")),
@@ -1069,7 +1085,13 @@ def run_teach_session(
             user_id_hash=_memory_user_hash(settings, user_email),
         )
         first = session.start()
-        sections = ["### Turn 1", first.response.learner_message]
+        sections = [
+            "### Turn 1",
+            _format_learner_message_citations(
+                first.response.learner_message,
+                _current_spans(session),
+            ),
+        ]
         if first.response.check_question:
             sections.extend(["", f"**Check:** {first.response.check_question}"])
 
@@ -1077,7 +1099,16 @@ def run_teach_session(
         result = first
         if answer:
             result = session.respond(answer)
-            sections.extend(["", "### Turn 2", result.response.learner_message])
+            sections.extend(
+                [
+                    "",
+                    "### Turn 2",
+                    _format_learner_message_citations(
+                        result.response.learner_message,
+                        _current_spans(session),
+                    ),
+                ]
+            )
             if result.response.check_question:
                 sections.extend(["", f"**Check:** {result.response.check_question}"])
         session.finish()

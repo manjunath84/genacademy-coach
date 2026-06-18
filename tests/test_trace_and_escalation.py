@@ -20,6 +20,7 @@ def sample_turn(session_id: str = "session-1") -> TraceTurn:
         evidence_band="proceed",
         faithfulness_ok=True,
         retrieved_citation_ids=["note/attention::0"],
+        retrieved_citation_labels=["Attention Notes (section 1)"],
         tool_calls=["retrieve_course_corpus", "generate_check_item"],
     )
 
@@ -34,6 +35,7 @@ def test_trace_writer_appends_json_turns(tmp_path):
     assert len(rows) == 2
     assert rows[0].next_action == "drill"
     serialized = first.read_text(encoding="utf-8")
+    assert "Attention Notes (section 1)" in serialized
     assert "I do not get attention" not in serialized
     assert '"learner_input":' not in serialized
     assert "learner_message" not in serialized
