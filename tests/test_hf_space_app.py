@@ -1218,6 +1218,9 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "gc-action-row" in app_text
     assert "gc-auth-row" in app_text
     assert "gc-signout-button" in app_text
+    assert "button.gc-run-button" in app_text
+    assert "button.gc-score-button:not([disabled])" in app_text
+    assert "overflow: hidden !important;" in app_text
     assert "if _auth_enabled():" in app_text
     assert "min-height: 44px" in app_text
     assert ".gc-output h1" in app_text
