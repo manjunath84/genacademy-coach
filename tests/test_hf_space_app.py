@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from genacademy_coach.quiz_types import QuizQuestion
 from genacademy_coach.teach_types import RetrievedSpan
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
@@ -39,12 +40,14 @@ from genacademy_coach.web.gradio_app import (
     fill_skillgap_preset,
     fill_teach_grounded_preset,
     fill_teach_refusal_preset,
+    generate_quiz_questions_state_ui,
     generate_quiz_questions_ui,
     list_admin_users_ui,
     run_quiz_session,
     run_skillgap_session,
     run_teach_session,
     safe_trace_rows,
+    score_generated_quiz_ui,
 )
 
 
@@ -470,6 +473,26 @@ def test_auth_status_shows_safe_memory_state(monkeypatch):
     assert "private-memory-secret" not in status
 
 
+def test_auth_status_does_not_prompt_sign_in_when_auth_disabled(monkeypatch):
+    monkeypatch.setattr(
+        gradio_app.CoachSettings,
+        "from_env",
+        lambda: SimpleNamespace(
+            mem0_api_key="mem0-key",
+            memory_user_salt="private-memory-secret",
+        ),
+    )
+    monkeypatch.setenv("GENACADEMY_COACH_AUTH_ENABLED", "false")
+
+    status = gradio_app.auth_status_ui(None)
+
+    assert "**Access:** auth disabled for local development." in status
+    assert "**Memory:** Mem0 configured; auth is disabled for local development." in status
+    assert "sign in" not in status
+    assert "mem0-key" not in status
+    assert "private-memory-secret" not in status
+
+
 def test_admin_user_actions_use_request_username_not_form_input(monkeypatch):
     calls = []
 
@@ -626,6 +649,16 @@ def test_run_quiz_session_hides_generated_quiz_text_by_default(tmp_path, monkeyp
             pass
 
         def run(self, selected_option_ids=None):
+            grades = []
+            if selected_option_ids is not None:
+                grades = [
+                    SimpleNamespace(
+                        question_id="q1",
+                        selected_option_id="A",
+                        correct_option_id="A",
+                        correct=True,
+                    )
+                ]
             return SimpleNamespace(
                 session_id="s1",
                 questions=[
@@ -635,15 +668,8 @@ def test_run_quiz_session_hides_generated_quiz_text_by_default(tmp_path, monkeyp
                         options=[SimpleNamespace(option_id="A", text=private_value)],
                     )
                 ],
-                grades=[
-                    SimpleNamespace(
-                        question_id="q1",
-                        selected_option_id="A",
-                        correct_option_id="A",
-                        correct=True,
-                    )
-                ],
-                score=1,
+                grades=grades,
+                score=len(grades),
                 refusal_reason=None,
                 trace_path=str(trace_path),
             )
@@ -684,6 +710,194 @@ def test_generate_quiz_questions_ui_previews_without_answers(monkeypatch):
     assert output == "### Question 1"
     assert trace_summary == "**Trace summary:** no trace rows available."
     assert metadata == {"status": "ok", "trace": []}
+
+
+def _quiz_question(
+    question_id: str,
+    *,
+    correct_option_id: str = "A",
+) -> QuizQuestion:
+    return QuizQuestion(
+        question_id=question_id,
+        prompt=f"Which option is supported for {question_id}?",
+        options=[
+            {"option_id": "A", "text": f"{question_id} answer A"},
+            {"option_id": "B", "text": f"{question_id} answer B"},
+            {"option_id": "C", "text": f"{question_id} answer C"},
+            {"option_id": "D", "text": f"{question_id} answer D"},
+        ],
+        correct_option_id=correct_option_id,
+        expected_answer=f"{question_id} answer {correct_option_id}",
+        rationale=f"{question_id} answer {correct_option_id}",
+        citation_id=f"note/{question_id}::0",
+        expected_keywords=[f"{question_id} answer {correct_option_id}".lower()],
+    )
+
+
+def test_generate_quiz_questions_state_ui_enables_matching_answer_controls(tmp_path, monkeypatch):
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "citation_ids": ["note/q1::0", "note/q2::0"],
+                "question_ids": ["q1", "q2"],
+                "selected_option_ids": [],
+                "correctness": [],
+                "actions": ["retrieve_course_corpus", "generate_quiz_items"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            assert kwargs["question_count"] == 2
+
+        def run(self, selected_option_ids=None):
+            assert selected_option_ids is None
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[_quiz_question("q1"), _quiz_question("q2", correct_option_id="B")],
+                grades=[],
+                score=0,
+                refusal_reason=None,
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    output, trace_summary, metadata, state, answer_1, answer_2, answer_3, score_button = (
+        generate_quiz_questions_state_ui("agent harness", 2, True)
+    )
+
+    assert "### Question 1" in output
+    assert "### Score" not in output
+    assert state["topic"] == "agent harness"
+    assert state["question_count"] == 2
+    assert len(state["questions"]) == 2
+    assert answer_1["visible"] is True
+    assert answer_2["visible"] is True
+    assert answer_3["visible"] is False
+    assert score_button["interactive"] is True
+    assert "2 questions" in trace_summary
+    assert metadata["status"] == "ok"
+
+
+def test_generate_quiz_questions_state_ui_hides_answers_on_refusal(tmp_path, monkeypatch):
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.2,
+                "evidence_band": "stop",
+                "citation_ids": [],
+                "question_ids": [],
+                "selected_option_ids": [],
+                "correctness": [],
+                "refusal_reason": "could not generate grounded quiz items",
+                "actions": ["retrieve_course_corpus", "refuse_escalate"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            assert kwargs["question_count"] == 3
+
+        def run(self, selected_option_ids=None):
+            assert selected_option_ids is None
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[],
+                grades=[],
+                score=0,
+                refusal_reason="could not generate grounded quiz items",
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    output, trace_summary, metadata, state, answer_1, answer_2, answer_3, score_button = (
+        generate_quiz_questions_state_ui("agent harness", 3, True)
+    )
+
+    assert output == "I could not generate a grounded quiz for this topic."
+    assert state is None
+    assert answer_1["visible"] is False
+    assert answer_2["visible"] is False
+    assert answer_3["visible"] is False
+    assert score_button["interactive"] is False
+    assert metadata["refusal_reason"] == "could not generate grounded quiz items"
+    assert "refuse_escalate" in trace_summary
+
+
+def test_score_generated_quiz_ui_scores_three_answers_from_state():
+    questions = [
+        _quiz_question("q1", correct_option_id="A"),
+        _quiz_question("q2", correct_option_id="B"),
+        _quiz_question("q3", correct_option_id="C"),
+    ]
+    state = {
+        "topic": "agent harness",
+        "question_count": 3,
+        "session_id": "s1",
+        "trace_file": "quiz.jsonl",
+        "trace": [
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "citation_ids": [question.citation_id for question in questions],
+                "question_ids": [question.question_id for question in questions],
+                "selected_option_ids": [],
+                "correctness": [],
+                "actions": ["retrieve_course_corpus", "generate_quiz_items"],
+            }
+        ],
+        "questions": [question.model_dump(mode="json") for question in questions],
+    }
+
+    output, trace_summary, metadata = score_generated_quiz_ui(
+        "agent harness",
+        3,
+        "A",
+        "B",
+        "D",
+        True,
+        state,
+    )
+
+    assert "### Question 3" in output
+    assert "**2/3 correct**" in output
+    assert "q3: incorrect (selected D, answer C)" in output
+    row = metadata["trace"][0]
+    assert row["selected_option_ids"] == ["A", "B", "D"]
+    assert row["correctness"] == [True, True, False]
+    assert row["actions"] == ["retrieve_course_corpus", "generate_quiz_items", "grade_quiz"]
+    assert "3 answers" in trace_summary
+
+
+def test_score_generated_quiz_ui_requires_current_generated_state():
+    output, trace_summary, metadata = score_generated_quiz_ui(
+        "agent harness",
+        3,
+        "A",
+        "B",
+        "C",
+        True,
+        {"topic": "agent harness", "question_count": 2, "questions": []},
+    )
+
+    assert output == "generate questions again after changing topic or question count"
+    assert trace_summary == "**Status:** `invalid_input`"
+    assert metadata == {"status": "invalid_input"}
 
 
 def test_quiz_preview_and_score_use_same_deterministic_questions(tmp_path, monkeypatch):

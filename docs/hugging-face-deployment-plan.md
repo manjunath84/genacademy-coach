@@ -139,6 +139,12 @@ Variables:
 
 Do not put `.env` in the Space repository.
 
+Latency tuning note: keep Nebius as the default hosted provider for the Week-3 rubric path. For local
+or private latency experiments, the inherited Week-2 provider surface also supports
+`GENACADEMY_PROVIDER=openrouter` with `OPENROUTER_MODEL=openai/gpt-4.1-nano`, which OpenRouter lists as
+a low-latency GPT-4.1 variant with JSON/structured-output parameters. Benchmark with the same quiz and
+teach prompts before changing the hosted default.
+
 Deploy-specific dependency note: `pyproject.toml` explicitly routes Linux `torch` installs to the
 PyTorch CPU wheel index. Without that, the Docker build pulls CUDA/NVIDIA transitive wheels and becomes
 too large/slow for a practical CPU Space iteration loop.
