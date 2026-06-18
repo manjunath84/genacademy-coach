@@ -35,6 +35,14 @@ TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
 VALID_OPTION_IDS = frozenset({"A", "B", "C", "D"})
 MARKDOWN_LITERAL_PATTERN = re.compile(r"([\\`*_{}\[\]()#+\-!|>])")
 DECISION_OBSERVATION_LIMIT = 240
+TEACH_TERMINAL_ACTIONS = frozenset({"refuse_escalate", "stop"})
+TEACH_ACTION_LABELS = {
+    "advance": "advance to next check",
+    "re_explain_differently": "re-explain differently",
+    "drill": "drill with another check",
+    "refuse_escalate": "refuse and escalate",
+    "stop": "stop",
+}
 TEACH_GROUNDED_PRESET = (
     "agent harness",
     "analogy",
@@ -113,6 +121,8 @@ SAFE_SKILLGAP_TRACE_FIELDS = (
     "escalated",
     "reason_code",
 )
+
+TEACH_UI_SESSIONS: dict[str, dict[str, Any]] = {}
 
 GENACADEMY_COACH_CSS = """
 :root {
@@ -782,6 +792,19 @@ def fill_teach_refusal_preset() -> tuple[str, str, str, str]:
     return TEACH_REFUSAL_PRESET
 
 
+def fill_teach_grounded_preset_ui(
+    state_token: str | None = None,
+) -> tuple[str, str, str, str, None]:
+    _finish_teach_state(state_token)
+    topic, style, lens, _answer = TEACH_GROUNDED_PRESET
+    return topic, style, lens, "", None
+
+
+def fill_teach_refusal_preset_ui(state_token: str | None = None) -> tuple[str, str, str, str, None]:
+    _finish_teach_state(state_token)
+    return (*TEACH_REFUSAL_PRESET, None)
+
+
 def fill_quiz_grounded_preset() -> tuple[str, int, str, bool]:
     return QUIZ_GROUNDED_PRESET
 
@@ -907,6 +930,29 @@ def _format_learner_message_citations(message: str, spans: list[RetrievedSpan]) 
 def _markdown_literal(value: str) -> str:
     html_safe = escape(value, quote=False)
     return MARKDOWN_LITERAL_PATTERN.sub(r"\\\1", html_safe)
+
+
+def _markdown_blockquote(value: str) -> str:
+    literal = _markdown_literal(value)
+    return "\n".join(f"> {line}" if line else ">" for line in literal.splitlines())
+
+
+def _teach_action_label(value: str) -> str:
+    return TEACH_ACTION_LABELS.get(value, value.replace("_", " "))
+
+
+def _teach_can_accept_answer(result: Any) -> bool:
+    return (
+        getattr(result.response, "next_action", None) not in TEACH_TERMINAL_ACTIONS
+        and bool(getattr(result.response, "check_question", None))
+    )
+
+
+def _teach_no_pending_answer_note(result: Any) -> str:
+    action = getattr(result.response, "next_action", None)
+    if action in TEACH_TERMINAL_ACTIONS:
+        return "_This teach cycle stopped before creating a learner check to answer._"
+    return "_No grounded check was produced, so there is no learner answer to score yet._"
 
 
 def _safe_decision_observation(value: Any) -> str:
@@ -1141,6 +1187,130 @@ def _memory_user_hash(settings: CoachSettings, user_email: str | None) -> str | 
     return user_id_hash(user_email, salt=settings.memory_user_salt)
 
 
+def _new_teach_session(
+    *,
+    clean_topic: str,
+    clean_style: str,
+    clean_lens: str,
+    user_email: str | None,
+) -> CoachSession:
+    settings, foundation = _runtime()
+    return CoachSession(
+        session_id=f"hf-teach-{uuid.uuid4().hex[:10]}",
+        topic=clean_topic,
+        settings=settings,
+        foundation=foundation,
+        profile=LearnerProfile(style=clean_style, track_lens=clean_lens),
+        user_id_hash=_memory_user_hash(settings, user_email),
+    )
+
+
+def _teach_turn_sections(
+    *,
+    session: CoachSession,
+    result: Any,
+    heading: str,
+    check_label: str,
+) -> list[str]:
+    sections = [
+        f"### {heading}",
+        _format_learner_message_citations(
+            result.response.learner_message,
+            _current_spans(session),
+        ),
+    ]
+    if result.response.check_question:
+        sections.extend(
+            [
+                "",
+                f"**{check_label}:** {_markdown_literal(result.response.check_question)}",
+            ]
+        )
+    return sections
+
+
+def _record_teach_decision(entry: dict[str, Any], result: Any) -> None:
+    turn = result.profile.turn_count
+    entry.setdefault("decision_observations", {})[turn] = getattr(
+        result.response,
+        "observation",
+        None,
+    )
+    entry.setdefault("decision_sources", {})[turn] = getattr(
+        result.response,
+        "_decision_source",
+        "agent",
+    )
+
+
+def _teach_metadata(
+    *,
+    session: CoachSession,
+    result: Any,
+    decision_observations: dict[int, Any],
+    decision_sources: dict[int, Any],
+) -> dict[str, Any]:
+    trace_rows = safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS)
+    for row in trace_rows:
+        if not isinstance(row, dict):
+            continue
+        observation = decision_observations.get(row.get("turn"))
+        if observation:
+            # Intentionally demo-only and outside the persisted trace schema: this lets
+            # the UI explain the live decision without writing raw observations to disk.
+            row["decision_observation"] = _safe_decision_observation(observation)
+            row["decision_source"] = _decision_source_label(
+                decision_sources.get(row.get("turn"), "agent")
+            )
+
+    return {
+        "status": "ok",
+        "session_id": result.session_id,
+        "trace_file": Path(result.trace_path).name,
+        "memory": {
+            "provider": getattr(session.memory, "provider", "unknown"),
+            "enabled": getattr(session.memory, "provider", "unknown") != "null",
+            "user_scoped": session.user_id_hash is not None,
+            "safe_state_written": session._memory_written,
+        },
+        "profile": {
+            "style": result.profile.style,
+            "track_lens": result.profile.track_lens,
+            "turn_count": result.profile.turn_count,
+        },
+        "trace": trace_rows,
+    }
+
+
+def _teach_state_matches(
+    entry: dict[str, Any] | None,
+    *,
+    clean_topic: str,
+    clean_style: str,
+    clean_lens: str,
+) -> bool:
+    if not entry:
+        return False
+    return (
+        entry.get("topic") == clean_topic
+        and entry.get("style") == clean_style
+        and entry.get("track_lens") == clean_lens
+    )
+
+
+def _finish_teach_state(state_token: str | None) -> None:
+    if not state_token:
+        return
+    entry = TEACH_UI_SESSIONS.pop(state_token, None)
+    session = entry.get("session") if isinstance(entry, dict) else None
+    if session is None:
+        return
+    try:
+        session.finish()
+    except Exception:
+        logger.exception("teach ui session cleanup failed")
+
+
 def _memory_status_message(
     settings: CoachSettings,
     user_email: str | None,
@@ -1256,80 +1426,77 @@ def run_teach_session(
         clean_topic = _require_topic(topic)
         clean_style = _coerce_choice(style, STYLE_CHOICES, "style")
         clean_lens = _coerce_choice(track_lens, TRACK_LENS_CHOICES, "track lens")
-        settings, foundation = _runtime()
-        session = CoachSession(
-            session_id=f"hf-teach-{uuid.uuid4().hex[:10]}",
-            topic=clean_topic,
-            settings=settings,
-            foundation=foundation,
-            profile=LearnerProfile(style=clean_style, track_lens=clean_lens),
-            user_id_hash=_memory_user_hash(settings, user_email),
+        session = _new_teach_session(
+            clean_topic=clean_topic,
+            clean_style=clean_style,
+            clean_lens=clean_lens,
+            user_email=user_email,
         )
         first = session.start()
         sections = [
-            "### Turn 1",
-            _format_learner_message_citations(
-                first.response.learner_message,
-                _current_spans(session),
+            "_Single-run preview: Turn 1 teaches and asks a check; Turn 2 appears when "
+            "a learner answer is included with the run._",
+            "",
+            *_teach_turn_sections(
+                session=session,
+                result=first,
+                heading="Turn 1 - Initial teach and check",
+                check_label="Check asked",
             ),
         ]
-        if first.response.check_question:
-            sections.extend(["", f"**Check:** {_markdown_literal(first.response.check_question)}"])
 
         answer = learner_answer.strip()
         result = first
-        if answer:
+        decision_observations = {1: getattr(first.response, "observation", None)}
+        decision_sources = {1: getattr(first.response, "_decision_source", "agent")}
+        if answer and _teach_can_accept_answer(first):
             result = session.respond(answer)
             sections.extend(
                 [
                     "",
-                    "### Turn 2",
-                    _format_learner_message_citations(
-                        result.response.learner_message,
-                        _current_spans(session),
+                    "### Learner answer submitted",
+                    _markdown_blockquote(answer),
+                    "",
+                    *_teach_turn_sections(
+                        session=session,
+                        result=result,
+                        heading=(
+                            "Turn 2 - Coach response "
+                            f"({_teach_action_label(result.response.next_action)})"
+                        ),
+                        check_label="Next check",
                     ),
                 ]
             )
-            if result.response.check_question:
-                sections.extend(
-                    ["", f"**Check:** {_markdown_literal(result.response.check_question)}"]
-                )
-        session.finish()
-        trace_rows = safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS)
-        decision_observations = {1: getattr(first.response, "observation", None)}
-        decision_sources = {1: getattr(first.response, "_decision_source", "agent")}
-        if answer:
             decision_observations[2] = getattr(result.response, "observation", None)
             decision_sources[2] = getattr(result.response, "_decision_source", "agent")
-        for row in trace_rows:
-            if not isinstance(row, dict):
-                continue
-            observation = decision_observations.get(row.get("turn"))
-            if observation:
-                # Intentionally demo-only and outside the persisted trace schema: this lets
-                # the UI explain the live decision without writing raw observations to disk.
-                row["decision_observation"] = _safe_decision_observation(observation)
-                row["decision_source"] = _decision_source_label(
-                    decision_sources.get(row.get("turn"), "agent")
-                )
-
-        metadata = {
-            "status": "ok",
-            "session_id": result.session_id,
-            "trace_file": Path(result.trace_path).name,
-            "memory": {
-                "provider": getattr(session.memory, "provider", "unknown"),
-                "enabled": getattr(session.memory, "provider", "unknown") != "null",
-                "user_scoped": session.user_id_hash is not None,
-                "safe_state_written": session._memory_written,
-            },
-            "profile": {
-                "style": result.profile.style,
-                "track_lens": result.profile.track_lens,
-                "turn_count": result.profile.turn_count,
-            },
-            "trace": trace_rows,
-        }
+        elif answer:
+            sections.extend(
+                [
+                    "",
+                    "### Learner answer not scored",
+                    _markdown_blockquote(answer),
+                    "",
+                    _teach_no_pending_answer_note(first),
+                ]
+            )
+        elif not _teach_can_accept_answer(first):
+            sections.extend(["", _teach_no_pending_answer_note(first)])
+        else:
+            sections.extend(
+                [
+                    "",
+                    "_Paste a learner answer and run again to see Turn 2 respond to that "
+                    "answer._",
+                ]
+            )
+        session.finish()
+        metadata = _teach_metadata(
+            session=session,
+            result=result,
+            decision_observations=decision_observations,
+            decision_sources=decision_sources,
+        )
         return "\n".join(sections), metadata
     except UserInputError as exc:
         return _input_error_payload(str(exc))
@@ -1563,16 +1730,140 @@ def run_teach_ui(
     style: str,
     track_lens: str,
     learner_answer: str,
+    state_token: str | None = None,
     request: gr.Request | None = None,
-) -> tuple[str, str, dict[str, Any]]:
-    output, metadata = run_teach_session(
-        topic,
-        style,
-        track_lens,
-        learner_answer,
-        user_email=_request_username(request),
-    )
-    return output, _format_trace_summary(metadata, mode="teach"), metadata
+) -> tuple[str, str, dict[str, Any], str | None, str]:
+    answer = learner_answer.strip()
+    try:
+        clean_topic = _require_topic(topic)
+        clean_style = _coerce_choice(style, STYLE_CHOICES, "style")
+        clean_lens = _coerce_choice(track_lens, TRACK_LENS_CHOICES, "track lens")
+        entry = TEACH_UI_SESSIONS.get(state_token or "")
+
+        if not _teach_state_matches(
+            entry,
+            clean_topic=clean_topic,
+            clean_style=clean_style,
+            clean_lens=clean_lens,
+        ):
+            _finish_teach_state(state_token)
+            session = _new_teach_session(
+                clean_topic=clean_topic,
+                clean_style=clean_style,
+                clean_lens=clean_lens,
+                user_email=_request_username(request),
+            )
+            result = session.start()
+            state_token = uuid.uuid4().hex
+            entry = {
+                "session": session,
+                "topic": clean_topic,
+                "style": clean_style,
+                "track_lens": clean_lens,
+                "sections": [
+                    "_Active teach cycle: answer the check below, then run again to continue "
+                    "the same session._",
+                    "",
+                    *_teach_turn_sections(
+                        session=session,
+                        result=result,
+                        heading="Turn 1 - Initial teach and check",
+                        check_label="Check asked",
+                    ),
+                ],
+                "decision_observations": {},
+                "decision_sources": {},
+                "last_result": result,
+            }
+            _record_teach_decision(entry, result)
+            TEACH_UI_SESSIONS[state_token] = entry
+        else:
+            session = entry["session"]
+            result = entry["last_result"]
+
+        if answer and _teach_can_accept_answer(result):
+            session = entry["session"]
+            result = session.respond(answer)
+            entry["last_result"] = result
+            turn = result.profile.turn_count
+            entry["sections"].extend(
+                [
+                    "",
+                    f"### Learner answer for Turn {turn - 1}",
+                    _markdown_blockquote(answer),
+                    "",
+                    *_teach_turn_sections(
+                        session=session,
+                        result=result,
+                        heading=(
+                            f"Turn {turn} - Coach response "
+                            f"({_teach_action_label(result.response.next_action)})"
+                        ),
+                        check_label="Next check",
+                    ),
+                ]
+            )
+            _record_teach_decision(entry, result)
+            if not _teach_can_accept_answer(result):
+                session.finish()
+                TEACH_UI_SESSIONS.pop(state_token or "", None)
+                state_token = None
+        elif answer:
+            entry["sections"].extend(
+                [
+                    "",
+                    "### Learner answer not scored",
+                    _markdown_blockquote(answer),
+                    "",
+                    _teach_no_pending_answer_note(result),
+                ]
+            )
+            entry["session"].finish()
+            TEACH_UI_SESSIONS.pop(state_token or "", None)
+            state_token = None
+        elif not _teach_can_accept_answer(result):
+            if entry.get("awaiting_answer_note") is None:
+                entry["sections"].extend(["", _teach_no_pending_answer_note(result)])
+                entry["awaiting_answer_note"] = True
+            entry["session"].finish()
+            TEACH_UI_SESSIONS.pop(state_token or "", None)
+            state_token = None
+        else:
+            if entry.get("awaiting_answer_note") is None:
+                entry["sections"].extend(
+                    [
+                        "",
+                        "_Paste a learner answer, then run again. The next click will respond "
+                        "to this check instead of starting over._",
+                    ]
+                )
+                entry["awaiting_answer_note"] = True
+
+        metadata = _teach_metadata(
+            session=entry["session"],
+            result=result,
+            decision_observations=entry.get("decision_observations", {}),
+            decision_sources=entry.get("decision_sources", {}),
+        )
+        return (
+            "\n".join(entry["sections"]),
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            state_token,
+            "",
+        )
+    except UserInputError as exc:
+        metadata = {"status": "invalid_input"}
+        return (
+            str(exc),
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            state_token,
+            answer,
+        )
+    except Exception as exc:
+        output, metadata = _error_payload(exc)
+        return output, _format_trace_summary(metadata, mode="teach"), metadata, state_token, answer
 
 
 def run_quiz_ui(
@@ -1733,6 +2024,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                 )
         if status_message is not None:
             gr.Markdown(status_message, elem_classes=["gc-deploy-note"])
+        teach_state = gr.State(None)
         with gr.Accordion("Evidence fallback", open=False, elem_classes=["gc-fallback"]):
             gr.Markdown(
                 "If a live provider call is slow during recording, use the committed redacted "
@@ -1749,8 +2041,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             <p class="gc-eyebrow">Teach session</p>
                             <h2 class="gc-panel-title">Coach the learner</h2>
                             <p class="gc-panel-copy">
-                              Pick a known demo path, run the teach loop, then inspect the runtime
-                              decision trace.
+                              Pick a demo path, start Turn 1, then paste a learner answer to
+                              continue the same teach cycle.
                             </p>
                             <div class="gc-mode-card">
                               <strong>Safety posture</strong>
@@ -1773,7 +2065,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 elem_classes=["gc-preset-button"],
                             )
                             teach_button = gr.Button(
-                                "Run teach",
+                                "Run teach cycle",
                                 elem_classes=["gc-run-button"],
                             )
                         with gr.Row():
@@ -1821,19 +2113,25 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 elem_classes=["gc-json"],
                             )
                 grounded_preset.click(
-                    fn=fill_teach_grounded_preset,
-                    inputs=[],
-                    outputs=[teach_topic, style, track_lens, learner_answer],
+                    fn=fill_teach_grounded_preset_ui,
+                    inputs=[teach_state],
+                    outputs=[teach_topic, style, track_lens, learner_answer, teach_state],
                 )
                 refusal_preset.click(
-                    fn=fill_teach_refusal_preset,
-                    inputs=[],
-                    outputs=[teach_topic, style, track_lens, learner_answer],
+                    fn=fill_teach_refusal_preset_ui,
+                    inputs=[teach_state],
+                    outputs=[teach_topic, style, track_lens, learner_answer, teach_state],
                 )
                 teach_button.click(
                     fn=run_teach_ui,
-                    inputs=[teach_topic, style, track_lens, learner_answer],
-                    outputs=[teach_output, teach_trace_summary, teach_metadata],
+                    inputs=[teach_topic, style, track_lens, learner_answer, teach_state],
+                    outputs=[
+                        teach_output,
+                        teach_trace_summary,
+                        teach_metadata,
+                        teach_state,
+                        learner_answer,
+                    ],
                 )
 
             with gr.Tab("Quiz"):

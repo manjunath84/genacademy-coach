@@ -48,6 +48,7 @@ from genacademy_coach.web.gradio_app import (
     run_quiz_session,
     run_skillgap_session,
     run_teach_session,
+    run_teach_ui,
     safe_trace_rows,
     score_generated_quiz_ui,
 )
@@ -428,6 +429,13 @@ def test_input_helpers_return_specific_safe_errors():
 def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries():
     assert fill_teach_grounded_preset() == TEACH_GROUNDED_PRESET
     assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
+    assert gradio_app.fill_teach_grounded_preset_ui(None) == (
+        TEACH_GROUNDED_PRESET[0],
+        TEACH_GROUNDED_PRESET[1],
+        TEACH_GROUNDED_PRESET[2],
+        "",
+        None,
+    )
     assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
     assert fill_skillgap_preset() == SKILLGAP_SOURCE_PRESET
     assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", True)
@@ -682,6 +690,198 @@ def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, mon
     assert metadata["trace"][0]["decision_source"] == "python safety gate"
     assert r"\#\#\# \*\*Python gate\*\*" in _format_trace_summary(metadata, mode="teach")
     assert "member@example.com" not in serialized
+
+
+def test_run_teach_ui_continues_pending_turn_after_manual_answer(tmp_path, monkeypatch):
+    trace_path = tmp_path / "teach-ui.jsonl"
+    seen = {"sessions": [], "answers": []}
+
+    def append_trace(turn: int, action: str) -> None:
+        with trace_path.open("a", encoding="utf-8") as fh:
+            fh.write(
+                json.dumps(
+                    {
+                        "session_id": "s1",
+                        "turn": turn,
+                        "topic_hash": "topic123",
+                        "learner_input_hash": f"input{turn}",
+                        "next_action": action,
+                        "strategy": "analogy" if turn == 1 else "contrastive_example",
+                        "evidence_score": 0.91,
+                        "evidence_band": "proceed",
+                        "faithfulness_ok": True,
+                        "retrieved_citation_ids": ["note/agent::0"],
+                        "retrieved_citation_labels": ["Week 1 Session 1 (page 37)"],
+                        "tool_calls": ["retrieve_course_corpus"],
+                    }
+                )
+                + "\n"
+            )
+
+    class FakeCoachSession:
+        def __init__(self, **kwargs):
+            seen["sessions"].append(kwargs["session_id"])
+            self.session_id = "s1"
+            self.profile = kwargs["profile"]
+            self.user_id_hash = kwargs["user_id_hash"]
+            self.memory = SimpleNamespace(provider="null")
+            self._memory_written = False
+            self.finished = False
+
+        def start(self):
+            self.profile.turn_count = 1
+            append_trace(1, "drill")
+            return SimpleNamespace(
+                session_id="s1",
+                profile=self.profile,
+                response=SimpleNamespace(
+                    learner_message="Initial grounded teaching.",
+                    observation="first turn generated a check",
+                    _decision_source="agent",
+                    next_action="drill",
+                    check_question="What is an Agent Harness?",
+                ),
+                trace_path=str(trace_path),
+            )
+
+        def respond(self, answer):
+            seen["answers"].append(answer)
+            self.profile.turn_count = 2
+            append_trace(2, "re_explain_differently")
+            return SimpleNamespace(
+                session_id="s1",
+                profile=self.profile,
+                response=SimpleNamespace(
+                    learner_message="Here is a different grounded explanation.",
+                    observation="learner answer missed required control details",
+                    _decision_source="python safety gate",
+                    next_action="re_explain_differently",
+                    check_question="What does the harness control?",
+                ),
+                trace_path=str(trace_path),
+            )
+
+        def finish(self):
+            self.finished = True
+
+    monkeypatch.setattr(
+        gradio_app,
+        "_runtime",
+        lambda: (SimpleNamespace(memory_user_salt=None), object()),
+    )
+    monkeypatch.setattr(gradio_app, "CoachSession", FakeCoachSession)
+    gradio_app.TEACH_UI_SESSIONS.clear()
+
+    first_output, _, first_metadata, state_token, cleared = run_teach_ui(
+        "agent harness",
+        "analogy",
+        "code_heavy",
+        "",
+    )
+    second_output, _, second_metadata, second_state_token, second_cleared = run_teach_ui(
+        "agent harness",
+        "analogy",
+        "code_heavy",
+        "### **An Agent Harness is just a prompt template.**",
+        state_token,
+    )
+
+    assert state_token
+    assert second_state_token == state_token
+    assert cleared == ""
+    assert second_cleared == ""
+    assert len(seen["sessions"]) == 1
+    assert seen["sessions"][0].startswith("hf-teach-")
+    assert seen["answers"] == ["### **An Agent Harness is just a prompt template.**"]
+    assert "Turn 1 - Initial teach and check" in first_output
+    assert "Paste a learner answer" in first_output
+    assert "Learner answer for Turn 1" in second_output
+    assert r"\#\#\# \*\*An Agent Harness is just a prompt template.\*\*" in second_output
+    assert "Turn 2 - Coach response (re-explain differently)" in second_output
+    assert "Here is a different grounded explanation." in second_output
+    assert second_output.index("Turn 1 - Initial teach and check") < second_output.index(
+        "Learner answer for Turn 1"
+    )
+    assert second_output.index("Learner answer for Turn 1") < second_output.index(
+        "Turn 2 - Coach response"
+    )
+    assert first_metadata["profile"]["turn_count"] == 1
+    assert second_metadata["profile"]["turn_count"] == 2
+    assert second_metadata["trace"][1]["next_action"] == "re_explain_differently"
+    assert second_metadata["trace"][1]["decision_source"] == "python safety gate"
+
+
+def test_run_teach_ui_does_not_keep_pending_state_without_check(tmp_path, monkeypatch):
+    trace_path = tmp_path / "teach-ui-refusal.jsonl"
+    seen = {"finished": False}
+    trace_path.write_text(
+        json.dumps(
+            {
+                "session_id": "s1",
+                "turn": 1,
+                "topic_hash": "topic123",
+                "learner_input_hash": "input1",
+                "next_action": "refuse_escalate",
+                "strategy": "refusal",
+                "evidence_score": 0.0,
+                "evidence_band": "stop",
+                "faithfulness_ok": None,
+                "retrieved_citation_ids": [],
+                "retrieved_citation_labels": [],
+                "tool_calls": ["retrieve_course_corpus"],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class FakeCoachSession:
+        def __init__(self, **kwargs):
+            self.session_id = "s1"
+            self.profile = kwargs["profile"]
+            self.user_id_hash = kwargs["user_id_hash"]
+            self.memory = SimpleNamespace(provider="null")
+            self._memory_written = False
+
+        def start(self):
+            self.profile.turn_count = 1
+            return SimpleNamespace(
+                session_id="s1",
+                profile=self.profile,
+                response=SimpleNamespace(
+                    learner_message="I can't find this in the course materials.",
+                    observation="no citeable course corpus found",
+                    _decision_source="python safety gate",
+                    next_action="refuse_escalate",
+                    check_question=None,
+                ),
+                trace_path=str(trace_path),
+            )
+
+        def finish(self):
+            seen["finished"] = True
+
+    monkeypatch.setattr(
+        gradio_app,
+        "_runtime",
+        lambda: (SimpleNamespace(memory_user_salt=None), object()),
+    )
+    monkeypatch.setattr(gradio_app, "CoachSession", FakeCoachSession)
+    gradio_app.TEACH_UI_SESSIONS.clear()
+
+    output, _, metadata, state_token, _ = run_teach_ui(
+        "agent harness",
+        "analogy",
+        "code_heavy",
+        "",
+    )
+
+    assert "Turn 1 - Initial teach and check" in output
+    assert "stopped before creating a learner check" in output
+    assert "Paste a learner answer" not in output
+    assert state_token is None
+    assert seen["finished"] is True
+    assert metadata["trace"][0]["next_action"] == "refuse_escalate"
 
 
 def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
@@ -1407,7 +1607,8 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "Skill-Gap" in app_text
     assert "Admin" in app_text
     assert "Demo traces" in app_text
-    assert "run the teach loop" in app_text
+    assert "continue the same teach cycle" in app_text
+    assert "Run teach cycle" in app_text
     assert "Sign out" in app_text
     assert "GENACADEMY_COACH_CSS" in app_text
     assert "css=GENACADEMY_COACH_CSS" in app_text
