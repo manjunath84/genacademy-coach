@@ -19,6 +19,17 @@ QUESTION_PREFIX_RE = re.compile(r"^\s*(?:[-*]|\d+[.)])\s*")
 DEFAULT_WRONG_ANSWER = "I am not sure; I think it just memorizes previous tokens."
 
 
+def load_local_env() -> None:
+    env_path = Path(__file__).resolve().parents[1] / ".env"
+    if not env_path.exists():
+        return
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv(env_path, override=False)
+
+
 def load_manifest_items(manifest_path: Path, *, split: str) -> list[dict[str, str]]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     return [item for item in manifest["items"] if item["split"] == split]
@@ -237,6 +248,7 @@ def score_scenario(
 
 
 def main() -> None:
+    load_local_env()
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", default="dev", choices=["seed", "dev", "test"])
     parser.add_argument("--limit", type=int, default=10)

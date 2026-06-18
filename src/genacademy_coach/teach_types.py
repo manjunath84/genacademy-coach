@@ -83,10 +83,12 @@ class CoachAgentResponse(BaseModel):
 
 
 class TraceTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     session_id: str
     turn: int
-    learner_input: str
-    observation: str
+    topic_hash: str
+    learner_input_hash: str
     next_action: NextAction
     strategy: Strategy
     evidence_score: float
@@ -94,7 +96,6 @@ class TraceTurn(BaseModel):
     faithfulness_ok: bool | None = None
     retrieved_citation_ids: list[str]
     tool_calls: list[str]
-    learner_message: str
 
 
 class TeachSessionResult(BaseModel):

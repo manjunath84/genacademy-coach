@@ -63,8 +63,10 @@ CORPUS_STATUS_UNAVAILABLE_MESSAGE = (
 DEFAULT_LOCAL_SERVER_NAME = "127.0.0.1"
 
 SAFE_TEACH_TRACE_FIELDS = (
+    "session_id",
     "turn",
-    "observation",
+    "topic_hash",
+    "learner_input_hash",
     "next_action",
     "strategy",
     "evidence_score",
@@ -820,6 +822,11 @@ def _format_trace_summary(
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [
+                ("Topic", f"<code>{escape(str(row.get('topic_hash', 'unknown')))}</code>"),
+                (
+                    "Input",
+                    f"<code>{escape(str(row.get('learner_input_hash', 'unknown')))}</code>",
+                ),
                 ("Strategy", f"<code>{escape(str(row.get('strategy', 'unknown')))}</code>"),
                 ("Faithful", _format_bool(row.get("faithfulness_ok", "unknown"))),
                 (

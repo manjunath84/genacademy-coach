@@ -51,6 +51,8 @@ class CoachSettings:
     stop_threshold: float = DEFAULT_STOP_THRESHOLD
     confirm_threshold: float = DEFAULT_CONFIRM_THRESHOLD
     max_teach_turns: int = 4
+    mem0_api_key: str | None = None
+    memory_user_salt: str | None = None
 
     @classmethod
     def from_env(cls) -> CoachSettings:
@@ -103,4 +105,6 @@ class CoachSettings:
                 )
             ),
             max_teach_turns=int(os.environ.get("GENACADEMY_COACH_MAX_TURNS", "4")),
+            mem0_api_key=os.environ.get("MEM0_API_KEY") or None,
+            memory_user_salt=os.environ.get("GENACADEMY_COACH_MEMORY_USER_SALT") or None,
         )

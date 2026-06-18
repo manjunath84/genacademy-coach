@@ -208,7 +208,10 @@ def test_escalation_tool_writes_review_queue(tmp_path):
     payload = escalate_tool.invoke({"reason": "no supporting span"})
 
     assert json.loads(payload)["queued"] is True
-    assert "no supporting span" in (tmp_path / "review_queue.jsonl").read_text(encoding="utf-8")
+    row = json.loads((tmp_path / "review_queue.jsonl").read_text(encoding="utf-8"))
+    assert row["reason"] == "no supporting span"
+    assert "topic_hash" in row
+    assert "topic" not in row
 
 
 def test_escalation_tool_is_idempotent_within_turn(tmp_path):

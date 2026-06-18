@@ -9,6 +9,7 @@ from typing import Any
 
 from genacademy_coach.escalation import append_review_queue
 from genacademy_coach.grounding import evidence_band, evidence_score, require_citeable_spans
+from genacademy_coach.privacy import topic_hash
 from genacademy_coach.skillgap_types import SkillGapItem, SkillGapReport, SkillGapTraceRow
 from genacademy_coach.teach_types import RetrievedSpan
 
@@ -255,7 +256,9 @@ class SkillGapSession:
             append_review_queue(
                 self.settings.review_queue_path,
                 session_id=self.session_id,
-                topic=gap.gap_id,
+                topic_hash=gap.topic_hash
+                if gap.topic_hash
+                else topic_hash(gap.gap_id),
                 reason=NO_CITEABLE_SKILL_GAP_REVIEW,
                 score=score,
                 citation_ids=[],

@@ -1,6 +1,6 @@
 # Roadmap
 
-Status updated: 2026-06-17.
+Status updated: 2026-06-18.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
@@ -36,8 +36,8 @@ split remains unused until final evaluation/reporting.
   teachable on 2026-06-16, with two safe low-retrieval refusals and one conservative confirm-band
   escalation path. The held-out `test` split was not used.
 - **Same-topic lens switching shipped.** The learner can switch among low-code/no-code, code-heavy, and
-  bridge teaching lenses for the same topic. Current personalization is a switchable teaching lens plus
-  within-session profile state, not cross-session clustering or provider-backed memory.
+  bridge teaching lenses for the same topic. The default personalization path is still a switchable
+  teaching lens plus within-session profile state.
 - **Grounded Quiz Mode shipped.** The first pull-in generates up to three cited MCQs from retrieved
   spans, validates grounding, grades selected option IDs deterministically in Python, refuses/escalates
   when retrieval is not citeable, and writes a typed redacted quiz trace.
@@ -54,6 +54,11 @@ split remains unused until final evaluation/reporting.
   trace rows, review-queue events, retrieval, grounding, and typed redacted traces. It produces a cited
   next-step plan or refuses/escalates if no citeable span exists; it does not add LLM mastery grading,
   memory, a second agent loop, or direct `langgraph.*` imports.
+- **Privacy-first memory slice shipped.** Teach traces and review queues persist hashes instead of raw
+  topics, learner inputs, observations, or generated tutor text. Optional Mem0 episodic memory is
+  implemented behind `MEM0_API_KEY` plus `GENACADEMY_COACH_MEMORY_USER_SALT`; if either is absent, the
+  no-op provider is used. Memory stores only style/lens/count/topic-hash learner-state and never feeds
+  citations, retrieval input, grading, or refusal decisions.
 - **Portfolio cleanup completed.** Submission-specific documents and screenshots are local-only under
   ignored `localdocs/`; the public repository keeps stable product, architecture, safety, and verification
   docs.
@@ -101,8 +106,9 @@ This list is future-only; shipped pull-ins stay in Done.
    auth/upload patterns only after a privacy review.
 3. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth.
 4. **Track-aware retrieval** — corpus tagged by track if measured retrieval gaps justify it.
-5. **Cross-session memory** — evaluate first-party persisted profile, LangMem, Mem0 open source, and
-   Zep Cloud. Memory may personalize style/struggle history, but course facts still require citations.
+5. **Memory hardening for cohort rollout** — decide retention, deletion, admin visibility, and whether
+   Mem0 managed storage remains the right provider. Memory may personalize style/struggle history, but
+   course facts still require citations.
 6. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
    coordination outgrow `create_agent`.
 7. **Caching and model tiering** — latency/cost optimization after behavior is stable.
@@ -113,8 +119,9 @@ This list is future-only; shipped pull-ins stay in Done.
 
 ## North Star
 
-A full adaptive tutor that teaches, tests, interviews, remembers learner preferences across sessions,
-adapts by track, supports voice/multimodal interaction, and remains grounded in citeable course material.
+A full adaptive tutor that teaches, tests, interviews, remembers safe learner preferences across
+sessions, adapts by track, supports voice/multimodal interaction, and remains grounded in citeable course
+material.
 
 ## Risk Caps
 
@@ -127,13 +134,14 @@ adapts by track, supports voice/multimodal interaction, and remains grounded in 
 - **Threshold tuning.** Tune only on seed/dev plus non-private negative controls.
 - **Scope control.** Teach loop is the committed core; pull-ins must reuse the grounded core unless a
   reviewed plan proves otherwise.
-- **Memory privacy.** Cross-session memory can store learner preferences and struggle patterns, not raw
-  private corpus/eval text or uncited course claims.
+- **Memory privacy.** Cross-session memory can store learner preferences, counts, and topic hashes, not
+  raw user IDs/emails, learner answers, generated tutor text, private corpus/eval text, retrieved spans,
+  quiz prompts/options/rationales, or uncited course claims.
 - **LangGraph scope.** Direct graph/checkpointer/store imports are future architecture. They need a
   written delta against the current `create_agent` boundary before code.
 
 ## Cut Order If Slipping
 
-voice -> explicit LangGraph -> cross-session memory -> admin upload -> multimodal -> flashcards ->
+voice -> explicit LangGraph -> memory hardening -> admin upload -> multimodal -> flashcards ->
 caching -> track-aware retrieval -> interview -> **never the grounded teach loop** -> **never the
 refusal / eval / trace path**.

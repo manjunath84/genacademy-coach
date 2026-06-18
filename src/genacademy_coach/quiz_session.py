@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -9,6 +8,7 @@ from pydantic import ValidationError
 
 from genacademy_coach.escalation import append_review_queue
 from genacademy_coach.grounding import evidence_band, evidence_score, require_citeable_spans
+from genacademy_coach.privacy import topic_hash
 from genacademy_coach.quiz_items import generate_quiz_question
 from genacademy_coach.quiz_trace import QuizTraceWriter
 from genacademy_coach.quiz_types import (
@@ -34,10 +34,6 @@ def _span_from_row(row: dict[str, Any]) -> RetrievedSpan:
         source_type=str(row["source_type"]),
         page_or_section=row.get("page_or_section"),
     )
-
-
-def topic_hash(topic: str) -> str:
-    return hashlib.sha256(topic.encode("utf-8")).hexdigest()[:12]
 
 
 @dataclass
@@ -133,7 +129,7 @@ class QuizSession:
         append_review_queue(
             self.settings.review_queue_path,
             session_id=self.session_id,
-            topic=self.topic,
+            topic_hash=topic_hash(self.topic),
             reason=reason,
             score=score,
             citation_ids=cited,

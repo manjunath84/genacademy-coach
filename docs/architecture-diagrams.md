@@ -4,8 +4,9 @@
 > privacy boundaries.
 > **Status:** shipped/planned map. The CLI + local Gradio teach/quiz/Skill-Gap surfaces are shipped.
 > The private Hugging Face Space is
-> a live deployment shell with no private corpus uploaded.
-> Direct voice, admin upload, cross-session memory, and mock interview remain planned pull-ins.
+> a live deployment shell with no private corpus/index uploaded.
+> Optional cross-session memory is shipped off by default for safe learner-state only; direct voice,
+> admin upload, and mock interview remain planned pull-ins.
 > The constitution (`../AGENTS.md`, `../specs/*`, `docs/decisions.md`) is canonical.
 
 ## The Spine
@@ -24,7 +25,7 @@
 | **Where used** | Local Gradio web chat and CLI for teach/quiz/Skill-Gap; Hugging Face shell for deployment proof; ElevenLabs voice is a later pull-in over the same engine. |
 | **Steps** | teach: intake -> retrieve -> explain -> check -> grade -> runtime decide -> update profile -> loop/report. Quiz and Skill-Gap compose the same retrieval, grounding, trace, and refusal primitives. |
 | **Tools** | Teach tools: `retrieve_course_corpus` (READ), `generate_check_item` (Nebius), `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` (WRITE/HITL). Deterministic pull-ins reuse the same retrieval, grading, trace, and review-queue primitives. |
-| **State** | Within-session learner profile: style, track lens, optional bridge source, known, struggled, coverage, turn budget, transcript. |
+| **State** | Within-session learner profile plus optional off-by-default memory for style/lens/topic-hash state. Memory never supplies facts, citations, grading, or refusal decisions. |
 | **Never do** | Answer from model priors, fabricate citations, index held-out eval questions, or silently skip failure handling. |
 | **HITL** | Refuse and write a review-queue entry when confidence is low, evidence is missing, or the learner flags an issue. |
 | **Failure handling** | Retry/tool validation, confidence thresholds, source fallback, human escalation, stop/progress guard. |
@@ -279,23 +280,29 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph Session["MVP: within-session profile"]
+    subgraph Session["Session profile"]
         Style["style"]
         Track["track_lens"]
         Bridge["bridge_from"]
         Known["known[]"]
         Struggled["struggled[]"]
         Coverage["coverage + turn budget"]
-        Transcript["transcript"]
+        Transcript["live transcript\nnot persisted in memory"]
+    end
+
+    subgraph Optional["Optional memory: off by default"]
+        Mem0["Mem0 adapter\nsafe state only"]
+        Hashes["user_id_hash\ntopic_hashes\ncounts"]
     end
 
     subgraph Later["Pull-ins"]
-        Mem0["cross-session memory"]
         Voice["ElevenLabs voice"]
         Admin["admin uploads"]
     end
 
-    Session -. promote after MVP .-> Later
+    Session --> Optional
+    Optional -. never grounding .-> Session
+    Session -. future surfaces .-> Later
 ```
 
 ## 10. Corpus and Eval Boundary
@@ -328,10 +335,10 @@ flowchart LR
     MVP["SHIPPED: text teach loop\nCLI + local Gradio"]
     MVP --> Quiz["SHIPPED PULL-IN: quiz mode"]
     Quiz --> SkillGap["SHIPPED CORE: skill-gap diagnosis\nCLI + PR #28 local Gradio"]
+    MVP --> Memory["SHIPPED OFF BY DEFAULT:\nprivacy-first memory"]
     SkillGap --> Interview["ROADMAP: mock interview\nopen answer -> cited grading -> follow-up -> report"]
     MVP --> Admin["ROADMAP: admin upload"]
     MVP --> Voice["ROADMAP: ElevenLabs voice"]
-    MVP --> Memory["ROADMAP: cross-session memory"]
 
     style MVP fill:#EAFF00,stroke:#0F1419,stroke-width:2px
 ```
@@ -342,7 +349,7 @@ flowchart LR
 |---|---|
 | Multi-step task | Teach loop from intake through report. |
 | Tools | Retriever, Nebius item generation, grader, profile update, trace writer, escalation. |
-| State | Within-session profile. |
+| State | Within-session profile plus optional off-by-default safe memory. |
 | Human-in-the-loop | Refusal + review queue. |
 | Tool failure / recovery | Retry, validation, fallback, confidence bands, escalation, stop guard. |
 | How it worked | Dev eval, redacted traces, local UI screenshots, Skill-Gap evidence, and honest numbers; held-out `test` remains unused. |

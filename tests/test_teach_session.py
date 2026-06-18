@@ -4,6 +4,7 @@ from typing import get_args
 import pytest
 
 from genacademy_coach.escalation import append_review_queue
+from genacademy_coach.privacy import topic_hash
 from genacademy_coach.teach_session import (
     FALLBACK_STRATEGIES,
     AgentResponseError,
@@ -118,6 +119,50 @@ def test_session_start_writes_trace_with_retrieval_evidence(tmp_path):
     rows = load_trace(Path(result.trace_path))
     assert rows[0].evidence_score == 0.91
     assert rows[0].evidence_band == "proceed"
+
+
+def test_teach_trace_contains_hashes_and_no_raw_private_text(tmp_path):
+    private_topic = "PRIVATE RAW TOPIC"
+    private_answer = "PRIVATE LEARNER ANSWER"
+    private_message = "PRIVATE GENERATED TUTOR MESSAGE"
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention highlights relevant context. [note/attention::0]",
+            observation=private_message,
+            next_action="drill",
+            strategy="analogy",
+            citation_ids=["note/attention::0"],
+        ),
+        CoachAgentResponse(
+            learner_message="Attention highlights relevant context. [note/attention::0]",
+            observation=private_message,
+            next_action="re_explain_differently",
+            strategy="contrastive_example",
+            citation_ids=["note/attention::0"],
+        ),
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic=private_topic,
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.start()
+
+    result = session.respond(private_answer)
+
+    serialized = Path(result.trace_path).read_text(encoding="utf-8")
+    rows = [row.model_dump() for row in load_trace(Path(result.trace_path))]
+    assert all("topic_hash" in row for row in rows)
+    assert all("learner_input_hash" in row for row in rows)
+    assert private_topic not in serialized
+    assert private_answer not in serialized
+    assert private_message not in serialized
+    assert '"learner_input":' not in serialized
+    assert "learner_message" not in serialized
 
 
 def test_session_rejects_citation_id_not_seen_in_retrieval(tmp_path):
@@ -759,7 +804,7 @@ def test_session_does_not_duplicate_review_queue_after_tool_escalation(tmp_path)
             append_review_queue(
                 self.runtime.review_queue_path,
                 session_id=self.runtime.session_id,
-                topic=self.runtime.topic,
+                topic_hash=topic_hash(self.runtime.topic),
                 reason="tool escalation",
                 score=self.runtime.current_evidence_score(),
                 citation_ids=[],

@@ -79,6 +79,8 @@ def test_quiz_session_refuses_low_retrieval_and_writes_review_queue(tmp_path):
     assert result.refusal_reason == NO_CITEABLE_QUIZ_CORPUS
     review_row = json.loads((tmp_path / "review_queue.jsonl").read_text(encoding="utf-8"))
     assert review_row["reason"] == NO_CITEABLE_QUIZ_CORPUS
+    assert "topic_hash" in review_row
+    assert "topic" not in review_row
     trace_row = json.loads(Path(result.trace_path).read_text(encoding="utf-8"))
     assert trace_row["refusal_reason"] == NO_CITEABLE_QUIZ_CORPUS
     assert trace_row["evidence_score"] == 0.2
@@ -222,6 +224,8 @@ def test_quiz_session_refuses_when_all_generated_items_are_invalid(tmp_path, mon
     assert result.questions == []
     review_row = json.loads((tmp_path / "review_queue.jsonl").read_text(encoding="utf-8"))
     assert review_row["reason"] == NO_GROUNDED_QUIZ_ITEMS
+    assert "topic_hash" in review_row
+    assert "topic" not in review_row
 
 
 def test_quiz_session_refuses_partial_generation_instead_of_grading_mismatch(
