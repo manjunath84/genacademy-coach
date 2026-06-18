@@ -253,7 +253,7 @@ def test_error_payload_logs_trace_and_returns_redacted_error_id(caplog):
     assert metadata["error_id"] in message
     assert "failed closed" in message
     assert "hard-refresh" in message
-    assert "approved Chroma index" in message
+    assert "approved vector index" in message
     assert private_value not in message
     assert private_value not in json.dumps(metadata)
     assert private_value in caplog.text
@@ -266,14 +266,11 @@ def test_space_status_message_explains_empty_corpus_without_private_data(
     private_value = "PRIVATE_CORPUS_PATH_OR_TEXT"
 
     class EmptyStore:
-        def __init__(self, **kwargs):
-            self.kwargs = kwargs
-
         def get_all_chunks(self):
             return []
 
     monkeypatch.setenv("GENACADEMY_COACH_DATA_DIR", str(tmp_path / private_value))
-    monkeypatch.setattr(gradio_app, "ChromaStore", EmptyStore)
+    monkeypatch.setattr(gradio_app, "build_course_vectorstore", lambda settings: EmptyStore())
 
     message = _space_status_message()
 
@@ -283,14 +280,11 @@ def test_space_status_message_explains_empty_corpus_without_private_data(
 
 def test_space_status_message_omits_banner_when_corpus_exists(tmp_path, monkeypatch):
     class NonEmptyStore:
-        def __init__(self, **kwargs):
-            self.kwargs = kwargs
-
         def get_all_chunks(self):
             return [object()]
 
     monkeypatch.setenv("GENACADEMY_COACH_DATA_DIR", str(tmp_path))
-    monkeypatch.setattr(gradio_app, "ChromaStore", NonEmptyStore)
+    monkeypatch.setattr(gradio_app, "build_course_vectorstore", lambda settings: NonEmptyStore())
 
     assert _space_status_message() is None
 
@@ -640,6 +634,9 @@ def test_hf_deploy_upload_allow_list_excludes_private_data():
     assert "eval/**" in serialized_ignore
     assert "scripts/space_startup_check.py" in module.ALLOW_PATTERNS
     assert module.SPACE_VARIABLES["GENACADEMY_EMBED_DIM"] == "384"
+    assert module.SPACE_VARIABLES["GENACADEMY_VECTORSTORE"] == "pinecone"
+    assert module.SPACE_VARIABLES["GENACADEMY_PINECONE_INDEX"] == "genacademy-coach"
+    assert module.SPACE_VARIABLES["GENACADEMY_COACH_COLLECTION"] == "coach_course"
 
 
 def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
@@ -670,6 +667,7 @@ def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
     monkeypatch.setattr(module, "HfApi", lambda token: fake)
     monkeypatch.setenv("HF_TOKEN", "token")
     monkeypatch.delenv("NEBIUS_API_KEY", raising=False)
+    monkeypatch.delenv("PINECONE_API_KEY", raising=False)
     monkeypatch.delenv("GENACADEMY_HF_FACTORY_REBOOT", raising=False)
 
     module.main()
@@ -679,6 +677,47 @@ def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "factory_reboot=False" in out
     assert "secret_NEBIUS_API_KEY=skipped" in out
+    assert "secret_PINECONE_API_KEY=skipped" in out
+
+
+def test_hf_deploy_uploads_provider_and_vectorstore_secrets(monkeypatch, capsys):
+    module = load_deploy_script()
+
+    class FakeApi:
+        def __init__(self, token):
+            self.token = token
+            self.secrets = []
+
+        def create_repo(self, **kwargs):
+            return "https://huggingface.co/spaces/Manjunath84/genacademy-coach"
+
+        def add_space_variable(self, *args, **kwargs):
+            pass
+
+        def add_space_secret(self, *args, **kwargs):
+            self.secrets.append(args)
+
+        def upload_folder(self, **kwargs):
+            return SimpleNamespace(oid="abc123")
+
+        def restart_space(self, repo_id, *, factory_reboot):
+            pass
+
+    fake = FakeApi("token")
+    monkeypatch.setattr(module, "HfApi", lambda token: fake)
+    monkeypatch.setenv("HF_TOKEN", "token")
+    monkeypatch.setenv("NEBIUS_API_KEY", "nebius-secret")
+    monkeypatch.setenv("PINECONE_API_KEY", "pinecone-secret")
+
+    module.main()
+
+    assert ("Manjunath84/genacademy-coach", "NEBIUS_API_KEY", "nebius-secret") in fake.secrets
+    assert ("Manjunath84/genacademy-coach", "PINECONE_API_KEY", "pinecone-secret") in fake.secrets
+    out = capsys.readouterr().out
+    assert "secret_NEBIUS_API_KEY=set" in out
+    assert "secret_PINECONE_API_KEY=set" in out
+    assert "nebius-secret" not in out
+    assert "pinecone-secret" not in out
 
 
 def test_hf_deploy_factory_reboot_is_explicit_opt_in(monkeypatch):

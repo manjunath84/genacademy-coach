@@ -9,9 +9,7 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from genacademy_rag.core.vectorstore import ChromaStore
-
-from genacademy_coach.foundation import Foundation
+from genacademy_coach.foundation import Foundation, build_course_vectorstore
 from genacademy_coach.quiz_session import QuizSession
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.skillgap_session import SkillGapSession, validate_skillgap_session_id
@@ -55,8 +53,8 @@ DEMO_PRESET_TOPICS = frozenset(
 )
 EMPTY_CORPUS_STATUS_MESSAGE = (
     "**Deployment shell:** no approved corpus/index is loaded in this Space. "
-    "Teach and quiz requests will safely refuse until an approved Chroma index "
-    "is available under `/data/chroma`; see the recorded demo for grounded behavior."
+    "Teach and quiz requests will safely refuse until an approved vector index "
+    "is available for the active backend; see the recorded demo for grounded behavior."
 )
 CORPUS_STATUS_UNAVAILABLE_MESSAGE = (
     "**Deployment status:** corpus status could not be checked. The app fails closed "
@@ -929,7 +927,7 @@ def _runtime() -> tuple[CoachSettings, Foundation]:
 
 
 def _corpus_chunk_count(settings: CoachSettings) -> int:
-    store = ChromaStore(persist_dir=settings.chroma_dir, collection=settings.course_collection)
+    store = build_course_vectorstore(settings)
     return len(store.get_all_chunks())
 
 
@@ -960,7 +958,7 @@ def _error_payload(exc: Exception) -> tuple[str, dict[str, Any]]:
     return (
         "This run failed closed before showing generated or corpus-derived text. "
         "For a local recording, restart the app, hard-refresh the browser, and confirm "
-        f"the provider key plus approved Chroma index are loaded. Error ID: {error_id}.",
+        f"the provider key plus approved vector index are loaded. Error ID: {error_id}.",
         {"status": "error", "error_id": error_id},
     )
 

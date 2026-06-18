@@ -134,3 +134,54 @@ def test_all_artifact_paths_are_under_data_dir(tmp_path, monkeypatch):
     assert Path(foundation.rag_settings.chroma_dir).resolve().is_relative_to(settings.data_dir)
     assert Path(foundation.rag_settings.sqlite_path).resolve().is_relative_to(settings.data_dir)
     assert not any((tmp_path / "week2").rglob("*"))
+
+
+def test_foundation_uses_week2_vectorstore_factory_for_active_backend(tmp_path, monkeypatch):
+    from genacademy_coach import foundation as foundation_module
+    from genacademy_coach.foundation import Foundation
+
+    class FakeProvider:
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return [[1.0] for _text in texts]
+
+        def generate(self, messages: list[dict], **kwargs) -> str:
+            return "{}"
+
+    class FakeStore:
+        def upsert(self, chunks, embeddings):
+            pass
+
+        def query(self, query_embedding, top_k):
+            return []
+
+        def get_chunk(self, chunk_id):
+            raise KeyError(chunk_id)
+
+        def get_all_chunks(self):
+            return []
+
+        def delete_doc(self, doc_id):
+            pass
+
+    calls = []
+
+    def fake_build_vectorstore(rag_settings, *, collection):
+        calls.append((rag_settings, collection))
+        return FakeStore()
+
+    monkeypatch.setenv("GENACADEMY_COACH_ROOT", str(tmp_path))
+    monkeypatch.setenv("GENACADEMY_COACH_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("GENACADEMY_VECTORSTORE", "pinecone")
+    monkeypatch.setenv("PINECONE_API_KEY", "test-key-not-used")
+    monkeypatch.setenv("GENACADEMY_PINECONE_INDEX", "genacademy-coach")
+    monkeypatch.setattr(foundation_module, "build_vectorstore", fake_build_vectorstore)
+    settings = CoachSettings.from_env()
+
+    result = Foundation.build(settings, provider=FakeProvider())
+
+    assert result.store.__class__ is FakeStore
+    assert calls == [(result.rag_settings, "coach_course")]
+    assert result.rag_settings.vectorstore == "pinecone"
+    assert result.rag_settings.pinecone_index == "genacademy-coach"
+    assert Path(result.rag_settings.chroma_dir).resolve().is_relative_to(settings.data_dir)
+    assert Path(result.rag_settings.sqlite_path).resolve().is_relative_to(settings.data_dir)

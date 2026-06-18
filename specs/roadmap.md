@@ -12,8 +12,8 @@ split remains unused until final evaluation/reporting.
 ### Done
 
 - **Week-2 foundation reuse locked.** `docs/genacademy-rag-foundation.md` records the reuse contract;
-  the Coach uses the Week-2 embedder, Chroma store/schema, chunking pipeline, provider boundary, and
-  eval patterns instead of rebuilding them.
+  the Coach uses the Week-2 embedder, vectorstore factory/schema, chunking pipeline, provider boundary,
+  and eval patterns instead of rebuilding them.
 - **Corpus and eval safety scaffold shipped.** The local corpus layout, deterministic eval split
   manifest, and `scripts/check_eval_leak.py` are in place. Private corpus and generated eval artifacts
   stay gitignored; the held-out `test` split remains frozen.
@@ -42,8 +42,11 @@ split remains unused until final evaluation/reporting.
   spans, validates grounding, grades selected option IDs deterministically in Python, refuses/escalates
   when retrieval is not citeable, and writes a typed redacted quiz trace.
 - **Hugging Face deployment shell shipped.** A thin Gradio/Docker Space wrapper builds with CPU-only
-  `torch`, boots locally in Docker, and serves a private Hugging Face Space. No private corpus/index is
-  uploaded; the Space shows an empty-corpus notice until a public-safe corpus decision is made.
+  `torch`, boots locally in Docker, and serves a private Hugging Face Space. Hosted retrieval is
+  Pinecone-ready through the reused Week-2 vectorstore factory, using a Coach-specific index/namespace.
+  No private corpus/index is seeded yet; the Space shows an empty-corpus notice until a public-safe
+  corpus decision is made. The Space was redeployed after the Skill-Gap UI merge with allow-list upload
+  only and authenticated `HTTP/2 200` root smoke.
 - **Local Gradio UI shipped.** The UI is a thin view over the core teach, quiz, and skill-gap workflows.
   It uses safe trace allow-lists, hides generated quiz text by default, and keeps the core free of web
   imports.
@@ -58,9 +61,8 @@ split remains unused until final evaluation/reporting.
 ### In Progress
 
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
-  shell or upload a small approved public-safe corpus/index. Do not upload private course material.
-- **Review and land PR #28.** The Skill-Gap UI wrapper is a thin Gradio tab over the shipped core and
-  safe trace allow-list.
+  shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
+  Do not upload private course material.
 
 ### Pending
 

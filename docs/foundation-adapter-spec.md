@@ -18,17 +18,18 @@ source documents to ingest live under this repo's ignored `corpus/` directory.
 - `from genacademy_rag.core.reranker import build_reranker`
 - `from genacademy_rag.core.retriever import DEFAULT_CANDIDATE_K, HybridRetriever`
 - `from genacademy_rag.core.types import Citation, Chunk, Document, RetrievedChunk`
-- `from genacademy_rag.core.vectorstore import ChromaStore`
+- `from genacademy_rag.core.vectorstore import VectorStore, build_vectorstore`
 - `from genacademy_rag.data.datastore import SQLiteDatastore`
 
 ## Week-2 calls
 
-- `Settings.from_env()` supplies provider, embedder, chunking, rerank, and top-k config. The Coach
-  adapter calls it for reusable Week-2 settings, then pins the returned Chroma and SQLite paths to
-  `CoachSettings.chroma_dir` and `CoachSettings.sqlite_path`.
+- `Settings.from_env()` supplies provider, embedder, chunking, rerank, vectorstore, and top-k config.
+  The Coach adapter calls it for reusable Week-2 settings, then pins the returned local Chroma and
+  SQLite paths to `CoachSettings.chroma_dir` and `CoachSettings.sqlite_path`.
 - `build_provider(settings)` returns a provider with `embed(texts)` and `generate(messages, ...)`.
-- `ChromaStore(persist_dir=coach_settings.chroma_dir, collection="coach_course")` stores course
-  vectors.
+- `build_vectorstore(settings, collection="coach_course")` selects the active Week-2 vectorstore
+  implementation. Local runs default to Chroma; hosted runs may use Pinecone with the Coach collection
+  as the namespace.
 - `SQLiteDatastore(coach_settings.sqlite_path)` stores document/chunk metadata.
 - `build_chunker("section", chunk_size=..., chunk_overlap=..., section_max_chars=..., section_overlap=...)`
   returns the section-aware chunker.
@@ -42,14 +43,14 @@ source documents to ingest live under this repo's ignored `corpus/` directory.
 - `Settings.from_env()` uses `GENACADEMY_DATA_DIR` as the default parent for `chroma_dir` and
   `sqlite_path`.
 - `CoachSettings.data_dir` uses `GENACADEMY_COACH_DATA_DIR` or defaults to `genacademy-coach/data/`.
-- Coach exposes one artifact relocation knob for this slice: `GENACADEMY_COACH_DATA_DIR`. Chroma and
-  SQLite stay under that directory by construction.
+- Coach exposes one artifact relocation knob for local artifacts: `GENACADEMY_COACH_DATA_DIR`. Chroma
+  and SQLite stay under that directory by construction when the local Chroma backend is active.
 - Week-2 also honors `GENACADEMY_CHROMA_DIR` and `GENACADEMY_SQLITE`, so the adapter must not trust
   those returned path fields. It replaces them with Coach-derived paths before constructing stores.
 - `SQLiteDatastore` creates the parent directory but does not expose the SQLite path after
   construction.
 - The Coach adapter must store `chroma_dir` and `sqlite_path` on `Foundation`, assert both resolve
-  under `CoachSettings.data_dir`, and assert a real ingest does not write into simulated Week-2
+  under `CoachSettings.data_dir`, and assert a real local ingest does not write into simulated Week-2
   artifact paths. This prevents stale Week-2 environment variables from writing artifacts into the
   sibling `genacademy-rag` repo.
 
