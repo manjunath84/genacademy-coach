@@ -5,12 +5,19 @@ adaptive, grounded AI tutor: it retrieves citeable course evidence, explains in 
 style and teaching lens, checks understanding with a grounded question, and when the learner stumbles,
 the model chooses a different explanation strategy at runtime — not a hardcoded Python branch. When it
 cannot cite the answer, it refuses and escalates to a human mentor instead of guessing. Three shipped
-modes (teach, quiz, skill-gap diagnosis) share the same grounded core. Current dated dev evidence:
-**8/10 overall, 8/8 teachable** — the 2 non-passing scenarios are safe refusals of out-of-corpus
-topics. The held-out `test` split remains unused.
+modes (teach, quiz, skill-gap diagnosis) share the same grounded core. The product promise is simple:
+**grounded from retrieved course citations, or refuse and escalate**.
+
+Current conservative dev evidence: **7/10 overall, 7/8 teachable** on the merged-main baseline in
+[`docs/teach-loop-status.md`](docs/teach-loop-status.md). The 2 non-passing non-teachable scenarios are
+safe low-retrieval refusals, and the held-out `test` split remains unused.
 
 Built as the Week-3 "Agentic Leap" project of the Mastering Agentic AI Bootcamp, layered on the
 author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
+
+Architecture entry points:
+[`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) for the end-to-end diagram and
+[`docs/architecture.md`](docs/architecture.md) for the design decisions and trust boundary.
 
 ## Grader's 5-Minute Path
 
@@ -31,8 +38,8 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
 ```
 
 Expected proof points: redacted teach traces contain hashes, unsupported topics refuse, the HF Space is
-only a deployment shell without private corpus/index, and optional memory recalls safe learner-state
-without becoming a citation or grounding source.
+only a deployment shell without private corpus/index, and optional memory scaffolding recalls safe
+learner-state without becoming a citation or grounding source.
 
 ## The Agentic Leap: What Changed From Week 2
 
@@ -49,16 +56,18 @@ This project adds the agentic layer:
 | **Human-in-the-loop** | Refusal → `review_queue.jsonl` entry → mentor escalation | [`escalation.py`](src/genacademy_coach/escalation.py) |
 | **Tool failure / recovery** | 6 mechanisms: retry/validation, confidence bands, source fallback, human escalation, faithfulness fallback, stop/progress guard | [`teach_session.py#_enforce_grounding`](src/genacademy_coach/teach_session.py) |
 | **Eval / "how it worked"** | Deterministic eval on dev split, redacted diagnostics, held-out test never used | [`scripts/eval_teach_loop.py`](scripts/eval_teach_loop.py) |
-| **Architecture diagram** | 12 Mermaid diagrams covering system, teach loop, quiz, skill-gap, state, failure handling, eval boundary | [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) |
+| **Architecture diagram** | End-to-end trust-boundary diagram plus focused Mermaid views for teach, quiz, skill-gap, state, failure handling, and eval boundary | [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) |
 
 Additional shipped features beyond the teach-loop MVP:
 - Grounded Quiz Mode with deterministic Python grading of selected option IDs
 - Skill-Gap Diagnosis composing teach/quiz traces into a cited next-step plan
 - Same-topic lens switching (low-code/no-code, code-heavy, bridge)
 - Local Gradio UI with redacted trace cards
-- Cohort member/admin login gate with admin account creation
-- Privacy-first memory slice (hashes only, off by default)
-- Hugging Face Space deployment shell (Pinecone-ready, no private corpus uploaded)
+- Cohort login gate (bcrypt, seed-secret accounts, no default creds in the shared deploy) with
+  server-side admin account creation
+- Privacy-first episodic memory scaffolding (salted hashes only, off by default)
+- Hugging Face Space deployment shell; Pinecone adapter implemented, Chroma is the tested retrieval path,
+  and no private corpus is uploaded
 
 Explicit LangGraph orchestration is deliberately deferred. The current version keeps course facts inside
 the retrieval/citation path, uses optional memory only for safe learner-state, and relies on LangChain
@@ -94,7 +103,7 @@ flowchart TD
     end
 
     subgraph Foundation["Week-2 genacademy-rag foundation"]
-        Corpus["Extended course vectorstore — Chroma local · Pinecone hosted"]
+        Corpus["Extended course vectorstore — Chroma tested path · Pinecone adapter implemented"]
         Provider["Nebius/OpenAI-compatible provider"]
         Eval["Eval harness + split manifest — held-out test never indexed"]
     end
@@ -135,13 +144,64 @@ Three load-bearing decisions (full rationale in [`docs/decisions.md`](docs/decis
 | Grounded Quiz Mode | Shipped pull-in | Generates cited MCQs from retrieved spans and grades selected option IDs deterministically in Python. |
 | Skill-Gap Diagnosis | Shipped pull-in | Produces a deterministic, cited next-step report from teach/quiz traces and review-queue events. |
 | Local Gradio UI | Shipped | Thin web view over teach, quiz, and skill-gap workflows; core logic has no web-framework imports. |
-| Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP; hosted retrieval is Pinecone-ready, but no approved corpus/index is seeded yet, so the shell shows an empty-corpus notice. |
-| Cross-session memory | Shipped off by default | Mem0 adapter and local demo are implemented after the privacy slice. It is disabled unless `MEM0_API_KEY` and `GENACADEMY_COACH_MEMORY_USER_SALT` are set, and it never supplies facts, citations, grading, or refusal decisions. |
+| Cohort auth/admin | Shipped | Cohort login gate with bcrypt password hashes, deploy seed-secret accounts, no default creds accepted in the shared deploy, and server-side admin-only account creation. |
+| Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP. Pinecone adapter support is implemented, but Chroma remains the tested path and no approved hosted corpus/index is seeded yet, so the shell shows an empty-corpus notice. |
+| Cross-session memory | Scaffolded off by default | Mem0 adapter and local demo are implemented after the privacy slice. It is disabled unless `MEM0_API_KEY` and `GENACADEMY_COACH_MEMORY_USER_SALT` are set, and it never supplies facts, citations, grading, or refusal decisions. |
 | Mock interview / admin upload / voice | Roadmap | Deferred until they earn separate plans and privacy reviews. |
 
 Private course material, traces, review queues, screenshots, and handoff packaging stay local-only.
 Local handoff materials can live under ignored `localdocs/`.
 The repository tracks structure, code, redacted metrics, and safety checks.
+
+## Scope
+
+In scope for the Week-3 submission:
+
+- Adaptive teach loop with runtime `next_action` and `strategy` chosen by the `create_agent` teach loop.
+- Deterministic Python enforcement for grounding, refusal/escalation, grading, turn safety, and trace
+  redaction.
+- Grounded Quiz Mode and Skill-Gap Diagnosis as pull-ins over the same retrieval, citation, grading,
+  trace, and refusal primitives.
+- Cohort auth/admin as a bounded login gate: bcrypt password hashes, seed-secret accounts for deploys,
+  no default creds accepted in the shared deploy, and server-side admin-only account creation.
+- Privacy-first memory scaffolding, used to keep learner state per member without treating memory as
+  course evidence.
+
+Deliberately deferred:
+
+- Direct ElevenLabs voice, mock interview, multimodal inputs, and admin upload. Each adds a new privacy
+  or review surface, so each needs its own plan.
+- Explicit LangGraph graph authoring. The current agent uses LangChain `create_agent` on LangGraph's
+  runtime, while the repo intentionally avoids direct `langgraph.*` imports.
+- Public corpus hosting. The HF Space is a deployable shell; private course corpus/index files stay
+  local unless an approved public-safe corpus is prepared.
+
+## Eval Evidence
+
+The documented eval number is intentionally conservative: the merged-main dev run in
+[`docs/teach-loop-status.md`](docs/teach-loop-status.md) reports `7/10` overall and `7/8` teachable on
+10 dev scenarios. The 2 non-teachable non-passes are safe low-retrieval refusals, and the remaining
+teachable miss is documented as a model/decision-path diagnostic rather than overfit away here.
+
+This is a small-N dev regression signal, not a benchmark claim. The held-out `test` split is not run,
+indexed, copied into prompts, tuned against, or used in demos.
+
+## Safety & Privacy
+
+- `scripts/check_eval_leak.py` protects the held-out eval split discipline.
+- `scripts/check_memory_leak.py` scans memory artifacts for raw topic, answer, corpus, or eval text.
+- `SAFE_TEACH_TRACE_FIELDS` and `SAFE_QUIZ_TRACE_FIELDS` in the Gradio layer allow-list grader-visible
+  trace fields; raw learner answers, generated quiz text, tutor prose, and retrieved span text stay out
+  of exported trace views.
+- `user_id_hash` salts authenticated cohort identity before memory lookup/write-back.
+- Cohort login is a bounded gate, not enterprise auth: passwords are bcrypt-hashed through the reused
+  Week-2 store, admin account creation is checked server-side from the authenticated request user, seed
+  accounts are supplied through deploy secrets, and the live Space verification accepted configured
+  admin/member secrets while rejecting default admin/member credentials.
+- The refusal-or-cite gate requires retrieved citation evidence for course facts; low evidence refuses
+  and writes a review-queue row instead of answering from model priors.
+- Memory is learner-state only. It can seed style/lens/state, but it never provides citations, course
+  facts, retrieval input, grading, or refusal decisions.
 
 ## Design Principles
 
@@ -209,8 +269,9 @@ gitignored.
 
 The Gradio app is cohort-auth gated by default. Local seeded accounts come from the reused Week-2
 SQLite user store; set `GENACADEMY_SEED_ADMIN_PASSWORD` and `GENACADEMY_SEED_MEMBER_PASSWORD` as
-secrets before any shared deployment. Set `GENACADEMY_COACH_AUTH_ENABLED=false` only for an intentional
-local no-login demo.
+secrets before any shared deployment. The shared deploy was verified with configured seed secrets
+accepted and default admin/member credentials rejected. Set `GENACADEMY_COACH_AUTH_ENABLED=false` only
+for an intentional local no-login demo.
 
 Memory is off by default. To enable the Mem0 adapter for local cohort runs, set both `MEM0_API_KEY`
 and `GENACADEMY_COACH_MEMORY_USER_SALT`; leaving either blank uses a no-op memory provider.
@@ -224,7 +285,9 @@ uv run python app.py
 For a no-login local recording that focuses on the teach/quiz/trace walkthrough, run:
 
 ```bash
-GENACADEMY_COACH_AUTH_ENABLED=false uv run python app.py
+GENACADEMY_COACH_AUTH_ENABLED=false \
+GENACADEMY_COACH_SERVER_NAME=127.0.0.1 \
+uv run python app.py
 ```
 
 If the login is part of the recording story, use non-sensitive seed credentials and avoid showing real

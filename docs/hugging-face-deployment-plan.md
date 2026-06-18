@@ -40,9 +40,11 @@ Implementation status:
 - Post Skill-Gap UI redeploy passed on 2026-06-17:
   `dcdf92a3c7ceb46a22f691a0d0cd35666220b19c`, `factory_reboot=False`,
   `secret_NEBIUS_API_KEY=set`, allow-list upload only, authenticated root smoke `HTTP/2 200`.
-- Hosted retrieval is Pinecone-ready through the reused Week-2 vectorstore factory:
+- Hosted retrieval has an implemented Pinecone adapter through the reused Week-2 vectorstore factory:
   `GENACADEMY_VECTORSTORE=pinecone`, `GENACADEMY_PINECONE_INDEX=genacademy-coach`, and
   `GENACADEMY_COACH_COLLECTION=coach_course` as the namespace.
+- Chroma remains the tested path for this submission until an approved hosted corpus/index is seeded
+  and smoked end to end.
 - Provider/corpus-backed click smoke is still pending because no approved corpus/index has been seeded
   for the Space.
 

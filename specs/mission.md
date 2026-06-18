@@ -49,8 +49,9 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
   facts, citations, retrieval input, grading, or refusal decisions.
 - A minimal Hugging Face/Gradio UI surface for teach and quiz, kept as a thin wrapper over the same
   core engine; no private corpus publishing.
-- Cohort member/admin login gate for the Gradio app, reusing the Week-2 user/password store and keeping
-  role enforcement at the web boundary.
+- Cohort member/admin login gate for the Gradio app, reusing the Week-2 user/password store with bcrypt
+  hashes, deploy seed-secret accounts, and server-side admin-only account creation. This is a bounded
+  cohort gate, not production-grade/enterprise auth.
 
 ## Out of scope (Week 3 — see `roadmap.md` for when each is earned)
 
@@ -72,8 +73,9 @@ live humans for the MVP):
   **step/time budget** (target ≈ under 10 minutes of interaction). Target N is ≥ 10; if fewer usable
   held-out scenarios exist, report the actual N and failure modes honestly rather than padding the set.
   Treat N < 10 as a smoke eval, not proof of the 8/10 target.
-- **Target: ≥ 8/10 scenarios pass.** *Pass* = the **deterministic grounded grader** marks the final
-  check-answer correct **and** every citation shown resolves to a retrieved span.
+- **Target: ≥ 8/10 scenarios pass.** Current conservative dev actual: `7/10` overall and `7/8`
+  teachable; see `docs/teach-loop-status.md`. *Pass* = the **deterministic grounded grader** marks the
+  final check-answer correct **and** every citation shown resolves to a retrieved span.
 - **Supporting component metric:** item quality on the test set — answerability · citation support · no
   span-leakage. Distractor validity belongs to the quiz pull-in, not the teach-loop MVP.
 

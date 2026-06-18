@@ -5,7 +5,7 @@
 > **Status:** shipped/planned map. The CLI + local Gradio teach/quiz/Skill-Gap surfaces are shipped.
 > The private Hugging Face Space is
 > a live deployment shell with no private corpus/index uploaded.
-> Optional cross-session memory is shipped off by default for safe learner-state only; direct voice,
+> Optional cross-session memory is scaffolded off by default for safe learner-state only; direct voice,
 > admin upload, and mock interview remain planned pull-ins.
 > The constitution (`../AGENTS.md`, `../specs/*`, `docs/decisions.md`) is canonical.
 
@@ -31,11 +31,65 @@
 | **Failure handling** | Retry/tool validation, confidence thresholds, source fallback, human escalation, stop/progress guard. |
 | **Success measure** | Dated dev eval and redacted traces; deterministic grounded grader; citations resolve to retrieved spans; held-out `test` split remains unused. |
 
+## End-to-End Grading View
+
+This is the single path to skim first. The model chooses pedagogy inside the teach loop; deterministic
+Python gates enforce the trust boundary around grounding, refusal, grading, and redaction.
+
+```mermaid
+flowchart TD
+    Learner["Cohort learner / grader"]
+    UI["Thin UI\nGradio or CLI"]
+    Auth["Cohort login gate\nbcrypt + seed-secret accounts\nemail -> salted user_id_hash"]
+    Session["Teach session boundary"]
+
+    subgraph Agent["LangChain create_agent teach loop"]
+        Decide["Model chooses\nnext_action + strategy"]
+        Tools["Tool calls\nretrieve · generate check · grade · profile · trace · escalate"]
+    end
+
+    subgraph Deterministic["Python trust boundary"]
+        RetrievalGate["Refusal-or-cite gate\nevidence score + citation present"]
+        GradeGate["Deterministic grading\nselected/normalized answer"]
+        Redaction["Trace/review allow-lists\nhashes + safe metadata only"]
+        Escalation["Review queue\nmentor escalation"]
+    end
+
+    subgraph Adapters["Adapter seams"]
+        Provider["Provider via genacademy-rag"]
+        Vectorstore["build_course_vectorstore\nChroma tested path\nPinecone adapter implemented"]
+        Memory["build_episodic_memory\nNullEpisodicMemory default\nMem0 off unless key + salt"]
+    end
+
+    subgraph Boundaries["Never trusted as course facts"]
+        MemState["Memory: learner state only"]
+        NoPrivate["No private corpus/eval/raw traces\ncommitted or shown in demo"]
+    end
+
+    Learner --> UI
+    UI --> Auth
+    Auth --> Session
+    UI --> Session
+    Session --> Decide
+    Decide --> Tools
+    Tools --> RetrievalGate
+    Tools --> GradeGate
+    Tools --> Redaction
+    RetrievalGate -->|citeable| Provider
+    RetrievalGate --> Vectorstore
+    RetrievalGate -->|not citeable| Escalation
+    Session -. recall/write safe state .-> Memory
+    Memory -. seeds style/lens only .-> MemState
+    Memory -. never citations/retrieval/grading/refusal .-> RetrievalGate
+    Redaction --> NoPrivate
+```
+
 ## 1. Product Surface and Deployment Boundary
 
 The shipped application surface is local-first because it runs against the private course corpus. The Hugging
 Face Space proves deployability, but it intentionally stays a shell until a public-safe corpus subset is
-approved and uploaded.
+approved and uploaded. The Pinecone adapter is implemented for hosted serving, but local Chroma is the
+tested retrieval path for this submission.
 
 ```mermaid
 flowchart LR
@@ -97,7 +151,7 @@ flowchart TD
     end
 
     subgraph Foundation["Week-2 genacademy-rag foundation"]
-        Corpus["Extended course vectorstore\nChroma local · Pinecone hosted\nslides · handouts · notes · transcripts"]
+        Corpus["Extended course vectorstore\nChroma tested path · Pinecone adapter implemented\nslides · handouts · notes · transcripts"]
         Provider["Nebius/OpenAI-compatible provider"]
         Eval["Eval harness + split manifest\nheld-out test never indexed"]
     end

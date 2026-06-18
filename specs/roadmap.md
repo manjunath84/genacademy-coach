@@ -43,13 +43,18 @@ split remains unused until final evaluation/reporting.
   when retrieval is not citeable, and writes a typed redacted quiz trace.
 - **Hugging Face deployment shell shipped.** A thin Gradio/Docker Space wrapper builds with CPU-only
   `torch`, boots locally in Docker, and serves a private Hugging Face Space. Hosted retrieval is
-  Pinecone-ready through the reused Week-2 vectorstore factory, using a Coach-specific index/namespace.
-  No private corpus/index is seeded yet; the Space shows an empty-corpus notice until a public-safe
-  corpus decision is made. The Space was redeployed after the Skill-Gap UI merge with allow-list upload
-  only and authenticated `HTTP/2 200` root smoke.
+  adapter-ready through the reused Week-2 vectorstore factory, using a Coach-specific Pinecone
+  index/namespace when approved. Chroma is the tested path, and no private corpus/index is seeded yet;
+  the Space shows an empty-corpus notice until a public-safe corpus decision is made. The Space was
+  redeployed after the Skill-Gap UI merge with allow-list upload only and authenticated `HTTP/2 200`
+  root smoke.
 - **Local Gradio UI shipped.** The UI is a thin view over the core teach, quiz, and skill-gap workflows.
   It uses safe trace allow-lists, hides generated quiz text by default, and keeps the core free of web
   imports.
+- **Cohort auth/admin shipped.** The Gradio surface now has a bounded cohort login gate using the reused
+  Week-2 user store, bcrypt password hashes, deploy seed-secret accounts, no default credentials in the
+  shared deploy, server-side admin-only account creation, and member-hidden Admin UI. This is a cohort
+  gate, not a production-grade auth platform.
 - **Skill-Gap Diagnosis shipped.** The deterministic gap report composes existing teach traces, quiz
   trace rows, review-queue events, retrieval, grounding, and typed redacted traces. It produces a cited
   next-step plan or refuses/escalates if no citeable span exists; it does not add LLM mastery grading,
