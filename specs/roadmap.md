@@ -63,6 +63,7 @@ split remains unused until final evaluation/reporting.
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
   Do not upload private course material.
+
 ### Pending
 
 - Keep the held-out `test` split unused until final evaluation/reporting.

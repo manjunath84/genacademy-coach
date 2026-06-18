@@ -51,6 +51,8 @@ SPACE_VARIABLES = {
     "GENACADEMY_DATA_DIR": "/data",
     "GENACADEMY_VECTORSTORE": "pinecone",
     "GENACADEMY_PINECONE_INDEX": "genacademy-coach",
+    # Keep these aligned with the Week-2 PineconeStore defaults unless the hosted
+    # index is deliberately created in a different serverless region.
     "GENACADEMY_PINECONE_CLOUD": "aws",
     "GENACADEMY_PINECONE_REGION": "us-east-1",
     "GENACADEMY_EMBEDDINGS": "local",
