@@ -536,6 +536,10 @@ button.gc-score-button[disabled],
   min-width: 0;
 }
 
+.gc-trace-field-wide {
+  grid-column: 1 / -1;
+}
+
 .gc-trace-label {
   display: block;
   margin-bottom: 3px;
@@ -708,7 +712,7 @@ APP_HEADER_HTML = """
     <span class="gc-chip sage">Teach loop</span>
     <span class="gc-chip mineral">Quiz pull-in</span>
     <span class="gc-chip">Skill-Gap</span>
-    <span class="gc-chip">Redacted traces</span>
+    <span class="gc-chip">Demo traces</span>
   </div>
 </section>
 """
@@ -910,14 +914,17 @@ def _current_spans(session: Any) -> list[RetrievedSpan]:
 
 
 def _format_bool(value: Any) -> str:
+    if value is None:
+        return "n/a"
     if isinstance(value, bool):
         return "yes" if value else "no"
     return escape(str(value))
 
 
 def _trace_field(label: str, value: str) -> str:
+    extra_class = " gc-trace-field-wide" if label == "Decision basis" else ""
     return (
-        '<div class="gc-trace-field">'
+        f'<div class="gc-trace-field{extra_class}">'
         f'<span class="gc-trace-label">{escape(label)}</span>'
         f'<div class="gc-trace-value">{value}</div>'
         "</div>"
@@ -977,6 +984,10 @@ def _format_trace_summary(
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [
+                (
+                    "Decision basis",
+                    escape(str(row.get("decision_observation", "not captured"))),
+                ),
                 ("Topic", f"<code>{escape(str(row.get('topic_hash', 'unknown')))}</code>"),
                 (
                     "Input",
@@ -1267,6 +1278,16 @@ def run_teach_session(
                     ["", f"**Check:** {_markdown_literal(result.response.check_question)}"]
                 )
         session.finish()
+        trace_rows = safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS)
+        decision_observations = {1: getattr(first.response, "observation", None)}
+        if answer:
+            decision_observations[2] = getattr(result.response, "observation", None)
+        for row in trace_rows:
+            if not isinstance(row, dict):
+                continue
+            observation = decision_observations.get(row.get("turn"))
+            if observation:
+                row["decision_observation"] = observation
 
         metadata = {
             "status": "ok",
@@ -1283,7 +1304,7 @@ def run_teach_session(
                 "track_lens": result.profile.track_lens,
                 "turn_count": result.profile.turn_count,
             },
-            "trace": safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS),
+            "trace": trace_rows,
         }
         return "\n".join(sections), metadata
     except UserInputError as exc:
@@ -1682,7 +1703,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
             gr.Markdown(
                 "If a live provider call is slow during recording, use the committed redacted "
                 "evidence in `docs/teach-loop-status.md` and `docs/demo-and-deliverables.md`. "
-                "The raw trace files remain local/gitignored; only safe metadata should be shown."
+                "The raw trace files remain local/gitignored; demo trace cards show the rendered "
+                "decision basis for walkthroughs."
             )
         with gr.Tabs(elem_classes=["gc-tabs"]):
             with gr.Tab("Teach"):
@@ -1693,8 +1715,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             <p class="gc-eyebrow">Teach session</p>
                             <h2 class="gc-panel-title">Coach the learner</h2>
                             <p class="gc-panel-copy">
-                              Pick a known demo path, run one turn, then show the runtime decision
-                              trace.
+                              Pick a known demo path, run the teach loop, then inspect the runtime
+                              decision trace.
                             </p>
                             <div class="gc-mode-card">
                               <strong>Safety posture</strong>

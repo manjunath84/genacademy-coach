@@ -221,6 +221,8 @@ def test_trace_summary_uses_only_safe_fields():
     summary = _format_trace_summary(metadata, mode="teach")
 
     assert "gc-trace-card" in summary
+    assert "Decision basis" in summary
+    assert "not captured" in summary
     assert "drill" in summary
     assert "0.711" in summary
     assert "2 cited spans" in summary
@@ -230,6 +232,36 @@ def test_trace_summary_uses_only_safe_fields():
     assert "| turn |" not in summary
     assert private_value not in summary
     assert "learner_message" not in summary
+
+
+def test_teach_trace_summary_shows_decision_observation_and_na_faithfulness():
+    metadata = {
+        "status": "ok",
+        "trace": [
+            {
+                "turn": 1,
+                "next_action": "refuse_escalate",
+                "strategy": "refusal",
+                "decision_observation": (
+                    "Retrieved evidence was below the grounding threshold, so the agent refused."
+                ),
+                "evidence_score": 0.0,
+                "evidence_band": "stop",
+                "faithfulness_ok": None,
+                "retrieved_citation_ids": [],
+                "retrieved_citation_labels": [],
+                "tool_calls": ["retrieve_course_corpus", "escalate_to_mentor"],
+            }
+        ],
+    }
+
+    summary = _format_trace_summary(metadata, mode="teach")
+
+    assert "Decision basis" in summary
+    assert "Retrieved evidence was below the grounding threshold" in summary
+    assert "refuse_escalate" in summary
+    assert "n/a" in summary
+    assert "None" not in summary
 
 
 def test_learner_message_replaces_raw_citation_ids_with_source_labels():
@@ -1309,6 +1341,8 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "_Awaiting admin action._" in app_text
     assert "Skill-Gap" in app_text
     assert "Admin" in app_text
+    assert "Demo traces" in app_text
+    assert "run the teach loop" in app_text
     assert "Sign out" in app_text
     assert "GENACADEMY_COACH_CSS" in app_text
     assert "css=GENACADEMY_COACH_CSS" in app_text
