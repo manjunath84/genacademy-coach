@@ -235,7 +235,7 @@ def test_trace_summary_uses_only_safe_fields():
     assert "learner_message" not in summary
 
 
-def test_teach_trace_summary_shows_decision_observation_and_na_faithfulness():
+def test_teach_trace_summary_shows_safe_decision_observation_and_source():
     metadata = {
         "status": "ok",
         "trace": [
@@ -244,7 +244,7 @@ def test_teach_trace_summary_shows_decision_observation_and_na_faithfulness():
                 "next_action": "refuse_escalate",
                 "strategy": "refusal",
                 "decision_observation": (
-                    "Retrieved evidence was below the grounding threshold, so the agent refused."
+                    "grounded fallback after ### **unsupported** <private> agent response"
                 ),
                 "evidence_score": 0.0,
                 "evidence_band": "stop",
@@ -259,10 +259,13 @@ def test_teach_trace_summary_shows_decision_observation_and_na_faithfulness():
     summary = _format_trace_summary(metadata, mode="teach")
 
     assert "Decision basis" in summary
-    assert "Retrieved evidence was below the grounding threshold" in summary
-    assert "refuse_escalate" in summary
+    assert r"\#\#\# \*\*unsupported\*\* &lt;private&gt;" in summary
+    assert "source python safety gate" in summary
+    assert "action refuse_escalate" in summary
     assert "n/a" in summary
     assert "None" not in summary
+    assert "<h3" not in summary
+    assert "<strong>unsupported</strong>" not in summary
 
 
 def test_learner_message_replaces_raw_citation_ids_with_source_labels():
@@ -958,6 +961,60 @@ def test_generate_quiz_questions_state_ui_hides_answers_on_refusal(tmp_path, mon
     assert "refuse_escalate" in trace_summary
 
 
+def test_generate_quiz_questions_state_ui_explains_partial_generation(
+    tmp_path, monkeypatch
+):
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "citation_ids": ["note/q1::0", "note/q2::0"],
+                "question_ids": ["q1", "q2"],
+                "selected_option_ids": [],
+                "correctness": [],
+                "actions": ["retrieve_course_corpus", "generate_quiz_items"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            assert kwargs["question_count"] == 3
+
+        def run(self, selected_option_ids=None):
+            assert selected_option_ids is None
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[_quiz_question("q1"), _quiz_question("q2")],
+                grades=[],
+                score=0,
+                refusal_reason=None,
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    output, trace_summary, metadata, state, answer_1, answer_2, answer_3, score_button = (
+        generate_quiz_questions_state_ui("agent harness", 3, True)
+    )
+
+    assert "### Question 1" in output
+    assert "the model returned 2 of 3 requested question(s)" in output
+    assert "Click **Generate questions** again before scoring" in output
+    assert state is None
+    assert answer_1["visible"] is False
+    assert answer_2["visible"] is False
+    assert answer_3["visible"] is False
+    assert score_button["interactive"] is False
+    assert "2 questions" in trace_summary
+    assert metadata["status"] == "ok"
+
+
 def test_score_generated_quiz_ui_scores_three_answers_from_state():
     questions = [
         _quiz_question("q1", correct_option_id="A"),
@@ -1331,6 +1388,8 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "gc-signout-button" in app_text
     assert "button.gc-run-button" in app_text
     assert "button.gc-score-button:not([disabled])" in app_text
+    assert "label=\"Answers\"" not in app_text
+    assert "font-weight: 600 !important;" in app_text
     assert "overflow: hidden !important;" in app_text
     assert "if _auth_enabled():" in app_text
     assert "min-height: 44px" in app_text

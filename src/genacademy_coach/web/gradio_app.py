@@ -34,6 +34,18 @@ STYLE_CHOICES = ["concise", "analogy", "step_by_step"]
 TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
 VALID_OPTION_IDS = frozenset({"A", "B", "C", "D"})
 MARKDOWN_LITERAL_PATTERN = re.compile(r"([\\`*_{}\[\]()#+\-!|>])")
+DECISION_OBSERVATION_LIMIT = 240
+PYTHON_GATE_OBSERVATION_PREFIXES = (
+    "grounded fallback",
+    "turn budget reached",
+    "no citeable course corpus found",
+    "agent failed",
+    "agent chose",
+    "agent displayed",
+    "grounded check",
+    "agent response was not faithful",
+    "agent response had no retrieved citation_ids",
+)
 TEACH_GROUNDED_PRESET = (
     "agent harness",
     "analogy",
@@ -634,7 +646,7 @@ button.gc-score-button[disabled],
 .gc-answer-choice label {
   color: var(--gc-muted) !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 .gc-answer-choice .wrap {
@@ -908,6 +920,18 @@ def _markdown_literal(value: str) -> str:
     return MARKDOWN_LITERAL_PATTERN.sub(r"\\\1", html_safe)
 
 
+def _safe_decision_observation(value: Any) -> str:
+    text = " ".join(str(value or "not captured").split())
+    return _short_value(text, limit=DECISION_OBSERVATION_LIMIT)
+
+
+def _decision_source_from_observation(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if any(text.startswith(prefix) for prefix in PYTHON_GATE_OBSERVATION_PREFIXES):
+        return "python safety gate"
+    return "agent"
+
+
 def _current_spans(session: Any) -> list[RetrievedSpan]:
     runtime = getattr(session, "runtime", None)
     spans = getattr(runtime, "last_spans", None)
@@ -978,16 +1002,23 @@ def _format_trace_summary(
         if not isinstance(row, dict):
             continue
         if mode == "teach":
+            decision_observation = _safe_decision_observation(
+                row.get("decision_observation", "not captured")
+            )
+            decision_source = row.get("decision_source") or _decision_source_from_observation(
+                decision_observation
+            )
             title = f"Turn {row.get('turn', '?')}"
             pills = [
                 _format_chip(f"action {row.get('next_action', 'unknown')}"),
                 _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
+                _format_chip(f"source {decision_source}"),
             ]
             fields = [
                 (
                     "Decision basis",
-                    escape(str(row.get("decision_observation", "not captured"))),
+                    _markdown_literal(decision_observation),
                 ),
                 ("Topic", f"<code>{escape(str(row.get('topic_hash', 'unknown')))}</code>"),
                 (
@@ -1288,7 +1319,10 @@ def run_teach_session(
                 continue
             observation = decision_observations.get(row.get("turn"))
             if observation:
-                row["decision_observation"] = observation
+                # Intentionally demo-only and outside the persisted trace schema: this lets
+                # the UI explain the live decision without writing raw observations to disk.
+                row["decision_observation"] = _safe_decision_observation(observation)
+                row["decision_source"] = _decision_source_from_observation(observation)
 
         metadata = {
             "status": "ok",
@@ -1584,12 +1618,11 @@ def reset_generated_quiz_state_ui() -> tuple[str, str, None, None, Any, Any, Any
     )
 
 
-def fill_quiz_grounded_preset_state_ui() -> tuple[str, int, str, bool, None, Any, Any, Any, Any]:
-    topic, question_count, answers, show_questions = fill_quiz_grounded_preset()
+def fill_quiz_grounded_preset_state_ui() -> tuple[str, int, bool, None, Any, Any, Any, Any]:
+    topic, question_count, _, show_questions = fill_quiz_grounded_preset()
     return (
         topic,
         question_count,
-        answers,
         show_questions,
         None,
         *_quiz_answer_updates(0, interactive=False),
@@ -1611,6 +1644,17 @@ def generate_quiz_questions_state_ui(
             result=result,
             metadata=metadata,
         )
+        if result.refusal_reason is None and len(result.questions) != count:
+            output = "\n\n".join(
+                [
+                    output,
+                    (
+                        f"**Regenerate needed:** the model returned {len(result.questions)} "
+                        f"of {count} requested question(s). Click **Generate questions** again "
+                        "before scoring."
+                    ),
+                ]
+            )
         answer_updates = _quiz_answer_updates(count, interactive=state is not None)
         return (
             output,
@@ -1848,13 +1892,6 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 "Generate questions",
                                 elem_classes=["gc-run-button"],
                             )
-                        answers = gr.Textbox(
-                            label="Answers",
-                            value="",
-                            placeholder="A,B,C",
-                            elem_classes=["gc-input"],
-                            visible=False,
-                        )
                     with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
                         gr.HTML(
                             """
@@ -1913,7 +1950,6 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                     outputs=[
                         quiz_topic,
                         question_count,
-                        answers,
                         show_questions,
                         quiz_state,
                         answer_1,

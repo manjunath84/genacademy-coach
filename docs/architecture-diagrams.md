@@ -293,7 +293,7 @@ flowchart TD
     Validate -->|yes| Question["QuizQuestion"]
     Question --> Grade["Python deterministic grade\nselected option == answer key"]
     Grade --> Trace["QuizTraceRow allow-list\ntopic_hash · IDs · scores · booleans"]
-    Trace --> UI["UI shows score + metadata\nlocal/private question view only when requested"]
+    Trace --> UI["UI shows score + metadata\nlocal demo reveals questions\nbackend hides unless requested"]
 ```
 
 ## 7. Skill-Gap Diagnosis Flow
