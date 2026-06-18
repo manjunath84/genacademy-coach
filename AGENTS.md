@@ -4,9 +4,9 @@
 tool-neutral source of truth. Per-tool files (`CLAUDE.md`) are thin mirrors that point here. Rules do
 not change with the tool.
 
-*Status: in force, pre-build. The Week-3 handout alignment pass locked the MVP boundaries on
-2026-06-15; the project is awaiting the implementation plan. Update this file when the architecture
-moves.*
+*Status: in force, post-MVP. The Week-3 teach-loop MVP is shipped; Quiz, Skill-Gap, cohort auth/admin,
+and privacy-first memory are bounded pull-ins over the same grounded core. Update this file when the
+architecture or review gates move.*
 
 ---
 
@@ -15,9 +15,9 @@ moves.*
 An **adaptive, grounded AI tutor** for Gen Academy cohort members — teaches a concept in the learner's
 style, checks understanding, **re-explains a different way** when they stumble, tracks what they
 know/struggled with (within a session), and **refuses to answer what it can't cite** from the course
-corpus (escalates to a mentor instead). One text-first engine: **teach** is the Week-3 MVP; **quiz**,
-**mock interview**, **admin upload**, and **ElevenLabs voice** are pull-ins only after the teach loop,
-eval, refusal path, and trace are working. Built on the author's Week-2 `genacademy-rag` retrieval
+corpus (escalates to a mentor instead). The text-first **teach** loop is the agenticity proof; **quiz**
+and **Skill-Gap** are deterministic shipped pull-ins, while **mock interview**, **admin upload**, and
+**ElevenLabs voice** remain future pull-ins. Built on the author's Week-2 `genacademy-rag` retrieval
 system. Full design is mapped in §7, especially `specs/`, `docs/`, and
 `docs/superpowers/{specs,plans}/`.
 
@@ -65,6 +65,10 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   (`advance`, `re_explain_differently`, `drill`, `refuse_escalate`, `stop`) and the explanation strategy
   are chosen from observations, not hardcoded in Python. If the path is scripted, it's a workflow, and
   we must call it that.
+- **Demo trace cards may show rendered decisions; raw traces stay local.** Local/private demo UI can
+  show allow-listed trace cards with `Decision basis`, `action ...`, `band ...`, scores, strategies,
+  citation summaries, and tool-call summaries. Do not commit raw trace JSON, raw learner answers,
+  generated tutor prose, retrieved span text, secrets, or unreviewed screenshots.
 - **MINT restraint — earn each layer.** One LangChain `create_agent` loop on LangGraph's internal
   runtime + a small read-mostly toolset. **No MCP, no A2A, and no _explicit_ LangGraph graph/imports**
   this week — the handout's LangChain + LangGraph track is satisfied through the LangGraph-backed
@@ -102,9 +106,10 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - **Do NOT publish corpus material.** Course PDFs/transcripts, slides, handouts, chat-question files, and
   any third-party or cohort data are `.gitignore`d. Confirm attribution/permission before any data lands
   (see `specs/roadmap.md` risk caps).
-- **Do NOT add modes/surfaces ahead of a finished teach loop.** Quiz, interview, admin upload, and
-  ElevenLabs voice are pull-ins; they start only when the teach-loop MVP demos end-to-end. Scope creep
-  is the main project risk.
+- **Do NOT add new modes/surfaces ahead of the grounded core.** Quiz, Skill-Gap, cohort auth/admin, and
+  privacy-first memory are shipped bounded pull-ins because the teach-loop MVP works. Interview, admin
+  upload, ElevenLabs voice, explicit LangGraph, and public corpus hosting still need separate plans and
+  privacy reviews.
 
 ## 6. Definition of done (per change)
 

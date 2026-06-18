@@ -62,7 +62,8 @@ Additional shipped features beyond the teach-loop MVP:
 - Grounded Quiz Mode with deterministic Python grading of selected option IDs
 - Skill-Gap Diagnosis composing teach/quiz traces into a cited next-step plan
 - Same-topic lens switching (low-code/no-code, code-heavy, bridge)
-- Local Gradio UI with redacted trace cards
+- Local Gradio UI with allow-listed demo trace cards: decision basis, labeled action/band/score status
+  chips, citation summaries, and collapsed metadata
 - Cohort login gate (bcrypt, seed-secret accounts, no default creds in the shared deploy) with
   server-side admin account creation
 - Privacy-first episodic memory scaffolding (salted hashes only, off by default)
@@ -146,7 +147,7 @@ Three load-bearing decisions (full rationale in [`docs/decisions.md`](docs/decis
 | Same-topic lens switch | Shipped | The learner can switch among low-code/no-code, code-heavy, and bridge teaching lenses for the same topic. |
 | Grounded Quiz Mode | Shipped pull-in | Generates cited MCQs from retrieved spans and grades selected option IDs deterministically in Python. |
 | Skill-Gap Diagnosis | Shipped pull-in | Produces a deterministic, cited next-step report from teach/quiz traces and review-queue events. |
-| Local Gradio UI | Shipped | Thin web view over teach, quiz, and skill-gap workflows; core logic has no web-framework imports. |
+| Local Gradio UI | Shipped | Thin web view over teach, quiz, and skill-gap workflows; Teach trace cards show `Decision basis` plus labeled `action ...` / `band ...` status chips, while raw trace JSON remains local. Core logic has no web-framework imports. |
 | Cohort auth/admin | Shipped | Cohort login gate with bcrypt password hashes, deploy seed-secret accounts, no default creds accepted in the shared deploy, and server-side admin-only account creation. |
 | Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP. Pinecone adapter support is implemented, but Chroma remains the tested path and no approved hosted corpus/index is seeded yet, so the shell shows an empty-corpus notice. |
 | Cross-session memory | Scaffolded off by default | Mem0 adapter and local demo are implemented after the privacy slice. It is disabled unless `MEM0_API_KEY` and `GENACADEMY_COACH_MEMORY_USER_SALT` are set, and it never supplies facts, citations, grading, or refusal decisions. |
@@ -193,9 +194,11 @@ indexed, copied into prompts, tuned against, or used in demos.
 
 - `scripts/check_eval_leak.py` protects the held-out eval split discipline.
 - `scripts/check_memory_leak.py` scans memory artifacts for raw topic, answer, corpus, or eval text.
-- `SAFE_TEACH_TRACE_FIELDS` and `SAFE_QUIZ_TRACE_FIELDS` in the Gradio layer allow-list grader-visible
-  trace fields; raw learner answers, generated quiz text, tutor prose, and retrieved span text stay out
-  of exported trace views.
+- `SAFE_TEACH_TRACE_FIELDS`, `SAFE_QUIZ_TRACE_FIELDS`, and the Gradio trace summary allow-list
+  grader-visible trace fields. Local/private demo trace cards can show the rendered `Decision basis`,
+  labeled `action ...` / `band ...` status chips, scores, strategies, citation summaries, and tool-call
+  summaries; raw learner answers, raw trace JSON, generated quiz trace text, tutor prose, and retrieved
+  span text stay out of exported trace artifacts.
 - `user_id_hash` salts authenticated cohort identity before memory lookup/write-back.
 - Cohort login is a bounded gate, not enterprise auth: passwords are bcrypt-hashed through the reused
   Week-2 store, admin account creation is checked server-side from the authenticated request user, seed
@@ -210,7 +213,8 @@ indexed, copied into prompts, tuned against, or used in demos.
 
 - **Grounded or refuse.** The tutor only teaches what it can cite from retrieved course spans.
 - **Runtime agenticity.** In teach mode, the model chooses `advance`, `drill`,
-  `re_explain_differently`, `refuse_escalate`, or `stop` from observations.
+  `re_explain_differently`, `refuse_escalate`, or `stop` from observations. The local demo UI labels
+  these as status chips such as `action advance` and `band confirm`, not clickable controls.
 - **Deterministic grading.** Quiz and check grading are Python gates, not LLM self-assessment.
 - **Citations captured at retrieval.** Citations are derived from retrieved span metadata, never
   reconstructed by the model.
@@ -255,6 +259,8 @@ reusable principle.* Three examples:
 - [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted teach-loop status and eval
   evidence.
 - [`docs/build-learnings.md`](docs/build-learnings.md) — implementation lessons and tradeoffs.
+- Ignored `localdocs/` — local-only demo scripts, screenshots, and DOCX packets; never publish or
+  commit generated screenshots/raw trace artifacts without separate review.
 - [`docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md`](docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md)
   — reviewed plan behind the Skill-Gap Diagnosis slice.
 - [`docs/superpowers/plans/2026-06-17-skill-gap-ui-wrapper.md`](docs/superpowers/plans/2026-06-17-skill-gap-ui-wrapper.md)

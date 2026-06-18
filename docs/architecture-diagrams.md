@@ -51,7 +51,7 @@ flowchart TD
     subgraph Deterministic["Python trust boundary"]
         RetrievalGate["Refusal-or-cite gate\nevidence score + citation present"]
         GradeGate["Deterministic grading\nselected/normalized answer"]
-        Redaction["Trace/review allow-lists\nhashes + safe metadata only"]
+        Redaction["Trace/review allow-lists\nhashes + safe metadata\nDecision basis demo view"]
         Escalation["Review queue\nmentor escalation"]
     end
 
@@ -293,7 +293,7 @@ flowchart TD
     Validate -->|yes| Question["QuizQuestion"]
     Question --> Grade["Python deterministic grade\nselected option == answer key"]
     Grade --> Trace["QuizTraceRow allow-list\ntopic_hash · IDs · scores · booleans"]
-    Trace --> UI["UI shows score + metadata\nquestion text hidden by default"]
+    Trace --> UI["UI shows score + metadata\nlocal/private question view only when requested"]
 ```
 
 ## 7. Skill-Gap Diagnosis Flow
@@ -326,13 +326,13 @@ surfaces or adding web-framework imports to the core.
 flowchart TD
     Gradio["Local Gradio app\nshare=false"]
     TeachTab["Teach tab\npreset -> run teach"]
-    QuizTab["Quiz tab\nquestion text hidden by default"]
+    QuizTab["Quiz tab\nlocal/private reveal + answer controls"]
     SkillGapTab["Skill-Gap tab\nsource sessions -> diagnosis"]
     Core["Pure Coach core"]
-    SafeTrace["safe_trace_rows allow-list"]
-    Cards["Readable trace cards\ncounts · scores · actions"]
+    SafeTrace["safe_trace_rows allow-list\n+ in-memory decision observation"]
+    Cards["Readable demo trace cards\nDecision basis · action/band/score\nstrategy · citations · tools"]
     JSON["Collapsed metadata JSON\nexact IDs for audit"]
-    Private["Never publish\nraw spans · eval prompts · secrets · quiz text"]
+    Private["Never publish\nraw spans · raw trace JSON · eval prompts\nsecrets · unreviewed screenshots"]
 
     Gradio --> TeachTab
     Gradio --> QuizTab
@@ -437,6 +437,6 @@ flowchart LR
 | State | Within-session profile plus optional off-by-default safe memory. |
 | Human-in-the-loop | Refusal + review queue. |
 | Tool failure / recovery | Retry, validation, fallback, confidence bands, escalation, stop guard. |
-| How it worked | Dev eval, redacted traces, local UI screenshots, Skill-Gap evidence, and honest numbers; held-out `test` remains unused. |
+| How it worked | Dev eval, allow-listed demo trace cards with decision basis/status labels, local UI screenshots, Skill-Gap evidence, and honest numbers; held-out `test` remains unused. |
 | Assessment/gap diagnosis pull-ins | Quiz and Skill-Gap diagrams show deterministic grading/ranking over shared grounded primitives, not second agent loops. |
 | Architecture diagram | Diagrams 1-11 in this file. |
