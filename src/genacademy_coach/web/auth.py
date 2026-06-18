@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from dataclasses import dataclass
 from functools import lru_cache
@@ -50,9 +51,31 @@ class CoachAuth:
         )
         if seed_users:
             self.datastore.seed_users()
+            self._enforce_seed_password_overrides()
 
     def authenticate(self, email: str, password: str) -> bool:
         return self.user_for_credentials(email, password) is not None
+
+    def _enforce_seed_password_overrides(self) -> None:
+        seeds = (
+            ("admin@genacademy.local", "GENACADEMY_SEED_ADMIN_PASSWORD"),
+            ("member@genacademy.local", "GENACADEMY_SEED_MEMBER_PASSWORD"),
+        )
+        overrides = [
+            (email, password)
+            for email, env_name in seeds
+            if (password := os.environ.get(env_name))
+        ]
+        if not overrides:
+            return
+        try:
+            with sqlite3.connect(str(self._sqlite_path)) as conn:
+                conn.executemany(
+                    "UPDATE users SET password=? WHERE email=?",
+                    [(hash_password(password), email) for email, password in overrides],
+                )
+        except sqlite3.Error:
+            return
 
     def user_for_credentials(self, email: str, password: str) -> AuthUser | None:
         row = self.datastore.get_user_by_email(normalize_email(email))
