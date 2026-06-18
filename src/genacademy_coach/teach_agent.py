@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from genacademy_coach.teach_tools import TeachRuntime, build_teach_tools
 from genacademy_coach.teach_types import CoachAgentResponse
 
-DEFAULT_NEBIUS_MODEL = "Qwen/Qwen3-30B-A3B-Instruct-2507"
+DEFAULT_NEBIUS_MODEL = "Qwen/Qwen3-30B-A3B-Instruct-2507-fast"
 MODEL_CALL_RUN_LIMIT = 8
 TOOL_CALL_RUN_LIMIT = 12
 

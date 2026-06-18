@@ -1277,6 +1277,10 @@ def test_hf_deploy_upload_allow_list_excludes_private_data():
     assert "eval/**" in serialized_ignore
     assert "scripts/space_startup_check.py" in module.ALLOW_PATTERNS
     assert module.SPACE_VARIABLES["GENACADEMY_EMBED_DIM"] == "384"
+    assert (
+        module.SPACE_VARIABLES["NEBIUS_MODEL"]
+        == "Qwen/Qwen3-30B-A3B-Instruct-2507-fast"
+    )
     assert module.SPACE_VARIABLES["GENACADEMY_VECTORSTORE"] == "pinecone"
     assert module.SPACE_VARIABLES["GENACADEMY_PINECONE_INDEX"] == "genacademy-coach"
     assert module.SPACE_VARIABLES["GENACADEMY_COACH_COLLECTION"] == "coach_course"
