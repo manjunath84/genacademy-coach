@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from markdown_it import MarkdownIt
 
 from genacademy_coach.quiz_types import QuizQuestion
 from genacademy_coach.teach_types import RetrievedSpan
@@ -248,8 +249,36 @@ def test_learner_message_replaces_raw_citation_ids_with_source_labels():
         [span],
     )
 
-    assert message.count("Week 1 Session 1 (slide 36)") == 2
+    assert message.count("Week 1 Session 1") == 2
+    assert r"\[Week 1 Session 1 \(slide 36\)\]" in message
     assert "slide/week1-session1-82cf85861f9f::36" not in message
+
+
+def test_learner_message_escapes_model_markdown_before_rendering():
+    message = _format_learner_message_citations(
+        "### Loud heading\n**Slide 39** uses [note/agent::0].",
+        [],
+    )
+
+    assert r"\#\#\# Loud heading" in message
+    assert r"\*\*Slide 39\*\*" in message
+    assert "### Loud heading" not in message
+    assert "**Slide 39**" not in message
+
+
+def test_learner_message_markdown_renders_as_plain_paragraph():
+    message = _format_learner_message_citations(
+        "### Loud heading\n**Slide 39** uses [note/agent::0].",
+        [],
+    )
+
+    html = MarkdownIt().render("### Turn 1\n" + message)
+
+    assert html.count("<h3>") == 1
+    assert "<h3>Turn 1</h3>" in html
+    assert "<strong>" not in html
+    assert "### Loud heading" in html
+    assert "**Slide 39**" in html
 
 
 def test_skillgap_trace_summary_uses_only_safe_fields():
@@ -688,10 +717,10 @@ def test_run_quiz_session_hides_generated_quiz_text_by_default(tmp_path, monkeyp
 
     visible_message, _ = run_quiz_session("agent harness", 1, "A", show_questions=True)
     assert "- **A.**" in visible_message
-    assert private_value in visible_message
+    assert private_value.replace("_", r"\_") in visible_message
 
     preview_message, _ = run_quiz_session("agent harness", 1, "", show_questions=True)
-    assert private_value in preview_message
+    assert private_value.replace("_", r"\_") in preview_message
     assert "**1/1 correct**" not in preview_message
 
 
@@ -716,12 +745,14 @@ def _quiz_question(
     question_id: str,
     *,
     correct_option_id: str = "A",
+    prompt: str | None = None,
+    option_a_text: str | None = None,
 ) -> QuizQuestion:
     return QuizQuestion(
         question_id=question_id,
-        prompt=f"Which option is supported for {question_id}?",
+        prompt=prompt or f"Which option is supported for {question_id}?",
         options=[
-            {"option_id": "A", "text": f"{question_id} answer A"},
+            {"option_id": "A", "text": option_a_text or f"{question_id} answer A"},
             {"option_id": "B", "text": f"{question_id} answer B"},
             {"option_id": "C", "text": f"{question_id} answer C"},
             {"option_id": "D", "text": f"{question_id} answer D"},
@@ -785,6 +816,56 @@ def test_generate_quiz_questions_state_ui_enables_matching_answer_controls(tmp_p
     assert score_button["interactive"] is True
     assert "2 questions" in trace_summary
     assert metadata["status"] == "ok"
+
+
+def test_generate_quiz_questions_state_ui_escapes_model_markdown(tmp_path, monkeypatch):
+    trace_path = tmp_path / "quiz.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "topic_hash": "abc123",
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "citation_ids": ["note/q1::0"],
+                "question_ids": ["q1"],
+                "selected_option_ids": [],
+                "correctness": [],
+                "actions": ["retrieve_course_corpus", "generate_quiz_items"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeQuizSession:
+        def __init__(self, **kwargs):
+            assert kwargs["question_count"] == 1
+
+        def run(self, selected_option_ids=None):
+            assert selected_option_ids is None
+            return SimpleNamespace(
+                session_id="s1",
+                questions=[
+                    _quiz_question(
+                        "q1",
+                        prompt="### Model heading",
+                        option_a_text="**Supported answer**",
+                    )
+                ],
+                grades=[],
+                score=0,
+                refusal_reason=None,
+                trace_path=str(trace_path),
+            )
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (object(), object()))
+    monkeypatch.setattr(gradio_app, "QuizSession", FakeQuizSession)
+
+    output, *_ = generate_quiz_questions_state_ui("agent harness", 1, True)
+
+    assert r"\#\#\# Model heading" in output
+    assert r"\*\*Supported answer\*\*" in output
+    assert "### Model heading" not in output
+    assert "**Supported answer**" not in output
 
 
 def test_generate_quiz_questions_state_ui_hides_answers_on_refusal(tmp_path, monkeypatch):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import uuid
 from functools import lru_cache
 from html import escape
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 STYLE_CHOICES = ["concise", "analogy", "step_by_step"]
 TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
 VALID_OPTION_IDS = frozenset({"A", "B", "C", "D"})
+MARKDOWN_LITERAL_PATTERN = re.compile(r"([\\`*_{}\[\]()#+\-!|>])")
 TEACH_GROUNDED_PRESET = (
     "agent harness",
     "analogy",
@@ -872,7 +874,12 @@ def _format_learner_message_citations(message: str, spans: list[RetrievedSpan]) 
     for span in spans:
         rendered = rendered.replace(f"[{span.citation_id}]", f"[{span.source_label}]")
         rendered = rendered.replace(span.citation_id, span.source_label)
-    return rendered
+    return _markdown_literal(rendered)
+
+
+def _markdown_literal(value: str) -> str:
+    html_safe = escape(value, quote=False)
+    return MARKDOWN_LITERAL_PATTERN.sub(r"\\\1", html_safe)
 
 
 def _current_spans(session: Any) -> list[RetrievedSpan]:
@@ -1218,7 +1225,7 @@ def run_teach_session(
             ),
         ]
         if first.response.check_question:
-            sections.extend(["", f"**Check:** {first.response.check_question}"])
+            sections.extend(["", f"**Check:** {_markdown_literal(first.response.check_question)}"])
 
         answer = learner_answer.strip()
         result = first
@@ -1235,7 +1242,9 @@ def run_teach_session(
                 ]
             )
             if result.response.check_question:
-                sections.extend(["", f"**Check:** {result.response.check_question}"])
+                sections.extend(
+                    ["", f"**Check:** {_markdown_literal(result.response.check_question)}"]
+                )
         session.finish()
 
         metadata = {
@@ -1298,9 +1307,12 @@ def _format_quiz_result(result: QuizSessionResult, *, show_questions: bool) -> s
     question_sections: list[str] = []
     if show_questions:
         for index, question in enumerate(result.questions, start=1):
-            question_sections.extend([f"### Question {index}", "", question.prompt, ""])
             question_sections.extend(
-                f"- **{option.option_id}.** {option.text}" for option in question.options
+                [f"### Question {index}", "", _markdown_literal(question.prompt), ""]
+            )
+            question_sections.extend(
+                f"- **{option.option_id}.** {_markdown_literal(option.text)}"
+                for option in question.options
             )
             question_sections.append("")
     else:
