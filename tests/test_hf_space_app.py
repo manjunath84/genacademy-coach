@@ -44,6 +44,7 @@ from genacademy_coach.web.gradio_app import (
     generate_quiz_questions_state_ui,
     generate_quiz_questions_ui,
     list_admin_users_ui,
+    reset_generated_quiz_state_ui,
     run_quiz_session,
     run_skillgap_session,
     run_teach_session,
@@ -811,8 +812,13 @@ def test_generate_quiz_questions_state_ui_enables_matching_answer_controls(tmp_p
     assert state["question_count"] == 2
     assert len(state["questions"]) == 2
     assert answer_1["visible"] is True
+    assert answer_1["value"] is None
+    assert answer_1["label"] == "Answer for Question 1"
     assert answer_2["visible"] is True
+    assert answer_2["value"] is None
+    assert answer_2["label"] == "Answer for Question 2"
     assert answer_3["visible"] is False
+    assert answer_3["value"] is None
     assert score_button["interactive"] is True
     assert "2 questions" in trace_summary
     assert metadata["status"] == "ok"
@@ -963,6 +969,78 @@ def test_score_generated_quiz_ui_scores_three_answers_from_state():
     assert row["correctness"] == [True, True, False]
     assert row["actions"] == ["retrieve_course_corpus", "generate_quiz_items", "grade_quiz"]
     assert "3 answers" in trace_summary
+
+
+def test_score_generated_quiz_ui_requires_each_visible_answer():
+    questions = [
+        _quiz_question("q1", correct_option_id="A"),
+        _quiz_question("q2", correct_option_id="B"),
+        _quiz_question("q3", correct_option_id="C"),
+    ]
+    state = {
+        "topic": "agent harness",
+        "question_count": 3,
+        "session_id": "s1",
+        "trace_file": "quiz.jsonl",
+        "trace": [],
+        "questions": [question.model_dump(mode="json") for question in questions],
+    }
+
+    output, trace_summary, metadata = score_generated_quiz_ui(
+        "agent harness",
+        3,
+        "A",
+        None,
+        "C",
+        True,
+        state,
+    )
+
+    assert output == "select an answer for question 2"
+    assert trace_summary == "**Status:** `invalid_input`"
+    assert metadata["status"] == "invalid_input"
+
+
+def test_score_generated_quiz_ui_keeps_question_answers_independent():
+    questions = [
+        _quiz_question("q1", correct_option_id="D"),
+        _quiz_question("q2", correct_option_id="A"),
+        _quiz_question("q3", correct_option_id="B"),
+    ]
+    state = {
+        "topic": "agent harness",
+        "question_count": 3,
+        "session_id": "s1",
+        "trace_file": "quiz.jsonl",
+        "trace": [],
+        "questions": [question.model_dump(mode="json") for question in questions],
+    }
+
+    _, _, metadata = score_generated_quiz_ui(
+        "agent harness",
+        3,
+        "D",
+        "C",
+        "B",
+        True,
+        state,
+    )
+
+    row = metadata["trace"][0]
+    assert row["selected_option_ids"] == ["D", "C", "B"]
+    assert row["correctness"] == [True, False, True]
+
+
+def test_reset_generated_quiz_state_ui_clears_answer_controls():
+    *_, answer_1, answer_2, answer_3, score_button = reset_generated_quiz_state_ui()
+
+    assert answer_1["visible"] is False
+    assert answer_1["value"] is None
+    assert answer_2["visible"] is False
+    assert answer_2["value"] is None
+    assert answer_3["visible"] is False
+    assert answer_3["value"] is None
+    assert score_button["interactive"] is False
 
 
 def test_score_generated_quiz_ui_requires_current_generated_state():

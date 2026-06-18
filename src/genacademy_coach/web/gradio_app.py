@@ -633,7 +633,15 @@ button.gc-score-button[disabled],
 }
 
 .gc-answer-choice .wrap {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 8px !important;
+}
+
+.gc-answer-choice .wrap label {
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 36px !important;
 }
 
 .gc-checkbox {
@@ -1403,7 +1411,7 @@ def _quiz_answer_updates(question_count: int, *, interactive: bool) -> tuple[Any
             visible=interactive and index <= question_count,
             value=None,
             interactive=interactive,
-            label=f"Question {index} answer",
+            label=f"Answer for Question {index}",
         )
         for index in range(1, 4)
     )
@@ -1824,32 +1832,6 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             elem_classes=["gc-input"],
                             visible=False,
                         )
-                        answer_1 = gr.Radio(
-                            choices=sorted(VALID_OPTION_IDS),
-                            label="Question 1 answer",
-                            value=None,
-                            visible=False,
-                            elem_classes=["gc-answer-choice"],
-                        )
-                        answer_2 = gr.Radio(
-                            choices=sorted(VALID_OPTION_IDS),
-                            label="Question 2 answer",
-                            value=None,
-                            visible=False,
-                            elem_classes=["gc-answer-choice"],
-                        )
-                        answer_3 = gr.Radio(
-                            choices=sorted(VALID_OPTION_IDS),
-                            label="Question 3 answer",
-                            value=None,
-                            visible=False,
-                            elem_classes=["gc-answer-choice"],
-                        )
-                        quiz_button = gr.Button(
-                            "Score selected answers",
-                            elem_classes=["gc-score-button"],
-                            interactive=False,
-                        )
                     with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
                         gr.HTML(
                             """
@@ -1861,6 +1843,32 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             label="Quiz questions and score",
                             value="_Generate questions to review the local quiz text._",
                             elem_classes=["gc-output"],
+                        )
+                        answer_1 = gr.Radio(
+                            choices=sorted(VALID_OPTION_IDS),
+                            label="Answer for Question 1",
+                            value=None,
+                            visible=False,
+                            elem_classes=["gc-answer-choice"],
+                        )
+                        answer_2 = gr.Radio(
+                            choices=sorted(VALID_OPTION_IDS),
+                            label="Answer for Question 2",
+                            value=None,
+                            visible=False,
+                            elem_classes=["gc-answer-choice"],
+                        )
+                        answer_3 = gr.Radio(
+                            choices=sorted(VALID_OPTION_IDS),
+                            label="Answer for Question 3",
+                            value=None,
+                            visible=False,
+                            elem_classes=["gc-answer-choice"],
+                        )
+                        quiz_button = gr.Button(
+                            "Score selected answers",
+                            elem_classes=["gc-score-button"],
+                            interactive=False,
                         )
                         quiz_trace_summary = gr.Markdown(
                             label="Trace summary",
