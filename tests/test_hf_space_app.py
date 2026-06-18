@@ -39,6 +39,7 @@ from genacademy_coach.web.gradio_app import (
     fill_skillgap_preset,
     fill_teach_grounded_preset,
     fill_teach_refusal_preset,
+    generate_quiz_questions_ui,
     list_admin_users_ui,
     run_quiz_session,
     run_skillgap_session,
@@ -359,7 +360,7 @@ def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries
     assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
     assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
     assert fill_skillgap_preset() == SKILLGAP_SOURCE_PRESET
-    assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", False)
+    assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", True)
 
     manifest = json.loads(Path("eval/split_manifest.json").read_text(encoding="utf-8"))
     eval_tokens = {
@@ -415,6 +416,8 @@ def test_gradio_launch_auth_is_enabled_by_default_and_can_be_disabled(monkeypatc
     assert _auth_enabled() is True
     assert calls[-1]["auth"]("member@example.com", "secret") is True
     assert calls[-1]["auth_message"] == DEFAULT_AUTH_MESSAGE
+    assert "GenAcademy Coach" in DEFAULT_AUTH_MESSAGE
+    assert "Course-grounded answers" in DEFAULT_AUTH_MESSAGE
     assert calls[-1]["share"] is False
 
     monkeypatch.setenv("GENACADEMY_COACH_AUTH_ENABLED", "false")
@@ -439,6 +442,32 @@ def test_admin_tab_visibility_uses_authenticated_request_username(monkeypatch):
 
     assert admin_update["visible"] is True
     assert member_update["visible"] is False
+
+
+def test_auth_status_shows_safe_memory_state(monkeypatch):
+    class FakeAuth:
+        def get_user(self, email):
+            assert email == "member@example.com"
+            return SimpleNamespace(role="member")
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+    monkeypatch.setattr(
+        gradio_app.CoachSettings,
+        "from_env",
+        lambda: SimpleNamespace(
+            mem0_api_key="mem0-key",
+            memory_user_salt="private-memory-secret",
+        ),
+    )
+    monkeypatch.delenv("GENACADEMY_COACH_AUTH_ENABLED", raising=False)
+
+    status = gradio_app.auth_status_ui(SimpleNamespace(username="member@example.com"))
+
+    assert "**Access:** `member` cohort account." in status
+    assert "**Memory:** Mem0 enabled for salted learner-state only." in status
+    assert "member@example.com" not in status
+    assert "mem0-key" not in status
+    assert "private-memory-secret" not in status
 
 
 def test_admin_user_actions_use_request_username_not_form_input(monkeypatch):
@@ -518,6 +547,9 @@ def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, mon
         def __init__(self, **kwargs):
             seen["user_id_hash"] = kwargs["user_id_hash"]
             self.profile = kwargs["profile"]
+            self.user_id_hash = kwargs["user_id_hash"]
+            self.memory = SimpleNamespace(provider="mem0")
+            self._memory_written = True
             self.finished = False
 
         def start(self):
@@ -548,6 +580,12 @@ def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, mon
     assert "Grounded answer" in message
     assert seen["user_id_hash"] == user_id_hash("member@example.com", salt="salt")
     assert seen["finished"] is True
+    assert metadata["memory"] == {
+        "provider": "mem0",
+        "enabled": True,
+        "user_scoped": True,
+        "safe_state_written": True,
+    }
     serialized = json.dumps(metadata, sort_keys=True)
     assert "member@example.com" not in serialized
 
@@ -617,13 +655,110 @@ def test_run_quiz_session_hides_generated_quiz_text_by_default(tmp_path, monkeyp
 
     serialized = json.dumps(metadata, sort_keys=True)
     assert "Question text is hidden by default" in message
-    assert "**Score:** 1/1" in message
+    assert "**1/1 correct**" in message
     assert "answer A" not in message
     assert private_value not in message
     assert private_value not in serialized
 
     visible_message, _ = run_quiz_session("agent harness", 1, "A", show_questions=True)
+    assert "- **A.**" in visible_message
     assert private_value in visible_message
+
+    preview_message, _ = run_quiz_session("agent harness", 1, "", show_questions=True)
+    assert private_value in preview_message
+    assert "**1/1 correct**" not in preview_message
+
+
+def test_generate_quiz_questions_ui_previews_without_answers(monkeypatch):
+    calls = []
+
+    def fake_run_quiz_session(topic, question_count, answers, show_questions=False):
+        calls.append((topic, question_count, answers, show_questions))
+        return "### Question 1", {"status": "ok", "trace": []}
+
+    monkeypatch.setattr(gradio_app, "run_quiz_session", fake_run_quiz_session)
+
+    output, trace_summary, metadata = generate_quiz_questions_ui("agent harness", 2, True)
+
+    assert calls == [("agent harness", 2, "", True)]
+    assert output == "### Question 1"
+    assert trace_summary == "**Trace summary:** no trace rows available."
+    assert metadata == {"status": "ok", "trace": []}
+
+
+def test_quiz_preview_and_score_use_same_deterministic_questions(tmp_path, monkeypatch):
+    class FakeProvider:
+        def __init__(self):
+            self.calls = []
+
+        def generate(self, messages, **kwargs):
+            self.calls.append({"messages": messages, **kwargs})
+            return json.dumps(
+                {
+                    "prompt": "Which statement is directly supported by the cited span?",
+                    "options": [
+                        {
+                            "option_id": "A",
+                            "text": "The Loop: think, act, observe, repeat.",
+                        },
+                        {
+                            "option_id": "B",
+                            "text": "The model operates without constraints.",
+                        },
+                        {
+                            "option_id": "C",
+                            "text": "Verification happens only at the end.",
+                        },
+                        {
+                            "option_id": "D",
+                            "text": "Recovery means repeating the same action.",
+                        },
+                    ],
+                    "correct_option_id": "A",
+                    "expected_answer": "The Loop: think, act, observe, repeat.",
+                    "rationale": "The Loop: think, act, observe, repeat.",
+                    "expected_keywords": ["loop"],
+                }
+            )
+
+    provider = FakeProvider()
+    settings = SimpleNamespace(
+        trace_dir=tmp_path,
+        stop_threshold=0.4,
+        confirm_threshold=0.85,
+        review_queue_path=tmp_path / "review_queue.jsonl",
+    )
+    foundation = SimpleNamespace(
+        provider=provider,
+        retrieve=lambda topic: [
+            {
+                "chunk_id": "week3::agent-loop::0",
+                "doc_id": "week3",
+                "text": "The Loop: think, act, observe, repeat. The core cycle makes it agentic.",
+                "score": 0.91,
+                "title": "Agent Loop",
+                "source_type": "slides",
+                "page_or_section": "slide 12",
+            }
+        ],
+    )
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (settings, foundation))
+
+    preview, _ = run_quiz_session("agent harness", 1, "", show_questions=True)
+    scored, _ = run_quiz_session("agent harness", 1, "A", show_questions=True)
+
+    for shared_text in [
+        "Which statement is directly supported by the cited span?",
+        "- **A.** The Loop: think, act, observe, repeat.",
+        "- **B.** The model operates without constraints.",
+        "- **C.** Verification happens only at the end.",
+        "- **D.** Recovery means repeating the same action.",
+    ]:
+        assert shared_text in preview
+        assert shared_text in scored
+    assert "### Score" not in preview
+    assert "**1/1 correct**" in scored
+    assert [call["temperature"] for call in provider.calls] == [0.0, 0.0]
 
 
 def test_run_quiz_session_metadata_uses_safe_trace_allow_list(tmp_path, monkeypatch):
@@ -786,9 +921,14 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "gc-status-rail" in app_text
     assert "gc-workbench" in app_text
     assert "gc-action-row" in app_text
+    assert "gc-auth-row" in app_text
+    assert "gc-signout-button" in app_text
+    assert "if _auth_enabled():" in app_text
     assert "min-height: 44px" in app_text
+    assert ".gc-output h1" in app_text
+    assert "font-size: 20px;" in app_text
     assert "_Awaiting teach run._" in app_text
-    assert "_Awaiting quiz run._" in app_text
+    assert "_Generate questions to review the local quiz text._" in app_text
     assert "_Awaiting diagnosis run._" in app_text
     assert "_Awaiting admin action._" in app_text
     assert "Skill-Gap" in app_text

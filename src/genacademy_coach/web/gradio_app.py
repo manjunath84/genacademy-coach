@@ -43,7 +43,7 @@ TEACH_REFUSAL_PRESET = (
     "low_code_no_code",
     "",
 )
-QUIZ_GROUNDED_PRESET = ("agent harness", 1, "A", False)
+QUIZ_GROUNDED_PRESET = ("agent harness", 1, "A", True)
 SKILLGAP_SOURCE_PRESET = "\n".join(
     (
         "demo-grounded-main-final-20260616",
@@ -360,8 +360,29 @@ body {
   min-width: 0 !important;
 }
 
+.gc-auth-row {
+  gap: 16px !important;
+  align-items: flex-start !important;
+  margin-bottom: 16px;
+}
+
+.gc-auth-status {
+  min-width: 0 !important;
+}
+
+.gc-auth-status p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.gc-signout-button {
+  max-width: 240px;
+  margin-left: auto;
+}
+
 .gc-preset-button button,
-.gc-run-button button {
+.gc-run-button button,
+.gc-score-button button {
   min-height: 44px !important;
   border-radius: 8px !important;
   font-weight: 750 !important;
@@ -378,7 +399,8 @@ body {
 }
 
 .gc-preset-button button:hover,
-.gc-run-button button:hover {
+.gc-run-button button:hover,
+.gc-score-button button:hover {
   transform: translateY(-1px);
 }
 
@@ -387,6 +409,12 @@ body {
   background: var(--gc-ink) !important;
   color: #fff !important;
   box-shadow: 0 2px 6px rgba(15, 20, 25, 0.08) !important;
+}
+
+.gc-score-button button {
+  border-color: var(--gc-sage-border) !important;
+  background: var(--gc-sage-bg) !important;
+  color: var(--gc-sage-text) !important;
 }
 
 .gc-input textarea,
@@ -519,15 +547,37 @@ body {
   font-size: 11px !important;
 }
 
-.gc-output h3 {
-  margin-top: 0;
+.gc-output h1,
+.gc-output h2,
+.gc-output h3,
+.gc-output h4 {
+  margin: 0 0 8px;
   font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+  line-height: 1.25;
+}
+
+.gc-output h1 {
+  font-size: 20px;
+}
+
+.gc-output h2 {
+  font-size: 18px;
+}
+
+.gc-output h3,
+.gc-output h4 {
+  font-size: 16px;
 }
 
 .gc-output p,
 .gc-output li {
   font-size: 14px;
   line-height: 1.6;
+}
+
+.gc-output ul {
+  margin-top: 8px;
+  padding-left: 20px;
 }
 
 .gc-accordion {
@@ -574,6 +624,17 @@ footer {
 
   .gc-status-rail {
     justify-content: flex-start;
+  }
+
+  .gc-auth-row {
+    display: grid !important;
+    grid-template-columns: 1fr;
+  }
+
+  .gc-signout-button {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
   }
 }
 """
@@ -832,6 +893,21 @@ def _format_trace_summary(
         return "**Trace summary:** no trace rows available."
 
     cards: list[str] = []
+    memory = metadata.get("memory")
+    if mode == "teach" and isinstance(memory, dict):
+        cards.append(
+            _trace_card(
+                "Memory",
+                [
+                    _format_chip(str(memory.get("provider", "unknown"))),
+                    _format_chip("enabled" if memory.get("enabled") else "off"),
+                ],
+                [
+                    ("User scoped", _format_bool(memory.get("user_scoped", False))),
+                    ("Safe state written", _format_bool(memory.get("safe_state_written", False))),
+                ],
+            )
+        )
     for index, row in enumerate(rows, start=1):
         if not isinstance(row, dict):
             continue
@@ -979,13 +1055,24 @@ def _memory_user_hash(settings: CoachSettings, user_email: str | None) -> str | 
     return user_id_hash(user_email, salt=settings.memory_user_salt)
 
 
+def _memory_status_message(settings: CoachSettings, user_email: str | None) -> str:
+    if not settings.mem0_api_key or not settings.memory_user_salt:
+        return "**Memory:** off by default."
+    if user_email is None:
+        return "**Memory:** Mem0 configured; sign in to scope memory to a salted learner ID."
+    return "**Memory:** Mem0 enabled for salted learner-state only."
+
+
 def auth_status_ui(request: gr.Request | None = None) -> str:
+    settings = CoachSettings.from_env()
+    username = _request_username(request)
+    memory_status = _memory_status_message(settings, username)
     if not _auth_enabled():
-        return "**Access:** auth disabled for local development."
-    user = _auth_backend().get_user(_request_username(request))
+        return "**Access:** auth disabled for local development.\n\n" + memory_status
+    user = _auth_backend().get_user(username)
     if user is None:
-        return "**Access:** signed in cohort account."
-    return f"**Access:** `{user.role}` cohort account."
+        return "**Access:** signed in cohort account.\n\n" + memory_status
+    return f"**Access:** `{user.role}` cohort account.\n\n{memory_status}"
 
 
 def admin_tab_visibility_ui(request: gr.Request | None = None) -> dict[str, Any]:
@@ -1117,6 +1204,12 @@ def run_teach_session(
             "status": "ok",
             "session_id": result.session_id,
             "trace_file": Path(result.trace_path).name,
+            "memory": {
+                "provider": getattr(session.memory, "provider", "unknown"),
+                "enabled": getattr(session.memory, "provider", "unknown") != "null",
+                "user_scoped": session.user_id_hash is not None,
+                "safe_state_written": session._memory_written,
+            },
             "profile": {
                 "style": result.profile.style,
                 "track_lens": result.profile.track_lens,
@@ -1161,23 +1254,26 @@ def run_quiz_session(
             metadata["refusal_reason"] = result.refusal_reason
             return "I could not generate a grounded quiz for this topic.", metadata
 
-        sections: list[str] = []
+        question_sections: list[str] = []
         if show_questions:
             for index, question in enumerate(result.questions, start=1):
-                sections.extend([f"### Question {index}", question.prompt])
-                sections.extend(
-                    f"{option.option_id}. {option.text}" for option in question.options
+                question_sections.extend([f"### Question {index}", "", question.prompt, ""])
+                question_sections.extend(
+                    f"- **{option.option_id}.** {option.text}" for option in question.options
                 )
-                sections.append("")
+                question_sections.append("")
         else:
-            sections.append(
+            question_sections.append(
                 f"Generated {len(result.questions)} grounded quiz question(s). "
                 "Question text is hidden by default for recording privacy; enable "
                 "local-only question display only when it is safe to show generated quiz text."
             )
 
+        sections = [*question_sections]
         if selected is not None:
-            sections.append(f"**Score:** {result.score}/{len(result.questions)}")
+            sections.extend(
+                ["", "### Score", "", f"**{result.score}/{len(result.questions)} correct**"]
+            )
             for grade in result.grades:
                 status = "correct" if grade.correct else "incorrect"
                 if show_questions:
@@ -1273,6 +1369,17 @@ def run_quiz_ui(
     return output, _format_trace_summary(metadata, mode="quiz"), metadata
 
 
+def generate_quiz_questions_ui(
+    topic: str,
+    question_count: int | float,
+    show_questions: bool,
+) -> tuple[str, str, dict[str, Any]]:
+    # Keep preview and scoring on the same deterministic quiz path unless this UI
+    # grows an explicit gr.State handoff for generated questions.
+    output, metadata = run_quiz_session(topic, question_count, "", show_questions)
+    return output, _format_trace_summary(metadata, mode="quiz"), metadata
+
+
 def run_skillgap_ui(source_session_ids: str) -> tuple[str, str, dict[str, Any]]:
     output, metadata = run_skillgap_session(source_session_ids)
     return output, _format_trace_summary(metadata, mode="skillgap"), metadata
@@ -1284,9 +1391,17 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
         elem_classes=["gc-root"],
     ) as demo:
         gr.HTML(APP_HEADER_HTML)
-        with gr.Row(elem_classes=["gc-action-row"]):
-            auth_status = gr.Markdown("**Access:** checking account.")
-            gr.Button("Sign out", link="/logout", elem_classes=["gc-preset-button"])
+        with gr.Row(elem_classes=["gc-auth-row"]):
+            auth_status = gr.Markdown(
+                "**Access:** checking account.",
+                elem_classes=["gc-auth-status"],
+            )
+            if _auth_enabled():
+                gr.Button(
+                    "Sign out",
+                    link="/logout",
+                    elem_classes=["gc-preset-button", "gc-signout-button"],
+                )
         if status_message is not None:
             gr.Markdown(status_message, elem_classes=["gc-deploy-note"])
         with gr.Accordion("Evidence fallback", open=False, elem_classes=["gc-fallback"]):
@@ -1399,12 +1514,12 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             <p class="gc-eyebrow">Quiz mode</p>
                             <h2 class="gc-panel-title">Deterministic assessment</h2>
                             <p class="gc-panel-copy">
-                              Generate cited MCQs, grade option IDs in Python, and keep question
-                              text hidden for recording.
+                              Generate cited MCQs, review them locally, then grade option IDs
+                              in Python.
                             </p>
                             <div class="gc-mode-card">
-                              <strong>Recording mode</strong>
-                              <span>Score and trace first; raw quiz text stays local-only.</span>
+                              <strong>Demo visibility</strong>
+                              <span>Questions can show in the app; traces stay redacted.</span>
                             </div>
                             """
                         )
@@ -1426,28 +1541,35 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 "Grounded quiz preset",
                                 elem_classes=["gc-preset-button"],
                             )
-                            quiz_button = gr.Button("Run quiz", elem_classes=["gc-run-button"])
+                            quiz_generate_button = gr.Button(
+                                "Generate questions",
+                                elem_classes=["gc-run-button"],
+                            )
                         answers = gr.Textbox(
                             label="Answers",
                             value="A",
                             placeholder="A,B,C",
                             elem_classes=["gc-input"],
                         )
+                        quiz_button = gr.Button(
+                            "Score answers",
+                            elem_classes=["gc-score-button"],
+                        )
                         show_questions = gr.Checkbox(
-                            label="Show generated quiz questions (local/private only)",
-                            value=False,
+                            label="Show generated quiz questions (local/private demo only)",
+                            value=True,
                             elem_classes=["gc-checkbox"],
                         )
                     with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
                         gr.HTML(
                             """
                             <p class="gc-eyebrow">Assessment surface</p>
-                            <h2 class="gc-panel-title">Score and trace</h2>
+                            <h2 class="gc-panel-title">Questions, score, and trace</h2>
                             """
                         )
                         quiz_output = gr.Markdown(
-                            label="Quiz output",
-                            value="_Awaiting quiz run._",
+                            label="Quiz questions and score",
+                            value="_Generate questions to review the local quiz text._",
                             elem_classes=["gc-output"],
                         )
                         quiz_trace_summary = gr.Markdown(
@@ -1468,6 +1590,11 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                     fn=fill_quiz_grounded_preset,
                     inputs=[],
                     outputs=[quiz_topic, question_count, answers, show_questions],
+                )
+                quiz_generate_button.click(
+                    fn=generate_quiz_questions_ui,
+                    inputs=[quiz_topic, question_count, show_questions],
+                    outputs=[quiz_output, quiz_trace_summary, quiz_metadata],
                 )
                 quiz_button.click(
                     fn=run_quiz_ui,
