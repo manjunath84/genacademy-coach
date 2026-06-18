@@ -972,6 +972,10 @@ def auth_status_ui(request: gr.Request | None = None) -> str:
     return f"**Access:** `{user.role}` cohort account."
 
 
+def admin_tab_visibility_ui(request: gr.Request | None = None) -> dict[str, Any]:
+    return gr.update(visible=_auth_backend().is_admin(_request_username(request)))
+
+
 def _format_admin_users(rows: list[dict[str, str]]) -> str:
     if not rows:
         return "No users are visible for this account."
@@ -1509,7 +1513,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                     inputs=[source_session_ids],
                     outputs=[skillgap_output, skillgap_trace_summary, skillgap_metadata],
                 )
-            with gr.Tab("Admin"):
+            with gr.Tab("Admin", visible=False) as admin_tab:
                 with gr.Row(elem_classes=["gc-workbench"]):
                     with gr.Column(scale=5, min_width=320, elem_classes=["gc-panel"]):
                         gr.HTML(
@@ -1567,6 +1571,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                     outputs=[admin_message, admin_users],
                 )
         demo.load(auth_status_ui, inputs=[], outputs=[auth_status])
+        demo.load(admin_tab_visibility_ui, inputs=[], outputs=[admin_tab])
         demo.load(list_admin_users_ui, inputs=[], outputs=[admin_users])
     return demo
 

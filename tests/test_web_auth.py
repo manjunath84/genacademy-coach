@@ -43,6 +43,9 @@ class FakeDatastore:
         }
         return self.users[email]
 
+    def list_users(self):
+        return sorted(self.users.values(), key=lambda row: (row["created_at"], row["email"]))
+
 
 def fake_store():
     from genacademy_rag.core.security import hash_password
@@ -98,3 +101,8 @@ def test_admin_can_create_users_but_member_cannot():
     assert "learner@example.com" in message
     assert auth.authenticate("learner@example.com", "learner-secret") is True
     assert auth.list_users(actor_email="member@genacademy.local") == []
+    assert [row["email"] for row in auth.list_users(actor_email="admin@genacademy.local")] == [
+        "admin@genacademy.local",
+        "learner@example.com",
+        "member@genacademy.local",
+    ]

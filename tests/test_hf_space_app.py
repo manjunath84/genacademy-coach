@@ -31,10 +31,13 @@ from genacademy_coach.web.gradio_app import (
     _require_topic,
     _server_name,
     _space_status_message,
+    admin_tab_visibility_ui,
+    create_auth_user_ui,
     fill_quiz_grounded_preset,
     fill_skillgap_preset,
     fill_teach_grounded_preset,
     fill_teach_refusal_preset,
+    list_admin_users_ui,
     run_quiz_session,
     run_skillgap_session,
     run_teach_session,
@@ -391,6 +394,67 @@ def test_gradio_launch_auth_is_enabled_by_default_and_can_be_disabled(monkeypatc
     assert _launch_auth() is None
     assert calls[-1]["auth"] is None
     assert calls[-1]["auth_message"] is None
+
+
+def test_admin_tab_visibility_uses_authenticated_request_username(monkeypatch):
+    class FakeAuth:
+        def is_admin(self, email):
+            return email == "admin@example.com"
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+
+    admin_update = admin_tab_visibility_ui(SimpleNamespace(username="admin@example.com"))
+    member_update = admin_tab_visibility_ui(SimpleNamespace(username="member@example.com"))
+
+    assert admin_update["visible"] is True
+    assert member_update["visible"] is False
+
+
+def test_admin_user_actions_use_request_username_not_form_input(monkeypatch):
+    calls = []
+
+    class FakeAuth:
+        def create_user(self, **kwargs):
+            calls.append(kwargs)
+            return True, "created"
+
+        def list_users(self, *, actor_email):
+            calls.append({"list_actor_email": actor_email})
+            return [
+                {
+                    "email": "learner@example.com",
+                    "role": "member",
+                    "created_at": "2026-06-18 00:00:00",
+                }
+            ]
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+
+    message, users = create_auth_user_ui(
+        "learner@example.com",
+        "member",
+        "temporary-secret",
+        request=SimpleNamespace(username="admin@example.com"),
+    )
+
+    assert message == "created"
+    assert "learner@example.com" in users
+    assert calls[0]["actor_email"] == "admin@example.com"
+    assert calls[0]["email"] == "learner@example.com"
+    assert calls[1] == {"list_actor_email": "admin@example.com"}
+
+
+def test_member_admin_user_list_is_forbidden(monkeypatch):
+    class FakeAuth:
+        def list_users(self, *, actor_email):
+            assert actor_email == "member@example.com"
+            return []
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+
+    assert list_admin_users_ui(SimpleNamespace(username="member@example.com")) == (
+        "Admin access required."
+    )
 
 
 def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, monkeypatch):

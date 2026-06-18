@@ -221,6 +221,15 @@ Launch the local UI:
 uv run python app.py
 ```
 
+For a no-login local recording that focuses on the teach/quiz/trace walkthrough, run:
+
+```bash
+GENACADEMY_COACH_AUTH_ENABLED=false uv run python app.py
+```
+
+If the login is part of the recording story, use non-sensitive seed credentials and avoid showing real
+deployment passwords on camera.
+
 Run verification:
 
 ```bash
