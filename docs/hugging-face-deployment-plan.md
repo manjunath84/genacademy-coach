@@ -119,7 +119,7 @@ Variables:
 
 - `GENACADEMY_PROVIDER=nebius`
 - `NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1/`
-- `NEBIUS_MODEL=Qwen/Qwen3-30B-A3B-Instruct-2507`
+- `NEBIUS_MODEL=Qwen/Qwen3-30B-A3B-Instruct-2507-fast`
 - `GENACADEMY_COACH_STOP_THRESHOLD=0.40`
 - `GENACADEMY_COACH_CONFIRM_THRESHOLD=0.85`
 - `GENACADEMY_COACH_COLLECTION=coach_course`
@@ -138,6 +138,13 @@ Variables:
 - `GENACADEMY_RERANK_ENABLED=false`
 
 Do not put `.env` in the Space repository.
+
+Latency tuning note: keep Nebius as the default hosted provider for the Week-3 rubric path, using the
+Nebius Token Factory `-fast` flavor for lower demo latency. For local or private latency experiments,
+the inherited Week-2 provider surface also supports `GENACADEMY_PROVIDER=openrouter` with
+`OPENROUTER_MODEL=openai/gpt-4.1-nano`, which OpenRouter lists as the fastest/cheapest GPT-4.1 variant
+with JSON/structured-output parameters. Benchmark with the same quiz and teach prompts before changing
+the hosted provider family.
 
 Deploy-specific dependency note: `pyproject.toml` explicitly routes Linux `torch` installs to the
 PyTorch CPU wheel index. Without that, the Docker build pulls CUDA/NVIDIA transitive wheels and becomes

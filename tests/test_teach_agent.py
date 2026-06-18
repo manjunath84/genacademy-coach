@@ -1,4 +1,9 @@
-from genacademy_coach.teach_agent import SYSTEM_PROMPT, build_coach_agent, build_langchain_model
+from genacademy_coach.teach_agent import (
+    DEFAULT_NEBIUS_MODEL,
+    SYSTEM_PROMPT,
+    build_coach_agent,
+    build_langchain_model,
+)
 
 
 class FakeRagSettings:
@@ -28,6 +33,10 @@ def test_build_langchain_model_uses_week2_generation_settings():
     assert str(model.openai_api_base).rstrip("/") == "https://api.tokenfactory.nebius.com/v1"
 
 
+def test_default_nebius_model_uses_fast_flavor():
+    assert DEFAULT_NEBIUS_MODEL == "Qwen/Qwen3-30B-A3B-Instruct-2507-fast"
+
+
 def test_build_langchain_model_falls_back_when_week2_model_is_empty():
     class EmptyModelRagSettings(FakeRagSettings):
         gen_model = ""
@@ -37,7 +46,7 @@ def test_build_langchain_model_falls_back_when_week2_model_is_empty():
 
     model = build_langchain_model(EmptyModelFoundation())
 
-    assert model.model_name == "Qwen/Qwen3-30B-A3B-Instruct-2507"
+    assert model.model_name == DEFAULT_NEBIUS_MODEL
 
 
 def test_build_coach_agent_bounds_model_and_tool_calls(monkeypatch):

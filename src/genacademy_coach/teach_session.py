@@ -18,6 +18,7 @@ from genacademy_coach.teach_agent import build_coach_agent
 from genacademy_coach.teach_tools import TeachRuntime
 from genacademy_coach.teach_types import (
     CoachAgentResponse,
+    DecisionSource,
     LearnerProfile,
     TeachSessionResult,
     TraceTurn,
@@ -27,10 +28,19 @@ from genacademy_coach.trace import TraceWriter
 
 UNFAITHFUL_RESPONSE_REASON = "agent response was not faithful to retrieved citation text"
 FALLBACK_STRATEGIES = ("contrastive_example", "step_by_step", "summary")
+PYTHON_SAFETY_GATE_SOURCE: DecisionSource = "python safety gate"
 
 
 def _grounded_excerpt(span: Any) -> str:
     return " ".join(span.text.split())[:700].rstrip()
+
+
+def _with_decision_source(
+    response: CoachAgentResponse,
+    source: DecisionSource,
+) -> CoachAgentResponse:
+    response._decision_source = source
+    return response
 
 
 class AgentResponseError(RuntimeError):
@@ -142,12 +152,15 @@ class CoachSession:
         if self.profile.turn_count >= self.settings.max_teach_turns:
             return self._write_result(
                 learner_input,
-                CoachAgentResponse(
-                    learner_message="We have reached the turn limit for this teach loop.",
-                    observation="turn budget reached before invoking the agent",
-                    next_action="stop",
-                    strategy="summary",
-                    citation_ids=[],
+                _with_decision_source(
+                    CoachAgentResponse(
+                        learner_message="We have reached the turn limit for this teach loop.",
+                        observation="turn budget reached before invoking the agent",
+                        next_action="stop",
+                        strategy="summary",
+                        citation_ids=[],
+                    ),
+                    PYTHON_SAFETY_GATE_SOURCE,
                 ),
             )
 
@@ -466,17 +479,22 @@ class CoachSession:
             item for item in FALLBACK_STRATEGIES if item != previous_strategy
         )
         excerpt = _grounded_excerpt(span)
-        return CoachAgentResponse(
-            learner_message=f"{excerpt} [{span.citation_id}]",
-            observation="grounded fallback after incorrect answer and unfaithful agent response",
-            next_action="re_explain_differently",
-            strategy=strategy,
-            citation_ids=[span.citation_id],
-            check_question=(
-                self.runtime.current_check.question
-                if self.runtime.current_check is not None
-                else None
+        return _with_decision_source(
+            CoachAgentResponse(
+                learner_message=f"{excerpt} [{span.citation_id}]",
+                observation=(
+                    "grounded fallback after incorrect answer and unfaithful agent response"
+                ),
+                next_action="re_explain_differently",
+                strategy=strategy,
+                citation_ids=[span.citation_id],
+                check_question=(
+                    self.runtime.current_check.question
+                    if self.runtime.current_check is not None
+                    else None
+                ),
             ),
+            PYTHON_SAFETY_GATE_SOURCE,
         )
 
     def _grounded_advance_response(
@@ -486,12 +504,15 @@ class CoachSession:
     ) -> CoachAgentResponse:
         span = cited_spans[0]
         excerpt = _grounded_excerpt(span)
-        return CoachAgentResponse(
-            learner_message=f"{excerpt} [{span.citation_id}]",
-            observation="grounded fallback after correct answer and unfaithful agent response",
-            next_action="advance",
-            strategy="summary",
-            citation_ids=[span.citation_id],
+        return _with_decision_source(
+            CoachAgentResponse(
+                learner_message=f"{excerpt} [{span.citation_id}]",
+                observation="grounded fallback after correct answer and unfaithful agent response",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=[span.citation_id],
+            ),
+            PYTHON_SAFETY_GATE_SOURCE,
         )
 
     def _grounded_teach_response(
@@ -501,17 +522,20 @@ class CoachSession:
         cited_span: Any,
     ) -> CoachAgentResponse:
         excerpt = _grounded_excerpt(cited_span)
-        return CoachAgentResponse(
-            learner_message=f"{excerpt} [{cited_span.citation_id}]",
-            observation="grounded fallback after initial unfaithful agent response",
-            next_action=response.next_action,
-            strategy=response.strategy,
-            citation_ids=[cited_span.citation_id],
-            check_question=(
-                self.runtime.current_check.question
-                if self.runtime.current_check is not None
-                else None
+        return _with_decision_source(
+            CoachAgentResponse(
+                learner_message=f"{excerpt} [{cited_span.citation_id}]",
+                observation="grounded fallback after initial unfaithful agent response",
+                next_action=response.next_action,
+                strategy=response.strategy,
+                citation_ids=[cited_span.citation_id],
+                check_question=(
+                    self.runtime.current_check.question
+                    if self.runtime.current_check is not None
+                    else None
+                ),
             ),
+            PYTHON_SAFETY_GATE_SOURCE,
         )
 
     def _refusal_response(
@@ -532,10 +556,13 @@ class CoachSession:
                 citation_ids=cited,
             )
             self.runtime.escalation_queued = True
-        return CoachAgentResponse(
-            learner_message=learner_message,
-            observation=reason,
-            next_action="refuse_escalate",
-            strategy="refusal",
-            citation_ids=[],
+        return _with_decision_source(
+            CoachAgentResponse(
+                learner_message=learner_message,
+                observation=reason,
+                next_action="refuse_escalate",
+                strategy="refusal",
+                citation_ids=[],
+            ),
+            PYTHON_SAFETY_GATE_SOURCE,
         )

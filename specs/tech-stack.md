@@ -16,7 +16,7 @@ through clean metadata and adapter seams.
 | Auth | **Gradio `launch(auth=...)` + Week-2 SQLite user store** | Cohort member/admin login is enforced at the web boundary. Admin account creation reuses the Week-2 bcrypt/password table; core tutor logic stays framework-free. |
 | State | **Within-session profile + optional episodic memory** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, and turn budget stay in session. Mem0-backed cross-session memory is off by default and stores only safe learner-state hashes/counts. |
 | Grading | **Deterministic grounded gate** | The MVP pass/fail decision uses normalized answer matching plus citation-resolves checks. The inherited LLM judge is a secondary faithfulness audit, not the gate. |
-| Trace | **Local JSON trace + CLI pretty print; LangSmith optional** | The local artifact proves agenticity without external auth/network risk. LangSmith tracing is useful when configured; custom HTML is deferred. |
+| Trace | **Local JSON trace + CLI pretty print + allow-listed UI cards; LangSmith optional** | The local artifact proves agenticity without external auth/network risk. The Gradio demo renders safe decision-basis/status cards from allow-listed metadata while raw trace JSON stays local. LangSmith tracing is useful when configured; custom HTML is deferred. |
 | Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
 | Build tooling | **Codex / Claude Code with gates** | Builder and reviewer are different models or contexts; no code until the implementation plan is approved. |
 
@@ -46,6 +46,9 @@ through clean metadata and adapter seams.
 - **Citations captured at retrieval.** Never reconstruct a citation after generation.
 - **Agenticity = runtime decisioning shown in a trace.** Python enforces safety; the model chooses
   `advance`, `re_explain_differently`, `drill`, `refuse_escalate`, or `stop` plus a strategy.
+- **Trace UI labels status, not controls.** In the Gradio demo, runtime decisions render as labeled
+  status chips such as `action advance` and `band confirm`, plus `Decision basis`; they are evidence
+  of the agent loop, not clickable workflow controls.
 - **Pure core / thin view.** Agent, retrieval, grading, and learner-profile logic have no web-framework
   imports.
 - **Reuse Week-2.** Do not rebuild the embedder, chunker, vector schema, refusal logic, provider wrapper,
@@ -130,6 +133,11 @@ Per turn:
 LangSmith is an optional companion when `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, and
 `LANGSMITH_PROJECT` are configured. It is not the only proof artifact because external auth/network and
 private-corpus trace leakage are unacceptable MVP dependencies.
+
+The local Gradio view may show an allow-listed trace-card projection for demos: rendered decision basis,
+labeled action/band/score chips, strategy, faithfulness, citation summaries, and tool-call summaries.
+Raw learner inputs, generated tutor prose, retrieved spans, raw quiz content, raw JSON trace rows, and
+secrets stay local/ignored and must not be committed as screenshots or docs.
 
 ## Allowed vs. Forbidden Imports
 

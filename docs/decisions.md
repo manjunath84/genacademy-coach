@@ -1,7 +1,8 @@
 # Architecture Decisions
 
 The load-bearing, settled decisions behind GenAcademy Coach. Reopening one needs a new entry here plus
-a note in the affected spec. Status: pre-build, aligned to the Week-3 project handout on 2026-06-15.
+a note in the affected spec. Status: post-MVP, aligned to the Week-3 project handout on 2026-06-15 and
+refreshed after the shipped Teach/Quiz/Skill-Gap/auth/memory slices on 2026-06-18.
 
 ---
 
@@ -67,10 +68,14 @@ answers producing different model-chosen strategies without changing Python cont
 **Rejected.** A Python state machine where `if wrong: re_explain()` is the core adaptation.
 
 ### AD-8 - Trace Artifact: Local First, LangSmith Optional
-**Decision.** The primary runtime trace is local JSON plus a CLI pretty print/screenshot. LangSmith is
-an optional companion when credentials are configured. A custom HTML viewer is deferred.
+**Decision.** The primary runtime trace is local JSON plus a CLI pretty print/screenshot. The local
+Gradio demo renders an allow-listed card projection: `Decision basis`, labeled `action ...` and
+`band ...` status chips, score, strategy, citation summaries, and tool-call summaries. LangSmith is an
+optional companion when credentials are configured. A custom HTML viewer is deferred.
 **Why.** The trace is required to prove agenticity, but the proof cannot depend on external auth,
-network, or private-corpus trace exposure. LangSmith is useful for debugging and a polished backup.
+network, or private-corpus trace exposure. The UI card makes the safe trace readable in a recording
+without publishing raw trace JSON, learner inputs, tutor prose, retrieved spans, or secrets. LangSmith
+is useful for debugging and a polished backup.
 **Rejected.** HTML trace viewer as MVP-critical; LangSmith as the only proof artifact.
 
 ### AD-9 - State: Within-Session Profile
@@ -89,10 +94,13 @@ the product brand.
 **Rejected.** Silent fallback to model priors, fabricated citations, or webhook-heavy mentor workflows
 for the MVP.
 
-### AD-11 - Pull-Ins: Quiz, Interview, Admin Upload, ElevenLabs Voice
-**Decision.** Quiz, mock interview, admin upload, and ElevenLabs voice remain product ideas but are not
-MVP blockers. They start only after the teach loop, refusal/eval path, and trace work end-to-end.
-**Why.** This preserves the long-term cohort-product architecture while protecting the judged Thursday
-deliverable. Mock interview reuses the same grounded engine: ask open-ended questions, grade against
-cited expected points, follow up on gaps, and produce a strengths/weak-concepts report.
-**Rejected.** Starting any pull-in before the teach loop is demoable.
+### AD-11 - Pull-Ins: Shipped Bounded Pull-Ins vs. Future Pull-Ins
+**Decision.** Quiz, Skill-Gap, cohort auth/admin, and privacy-first memory are shipped bounded pull-ins
+because the teach loop, refusal/eval path, and trace work end-to-end. Mock interview, admin upload,
+ElevenLabs voice, explicit LangGraph, public corpus hosting, and memory hardening remain future slices.
+**Why.** This preserves the long-term cohort-product architecture while keeping the judged agenticity
+proof anchored in Teach. Quiz and Skill-Gap reuse retrieval, citations, deterministic grading/ranking,
+typed traces, and refusal rather than adding new agent loops. Auth/memory make per-user state honest
+without letting memory become a knowledge source.
+**Rejected.** Treating Quiz or Skill-Gap as the agenticity proof; starting voice/interview/admin upload
+without a separate plan and privacy review.

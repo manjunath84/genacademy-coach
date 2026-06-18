@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import uuid
 from functools import lru_cache
 from html import escape
@@ -12,6 +13,7 @@ from typing import Any
 from genacademy_coach.foundation import Foundation, build_course_vectorstore
 from genacademy_coach.privacy import user_id_hash
 from genacademy_coach.quiz_session import QuizSession
+from genacademy_coach.quiz_types import QuizQuestion, QuizSessionResult, grade_quiz
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.skillgap_session import SkillGapSession, validate_skillgap_session_id
 from genacademy_coach.teach_session import CoachSession
@@ -31,6 +33,8 @@ logger = logging.getLogger(__name__)
 STYLE_CHOICES = ["concise", "analogy", "step_by_step"]
 TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
 VALID_OPTION_IDS = frozenset({"A", "B", "C", "D"})
+MARKDOWN_LITERAL_PATTERN = re.compile(r"([\\`*_{}\[\]()#+\-!|>])")
+DECISION_OBSERVATION_LIMIT = 240
 TEACH_GROUNDED_PRESET = (
     "agent harness",
     "analogy",
@@ -234,6 +238,7 @@ body {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  cursor: default;
 }
 
 .gc-chip.sage {
@@ -263,6 +268,7 @@ body {
   border: 1px solid var(--gc-rule) !important;
   border-radius: 8px !important;
   background: #fff !important;
+  overflow: hidden !important;
   box-shadow: 0 8px 24px rgba(36, 43, 39, 0.04);
 }
 
@@ -380,8 +386,11 @@ body {
   margin-left: auto;
 }
 
+button.gc-preset-button,
 .gc-preset-button button,
+button.gc-run-button,
 .gc-run-button button,
+button.gc-score-button,
 .gc-score-button button {
   min-height: 44px !important;
   border-radius: 8px !important;
@@ -392,18 +401,23 @@ body {
     background 0.15s ease !important;
 }
 
+button.gc-preset-button,
 .gc-preset-button button {
   border: 1px solid var(--gc-mineral-border) !important;
   background: #fff !important;
   color: var(--gc-mineral-text) !important;
 }
 
+button.gc-preset-button:hover,
 .gc-preset-button button:hover,
+button.gc-run-button:hover,
 .gc-run-button button:hover,
+button.gc-score-button:hover,
 .gc-score-button button:hover {
   transform: translateY(-1px);
 }
 
+button.gc-run-button,
 .gc-run-button button {
   border: 1px solid var(--gc-ink) !important;
   background: var(--gc-ink) !important;
@@ -411,10 +425,25 @@ body {
   box-shadow: 0 2px 6px rgba(15, 20, 25, 0.08) !important;
 }
 
+button.gc-score-button,
 .gc-score-button button {
   border-color: var(--gc-sage-border) !important;
   background: var(--gc-sage-bg) !important;
   color: var(--gc-sage-text) !important;
+}
+
+button.gc-score-button:not([disabled]),
+.gc-score-button button:not([disabled]) {
+  border-color: #31533d !important;
+  background: #31533d !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(49, 83, 61, 0.14) !important;
+}
+
+button.gc-score-button[disabled],
+.gc-score-button button[disabled] {
+  box-shadow: none !important;
+  opacity: 0.66 !important;
 }
 
 .gc-input textarea,
@@ -509,6 +538,10 @@ body {
   min-width: 0;
 }
 
+.gc-trace-field-wide {
+  grid-column: 1 / -1;
+}
+
 .gc-trace-label {
   display: block;
   margin-bottom: 3px;
@@ -584,11 +617,37 @@ body {
   border: 1px solid var(--gc-rule) !important;
   border-radius: 8px !important;
   background: #fff !important;
+  overflow: hidden !important;
 }
 
 .gc-accordion button,
 .gc-fallback button {
   min-height: 44px !important;
+}
+
+.gc-answer-choice {
+  border: 1px solid var(--gc-rule) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  padding: 8px 10px !important;
+}
+
+.gc-answer-choice label {
+  color: var(--gc-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.gc-answer-choice .wrap {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.gc-answer-choice .wrap label {
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 36px !important;
 }
 
 .gc-checkbox {
@@ -655,7 +714,7 @@ APP_HEADER_HTML = """
     <span class="gc-chip sage">Teach loop</span>
     <span class="gc-chip mineral">Quiz pull-in</span>
     <span class="gc-chip">Skill-Gap</span>
-    <span class="gc-chip">Redacted traces</span>
+    <span class="gc-chip">Demo traces</span>
   </div>
 </section>
 """
@@ -842,7 +901,22 @@ def _format_learner_message_citations(message: str, spans: list[RetrievedSpan]) 
     for span in spans:
         rendered = rendered.replace(f"[{span.citation_id}]", f"[{span.source_label}]")
         rendered = rendered.replace(span.citation_id, span.source_label)
-    return rendered
+    return _markdown_literal(rendered)
+
+
+def _markdown_literal(value: str) -> str:
+    html_safe = escape(value, quote=False)
+    return MARKDOWN_LITERAL_PATTERN.sub(r"\\\1", html_safe)
+
+
+def _safe_decision_observation(value: Any) -> str:
+    text = " ".join(str(value or "not captured").split())
+    return _short_value(text, limit=DECISION_OBSERVATION_LIMIT)
+
+
+def _decision_source_label(value: Any) -> str:
+    text = str(value or "agent").replace("_", " ").strip().lower()
+    return "python safety gate" if text == "python safety gate" else "agent"
 
 
 def _current_spans(session: Any) -> list[RetrievedSpan]:
@@ -852,14 +926,17 @@ def _current_spans(session: Any) -> list[RetrievedSpan]:
 
 
 def _format_bool(value: Any) -> str:
+    if value is None:
+        return "n/a"
     if isinstance(value, bool):
         return "yes" if value else "no"
     return escape(str(value))
 
 
 def _trace_field(label: str, value: str) -> str:
+    extra_class = " gc-trace-field-wide" if label == "Decision basis" else ""
     return (
-        '<div class="gc-trace-field">'
+        f'<div class="gc-trace-field{extra_class}">'
         f'<span class="gc-trace-label">{escape(label)}</span>'
         f'<div class="gc-trace-value">{value}</div>'
         "</div>"
@@ -912,13 +989,22 @@ def _format_trace_summary(
         if not isinstance(row, dict):
             continue
         if mode == "teach":
+            decision_observation = _safe_decision_observation(
+                row.get("decision_observation", "not captured")
+            )
+            decision_source = _decision_source_label(row.get("decision_source"))
             title = f"Turn {row.get('turn', '?')}"
             pills = [
-                _format_chip(row.get("next_action", "unknown")),
-                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"action {row.get('next_action', 'unknown')}"),
+                _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
+                _format_chip(f"source {decision_source}"),
             ]
             fields = [
+                (
+                    "Decision basis",
+                    _markdown_literal(decision_observation),
+                ),
                 ("Topic", f"<code>{escape(str(row.get('topic_hash', 'unknown')))}</code>"),
                 (
                     "Input",
@@ -940,7 +1026,7 @@ def _format_trace_summary(
         elif mode == "quiz":
             title = "Quiz run"
             pills = [
-                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [
@@ -958,8 +1044,8 @@ def _format_trace_summary(
         else:
             title = f"Gap {index}"
             pills = [
-                _format_chip(row.get("next_action", "unknown")),
-                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"action {row.get('next_action', 'unknown')}"),
+                _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [
@@ -1055,10 +1141,17 @@ def _memory_user_hash(settings: CoachSettings, user_email: str | None) -> str | 
     return user_id_hash(user_email, salt=settings.memory_user_salt)
 
 
-def _memory_status_message(settings: CoachSettings, user_email: str | None) -> str:
+def _memory_status_message(
+    settings: CoachSettings,
+    user_email: str | None,
+    *,
+    auth_enabled: bool,
+) -> str:
     if not settings.mem0_api_key or not settings.memory_user_salt:
         return "**Memory:** off by default."
     if user_email is None:
+        if not auth_enabled:
+            return "**Memory:** Mem0 configured; auth is disabled for local development."
         return "**Memory:** Mem0 configured; sign in to scope memory to a salted learner ID."
     return "**Memory:** Mem0 enabled for salted learner-state only."
 
@@ -1066,8 +1159,9 @@ def _memory_status_message(settings: CoachSettings, user_email: str | None) -> s
 def auth_status_ui(request: gr.Request | None = None) -> str:
     settings = CoachSettings.from_env()
     username = _request_username(request)
-    memory_status = _memory_status_message(settings, username)
-    if not _auth_enabled():
+    auth_enabled = _auth_enabled()
+    memory_status = _memory_status_message(settings, username, auth_enabled=auth_enabled)
+    if not auth_enabled:
         return "**Access:** auth disabled for local development.\n\n" + memory_status
     user = _auth_backend().get_user(username)
     if user is None:
@@ -1180,7 +1274,7 @@ def run_teach_session(
             ),
         ]
         if first.response.check_question:
-            sections.extend(["", f"**Check:** {first.response.check_question}"])
+            sections.extend(["", f"**Check:** {_markdown_literal(first.response.check_question)}"])
 
         answer = learner_answer.strip()
         result = first
@@ -1197,8 +1291,27 @@ def run_teach_session(
                 ]
             )
             if result.response.check_question:
-                sections.extend(["", f"**Check:** {result.response.check_question}"])
+                sections.extend(
+                    ["", f"**Check:** {_markdown_literal(result.response.check_question)}"]
+                )
         session.finish()
+        trace_rows = safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS)
+        decision_observations = {1: getattr(first.response, "observation", None)}
+        decision_sources = {1: getattr(first.response, "_decision_source", "agent")}
+        if answer:
+            decision_observations[2] = getattr(result.response, "observation", None)
+            decision_sources[2] = getattr(result.response, "_decision_source", "agent")
+        for row in trace_rows:
+            if not isinstance(row, dict):
+                continue
+            observation = decision_observations.get(row.get("turn"))
+            if observation:
+                # Intentionally demo-only and outside the persisted trace schema: this lets
+                # the UI explain the live decision without writing raw observations to disk.
+                row["decision_observation"] = _safe_decision_observation(observation)
+                row["decision_source"] = _decision_source_label(
+                    decision_sources.get(row.get("turn"), "agent")
+                )
 
         metadata = {
             "status": "ok",
@@ -1215,13 +1328,83 @@ def run_teach_session(
                 "track_lens": result.profile.track_lens,
                 "turn_count": result.profile.turn_count,
             },
-            "trace": safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS),
+            "trace": trace_rows,
         }
         return "\n".join(sections), metadata
     except UserInputError as exc:
         return _input_error_payload(str(exc))
     except Exception as exc:
         return _error_payload(exc)
+
+
+def _run_quiz_result(
+    topic: str,
+    question_count: int | float,
+    answers: str,
+) -> tuple[str, int, list[str] | None, QuizSessionResult, dict[str, Any]]:
+    clean_topic = _require_topic(topic)
+    count = _coerce_question_count(question_count)
+    selected = _parse_answers(answers)
+    _validate_answer_count(selected, count)
+    settings, foundation = _runtime()
+    session = QuizSession(
+        session_id=f"hf-quiz-{uuid.uuid4().hex[:10]}",
+        topic=clean_topic,
+        settings=settings,
+        foundation=foundation,
+        question_count=count,
+    )
+    result = session.run(selected)
+    metadata = {
+        "status": "ok",
+        "session_id": result.session_id,
+        "trace_file": Path(result.trace_path).name,
+        "trace": safe_trace_rows(result.trace_path, SAFE_QUIZ_TRACE_FIELDS),
+    }
+    if result.refusal_reason is not None:
+        metadata["refusal_reason"] = result.refusal_reason
+    return clean_topic, count, selected, result, metadata
+
+
+def _format_quiz_result(result: QuizSessionResult, *, show_questions: bool) -> str:
+    if result.refusal_reason is not None:
+        return "I could not generate a grounded quiz for this topic."
+
+    question_sections: list[str] = []
+    if show_questions:
+        for index, question in enumerate(result.questions, start=1):
+            question_sections.extend(
+                [f"### Question {index}", "", _markdown_literal(question.prompt), ""]
+            )
+            question_sections.extend(
+                f"- **{option.option_id}.** {_markdown_literal(option.text)}"
+                for option in question.options
+            )
+            question_sections.append("")
+    else:
+        question_sections.append(
+            f"Generated {len(result.questions)} grounded quiz question(s). "
+            "Question text is hidden by default for recording privacy; enable "
+            "local-only question display only when it is safe to show generated quiz text."
+        )
+
+    sections = [*question_sections]
+    if result.grades:
+        sections.extend(
+            ["", "### Score", "", f"**{result.score}/{len(result.questions)} correct**"]
+        )
+        for grade in result.grades:
+            status = "correct" if grade.correct else "incorrect"
+            if show_questions:
+                sections.append(
+                    f"- {grade.question_id}: {status} "
+                    f"(selected {grade.selected_option_id}, answer {grade.correct_option_id})"
+                )
+            else:
+                sections.append(
+                    f"- {grade.question_id}: {status} (selected {grade.selected_option_id})"
+                )
+    return "\n".join(sections).strip()
 
 
 def run_quiz_session(
@@ -1231,66 +1414,99 @@ def run_quiz_session(
     show_questions: bool = False,
 ) -> tuple[str, dict[str, Any]]:
     try:
-        clean_topic = _require_topic(topic)
-        count = _coerce_question_count(question_count)
-        selected = _parse_answers(answers)
-        _validate_answer_count(selected, count)
-        settings, foundation = _runtime()
-        session = QuizSession(
-            session_id=f"hf-quiz-{uuid.uuid4().hex[:10]}",
-            topic=clean_topic,
-            settings=settings,
-            foundation=foundation,
-            question_count=count,
-        )
-        result = session.run(selected)
-        metadata = {
-            "status": "ok",
-            "session_id": result.session_id,
-            "trace_file": Path(result.trace_path).name,
-            "trace": safe_trace_rows(result.trace_path, SAFE_QUIZ_TRACE_FIELDS),
-        }
-        if result.refusal_reason is not None:
-            metadata["refusal_reason"] = result.refusal_reason
-            return "I could not generate a grounded quiz for this topic.", metadata
-
-        question_sections: list[str] = []
-        if show_questions:
-            for index, question in enumerate(result.questions, start=1):
-                question_sections.extend([f"### Question {index}", "", question.prompt, ""])
-                question_sections.extend(
-                    f"- **{option.option_id}.** {option.text}" for option in question.options
-                )
-                question_sections.append("")
-        else:
-            question_sections.append(
-                f"Generated {len(result.questions)} grounded quiz question(s). "
-                "Question text is hidden by default for recording privacy; enable "
-                "local-only question display only when it is safe to show generated quiz text."
-            )
-
-        sections = [*question_sections]
-        if selected is not None:
-            sections.extend(
-                ["", "### Score", "", f"**{result.score}/{len(result.questions)} correct**"]
-            )
-            for grade in result.grades:
-                status = "correct" if grade.correct else "incorrect"
-                if show_questions:
-                    sections.append(
-                        f"- {grade.question_id}: {status} "
-                        f"(selected {grade.selected_option_id}, answer {grade.correct_option_id})"
-                    )
-                else:
-                    sections.append(
-                        f"- {grade.question_id}: {status} "
-                        f"(selected {grade.selected_option_id})"
-                    )
-        return "\n".join(sections).strip(), metadata
+        *_, result, metadata = _run_quiz_result(topic, question_count, answers)
+        return _format_quiz_result(result, show_questions=show_questions), metadata
     except UserInputError as exc:
         return _input_error_payload(str(exc))
     except Exception as exc:
         return _error_payload(exc)
+
+
+def _quiz_state_from_result(
+    *,
+    topic: str,
+    question_count: int,
+    result: QuizSessionResult,
+    metadata: dict[str, Any],
+) -> dict[str, Any] | None:
+    if result.refusal_reason is not None or len(result.questions) != question_count:
+        return None
+    return {
+        "topic": topic,
+        "question_count": question_count,
+        "session_id": result.session_id,
+        "trace_file": Path(result.trace_path).name,
+        "trace": metadata.get("trace", []),
+        "questions": [question.model_dump(mode="json") for question in result.questions],
+    }
+
+
+def _quiz_questions_from_state(state: Any) -> list[QuizQuestion]:
+    if not isinstance(state, dict):
+        raise UserInputError("generate questions before scoring")
+    raw_questions = state.get("questions")
+    if not isinstance(raw_questions, list) or not raw_questions:
+        raise UserInputError("generate questions before scoring")
+    return [QuizQuestion.model_validate(question) for question in raw_questions]
+
+
+def _quiz_answer_updates(question_count: int, *, interactive: bool) -> tuple[Any, Any, Any]:
+    return tuple(
+        gr.update(
+            visible=interactive and index <= question_count,
+            value=None,
+            interactive=interactive,
+            label=f"Answer for Question {index}",
+        )
+        for index in range(1, 4)
+    )
+
+
+def _quiz_score_button_update(*, interactive: bool) -> Any:
+    return gr.update(interactive=interactive)
+
+
+def _selected_quiz_answers(
+    question_count: int,
+    answer_1: str | None,
+    answer_2: str | None,
+    answer_3: str | None,
+) -> list[str]:
+    answers = [answer_1, answer_2, answer_3][:question_count]
+    missing = [str(index) for index, value in enumerate(answers, start=1) if not value]
+    if missing:
+        raise UserInputError("select an answer for question " + ", ".join(missing))
+    selected = [str(answer).strip().upper() for answer in answers if answer]
+    invalid = sorted(set(selected) - VALID_OPTION_IDS)
+    if invalid:
+        raise UserInputError("answers must use option IDs A, B, C, or D")
+    return selected
+
+
+def _metadata_for_scored_quiz(
+    *,
+    state: dict[str, Any],
+    result: QuizSessionResult,
+) -> dict[str, Any]:
+    trace_rows = state.get("trace") if isinstance(state.get("trace"), list) else []
+    row = dict(trace_rows[-1]) if trace_rows and isinstance(trace_rows[-1], dict) else {}
+    actions = [str(action) for action in row.get("actions", [])]
+    if "grade_quiz" not in actions:
+        actions.append("grade_quiz")
+    row.update(
+        {
+            "question_ids": [question.question_id for question in result.questions],
+            "selected_option_ids": [grade.selected_option_id for grade in result.grades],
+            "correctness": [grade.correct for grade in result.grades],
+            "actions": actions,
+        }
+    )
+    return {
+        "status": "ok",
+        "session_id": state.get("session_id", "unknown"),
+        "trace_file": state.get("trace_file", "generated-quiz-state"),
+        "trace": [row],
+    }
 
 
 def _format_skillgap_report(result: Any) -> str:
@@ -1374,9 +1590,122 @@ def generate_quiz_questions_ui(
     question_count: int | float,
     show_questions: bool,
 ) -> tuple[str, str, dict[str, Any]]:
-    # Keep preview and scoring on the same deterministic quiz path unless this UI
-    # grows an explicit gr.State handoff for generated questions.
+    # Legacy callable for programmatic preview. The visible app uses
+    # generate_quiz_questions_state_ui so scoring grades the stored questions.
     output, metadata = run_quiz_session(topic, question_count, "", show_questions)
+    return output, _format_trace_summary(metadata, mode="quiz"), metadata
+
+
+def reset_generated_quiz_state_ui() -> tuple[str, str, None, None, Any, Any, Any, Any]:
+    return (
+        "_Generate questions to review the local quiz text._",
+        "_Trace summary appears after a run._",
+        None,
+        None,
+        *_quiz_answer_updates(0, interactive=False),
+        _quiz_score_button_update(interactive=False),
+    )
+
+
+def fill_quiz_grounded_preset_state_ui() -> tuple[str, int, bool, None, Any, Any, Any, Any]:
+    topic, question_count, _, show_questions = fill_quiz_grounded_preset()
+    return (
+        topic,
+        question_count,
+        show_questions,
+        None,
+        *_quiz_answer_updates(0, interactive=False),
+        _quiz_score_button_update(interactive=False),
+    )
+
+
+def generate_quiz_questions_state_ui(
+    topic: str,
+    question_count: int | float,
+    show_questions: bool,
+) -> tuple[str, str, dict[str, Any], dict[str, Any] | None, Any, Any, Any, Any]:
+    try:
+        clean_topic, count, _, result, metadata = _run_quiz_result(topic, question_count, "")
+        output = _format_quiz_result(result, show_questions=show_questions)
+        state = _quiz_state_from_result(
+            topic=clean_topic,
+            question_count=count,
+            result=result,
+            metadata=metadata,
+        )
+        if result.refusal_reason is None and len(result.questions) != count:
+            output = "\n\n".join(
+                [
+                    output,
+                    (
+                        f"**Regenerate needed:** the model returned {len(result.questions)} "
+                        f"of {count} requested question(s). Click **Generate questions** again "
+                        "before scoring."
+                    ),
+                ]
+            )
+        answer_updates = _quiz_answer_updates(count, interactive=state is not None)
+        return (
+            output,
+            _format_trace_summary(metadata, mode="quiz"),
+            metadata,
+            state,
+            *answer_updates,
+            _quiz_score_button_update(interactive=state is not None),
+        )
+    except UserInputError as exc:
+        output, metadata = _input_error_payload(str(exc))
+    except Exception as exc:
+        output, metadata = _error_payload(exc)
+    return (
+        output,
+        _format_trace_summary(metadata, mode="quiz"),
+        metadata,
+        None,
+        *_quiz_answer_updates(0, interactive=False),
+        _quiz_score_button_update(interactive=False),
+    )
+
+
+def score_generated_quiz_ui(
+    topic: str,
+    question_count: int | float,
+    answer_1: str | None,
+    answer_2: str | None,
+    answer_3: str | None,
+    show_questions: bool,
+    quiz_state: dict[str, Any] | None,
+) -> tuple[str, str, dict[str, Any]]:
+    try:
+        clean_topic = _require_topic(topic)
+        count = _coerce_question_count(question_count)
+        if not isinstance(quiz_state, dict):
+            raise UserInputError("generate questions before scoring")
+        if quiz_state.get("topic") != clean_topic or quiz_state.get("question_count") != count:
+            raise UserInputError("generate questions again after changing topic or question count")
+
+        questions = _quiz_questions_from_state(quiz_state)
+        if len(questions) != count:
+            raise UserInputError("generate questions again after changing topic or question count")
+        selected = _selected_quiz_answers(count, answer_1, answer_2, answer_3)
+        grades = grade_quiz(questions, selected)
+        result = QuizSessionResult(
+            session_id=str(quiz_state.get("session_id", "unknown")),
+            questions=questions,
+            grades=grades,
+            score=sum(1 for grade in grades if grade.correct),
+            trace_path=str(quiz_state.get("trace_file", "generated-quiz-state")),
+        )
+        metadata = _metadata_for_scored_quiz(state=quiz_state, result=result)
+        return (
+            _format_quiz_result(result, show_questions=show_questions),
+            _format_trace_summary(metadata, mode="quiz"),
+            metadata,
+        )
+    except UserInputError as exc:
+        output, metadata = _input_error_payload(str(exc))
+    except Exception as exc:
+        output, metadata = _error_payload(exc)
     return output, _format_trace_summary(metadata, mode="quiz"), metadata
 
 
@@ -1408,7 +1737,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
             gr.Markdown(
                 "If a live provider call is slow during recording, use the committed redacted "
                 "evidence in `docs/teach-loop-status.md` and `docs/demo-and-deliverables.md`. "
-                "The raw trace files remain local/gitignored; only safe metadata should be shown."
+                "The raw trace files remain local/gitignored; demo trace cards show the rendered "
+                "decision basis for walkthroughs."
             )
         with gr.Tabs(elem_classes=["gc-tabs"]):
             with gr.Tab("Teach"):
@@ -1419,8 +1749,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             <p class="gc-eyebrow">Teach session</p>
                             <h2 class="gc-panel-title">Coach the learner</h2>
                             <p class="gc-panel-copy">
-                              Pick a known demo path, run one turn, then show the runtime decision
-                              trace.
+                              Pick a known demo path, run the teach loop, then inspect the runtime
+                              decision trace.
                             </p>
                             <div class="gc-mode-card">
                               <strong>Safety posture</strong>
@@ -1507,6 +1837,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Quiz"):
+                quiz_state = gr.State(value=None)
                 with gr.Row(elem_classes=["gc-workbench"]):
                     with gr.Column(scale=5, min_width=320, elem_classes=["gc-panel"]):
                         gr.HTML(
@@ -1514,8 +1845,8 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             <p class="gc-eyebrow">Quiz mode</p>
                             <h2 class="gc-panel-title">Deterministic assessment</h2>
                             <p class="gc-panel-copy">
-                              Generate cited MCQs, review them locally, then grade option IDs
-                              in Python.
+                              Generate cited MCQs, review them locally, then choose answers
+                              and grade in Python.
                             </p>
                             <div class="gc-mode-card">
                               <strong>Demo visibility</strong>
@@ -1536,6 +1867,11 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             label="Questions",
                             elem_classes=["gc-input"],
                         )
+                        show_questions = gr.Checkbox(
+                            label="Show generated quiz questions (local/private demo only)",
+                            value=True,
+                            elem_classes=["gc-checkbox"],
+                        )
                         with gr.Row(elem_classes=["gc-action-row"]):
                             quiz_preset = gr.Button(
                                 "Grounded quiz preset",
@@ -1545,21 +1881,6 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 "Generate questions",
                                 elem_classes=["gc-run-button"],
                             )
-                        answers = gr.Textbox(
-                            label="Answers",
-                            value="A",
-                            placeholder="A,B,C",
-                            elem_classes=["gc-input"],
-                        )
-                        quiz_button = gr.Button(
-                            "Score answers",
-                            elem_classes=["gc-score-button"],
-                        )
-                        show_questions = gr.Checkbox(
-                            label="Show generated quiz questions (local/private demo only)",
-                            value=True,
-                            elem_classes=["gc-checkbox"],
-                        )
                     with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
                         gr.HTML(
                             """
@@ -1571,6 +1892,32 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             label="Quiz questions and score",
                             value="_Generate questions to review the local quiz text._",
                             elem_classes=["gc-output"],
+                        )
+                        answer_1 = gr.Radio(
+                            choices=sorted(VALID_OPTION_IDS),
+                            label="Answer for Question 1",
+                            value=None,
+                            visible=False,
+                            elem_classes=["gc-answer-choice"],
+                        )
+                        answer_2 = gr.Radio(
+                            choices=sorted(VALID_OPTION_IDS),
+                            label="Answer for Question 2",
+                            value=None,
+                            visible=False,
+                            elem_classes=["gc-answer-choice"],
+                        )
+                        answer_3 = gr.Radio(
+                            choices=sorted(VALID_OPTION_IDS),
+                            label="Answer for Question 3",
+                            value=None,
+                            visible=False,
+                            elem_classes=["gc-answer-choice"],
+                        )
+                        quiz_button = gr.Button(
+                            "Score selected answers",
+                            elem_classes=["gc-score-button"],
+                            interactive=False,
                         )
                         quiz_trace_summary = gr.Markdown(
                             label="Trace summary",
@@ -1587,18 +1934,72 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 elem_classes=["gc-json"],
                             )
                 quiz_preset.click(
-                    fn=fill_quiz_grounded_preset,
+                    fn=fill_quiz_grounded_preset_state_ui,
                     inputs=[],
-                    outputs=[quiz_topic, question_count, answers, show_questions],
+                    outputs=[
+                        quiz_topic,
+                        question_count,
+                        show_questions,
+                        quiz_state,
+                        answer_1,
+                        answer_2,
+                        answer_3,
+                        quiz_button,
+                    ],
+                )
+                quiz_topic.change(
+                    fn=reset_generated_quiz_state_ui,
+                    inputs=[],
+                    outputs=[
+                        quiz_output,
+                        quiz_trace_summary,
+                        quiz_metadata,
+                        quiz_state,
+                        answer_1,
+                        answer_2,
+                        answer_3,
+                        quiz_button,
+                    ],
+                )
+                question_count.change(
+                    fn=reset_generated_quiz_state_ui,
+                    inputs=[],
+                    outputs=[
+                        quiz_output,
+                        quiz_trace_summary,
+                        quiz_metadata,
+                        quiz_state,
+                        answer_1,
+                        answer_2,
+                        answer_3,
+                        quiz_button,
+                    ],
                 )
                 quiz_generate_button.click(
-                    fn=generate_quiz_questions_ui,
+                    fn=generate_quiz_questions_state_ui,
                     inputs=[quiz_topic, question_count, show_questions],
-                    outputs=[quiz_output, quiz_trace_summary, quiz_metadata],
+                    outputs=[
+                        quiz_output,
+                        quiz_trace_summary,
+                        quiz_metadata,
+                        quiz_state,
+                        answer_1,
+                        answer_2,
+                        answer_3,
+                        quiz_button,
+                    ],
                 )
                 quiz_button.click(
-                    fn=run_quiz_ui,
-                    inputs=[quiz_topic, question_count, answers, show_questions],
+                    fn=score_generated_quiz_ui,
+                    inputs=[
+                        quiz_topic,
+                        question_count,
+                        answer_1,
+                        answer_2,
+                        answer_3,
+                        show_questions,
+                        quiz_state,
+                    ],
                     outputs=[quiz_output, quiz_trace_summary, quiz_metadata],
                 )
 

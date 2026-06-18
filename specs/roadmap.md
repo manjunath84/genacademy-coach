@@ -49,8 +49,10 @@ split remains unused until final evaluation/reporting.
   redeployed after the Skill-Gap UI merge with allow-list upload only and authenticated `HTTP/2 200`
   root smoke.
 - **Local Gradio UI shipped.** The UI is a thin view over the core teach, quiz, and skill-gap workflows.
-  It uses safe trace allow-lists, hides generated quiz text by default, and keeps the core free of web
-  imports.
+  Teach trace cards show rendered `Decision basis` plus labeled `action ...` / `band ...` status chips.
+  Quiz displays generated questions with per-question answer controls for local/private demos while
+  backend calls still hide generated quiz text by default. All traces use safe allow-lists, and the core
+  stays free of web imports.
 - **Cohort auth/admin shipped.** The Gradio surface now has a bounded cohort login gate using the reused
   Week-2 user store, bcrypt password hashes, deploy seed-secret accounts, no default credentials in the
   shared deploy, server-side admin-only account creation, and member-hidden Admin UI. This is a cohort
@@ -144,6 +146,9 @@ material.
 - **Memory privacy.** Cross-session memory can store learner preferences, counts, and topic hashes, not
   raw user IDs/emails, learner answers, generated tutor text, private corpus/eval text, retrieved spans,
   quiz prompts/options/rationales, or uncited course claims.
+- **Demo artifact privacy.** Local/private demo trace cards may show decision basis and labeled
+  action/band status, but raw trace JSON, generated screenshots, generated DOCX packets, secrets, and
+  unreviewed corpus-bearing captures stay in ignored local paths such as `localdocs/` or `tmp/`.
 - **LangGraph scope.** Direct graph/checkpointer/store imports are future architecture. They need a
   written delta against the current `create_agent` boundary before code.
 

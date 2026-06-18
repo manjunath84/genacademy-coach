@@ -18,6 +18,11 @@ Python owns the deterministic gates:
 - stop/progress protection
 - trace redaction and export allow-lists
 
+The local/private demo UI is allowed to render a human-readable projection of the trace: `Decision
+basis`, labeled `action ...` and `band ...` status chips, score, strategy, citation summaries, and tool
+summaries. Those cards are a view over safe in-memory metadata, not permission to commit raw trace JSON,
+raw learner inputs, generated tutor prose, retrieved span text, or secrets.
+
 Course facts come only from retrieved citations. Memory can seed safe learner state, such as style,
 track lens, topic hashes, and counts, but memory is never a citation source and never changes retrieval,
 grading, refusal, or faithfulness decisions.
@@ -41,6 +46,8 @@ grading, refusal, or faithfulness decisions.
 The Week-3 agenticity proof is the teach loop, because it observes a learner answer and chooses a new
 pedagogical action from that observation. Quiz and Skill-Gap are intentionally deterministic pull-ins:
 they reuse retrieval, citations, grading, traces, and refusal rather than introducing new agent loops.
+The UI reflects that distinction: Teach trace cards expose the runtime decision basis for the demo;
+Quiz and Skill-Gap show deterministic scores, counts, actions, and safe metadata.
 
 The deployment story is privacy-first. The private Hugging Face Space proves the app shell can run, but
 private course corpus and generated indexes are not committed or uploaded. The hosted Pinecone adapter
@@ -58,5 +65,6 @@ The submission points graders to repeatable checks instead of raw artifacts:
 - live auth smoke: configured admin/member seed secrets accepted, default admin/member credentials
   rejected
 
-Held-out eval questions, private corpus files, raw traces, review queues, screenshots, generated quiz
-text, and secrets stay out of the committed repo.
+Held-out eval questions, private corpus files, raw traces, review queues, generated local screenshots,
+generated demo packets, generated quiz text, and secrets stay out of the committed repo unless a
+separate review explicitly approves a public-safe artifact.

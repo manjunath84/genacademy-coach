@@ -3,9 +3,10 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 EvidenceBand = Literal["stop", "confirm", "proceed"]
+DecisionSource = Literal["agent", "python safety gate"]
 NextAction = Literal[
     "advance",
     "re_explain_differently",
@@ -83,6 +84,7 @@ class LearnerProfile(BaseModel):
 
 class CoachAgentResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    _decision_source: DecisionSource = PrivateAttr(default="agent")
 
     learner_message: str
     observation: str

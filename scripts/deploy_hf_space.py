@@ -40,7 +40,7 @@ IGNORE_PATTERNS = [
 SPACE_VARIABLES = {
     "GENACADEMY_PROVIDER": "nebius",
     "NEBIUS_BASE_URL": "https://api.tokenfactory.nebius.com/v1/",
-    "NEBIUS_MODEL": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "NEBIUS_MODEL": "Qwen/Qwen3-30B-A3B-Instruct-2507-fast",
     "GENACADEMY_COACH_STOP_THRESHOLD": "0.40",
     "GENACADEMY_COACH_CONFIRM_THRESHOLD": "0.85",
     "GENACADEMY_COACH_COLLECTION": "coach_course",

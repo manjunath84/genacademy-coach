@@ -9,6 +9,7 @@ Quick pointers:
 - **Stack + what's deferred:** `specs/tech-stack.md`
 - **Roadmap (MUST vs SHOULD):** `specs/roadmap.md`
 - **Architecture, visualized:** `docs/architecture-diagrams.md`
+- **Demo trace/privacy boundary:** `AGENTS.md` §3 plus `README.md` Safety & Privacy
 
 **No code until the plan is approved** (`AGENTS.md` §2, gate 1).
 

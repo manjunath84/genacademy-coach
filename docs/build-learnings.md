@@ -10,6 +10,23 @@
 
 ---
 
+## 2026-06-18 — Trace status can look like broken controls if it is not labeled
+
+**What I believed:** once the Teach trace card showed `advance`, `confirm`, score, strategy, citations,
+and tool calls, the UI would be clear enough for a reviewer to understand the agentic loop.
+
+**What I found:** short pill labels can read like buttons, especially inside a web app where adjacent
+controls are also pill-shaped. A reviewer could reasonably think `advance` or `confirm` was a broken
+button instead of trace evidence. The fix was not to add new controls; it was to label status chips as
+`action advance` and `band confirm`, keep the cursor default, and regression-test that the actual
+buttons are `Grounded preset`, `Refusal preset`, and `Run teach`.
+
+**Principle:** evidence UI needs affordance discipline. If a value is status, label it as status; if it
+is a control, make it act like a control. Agentic-loop proof should be readable without making the user
+wonder what is clickable.
+
+---
+
 ## 2026-06-17 — Demo defaults are product decisions, not just convenience
 
 **What I believed:** the local UI polish pass was mostly visual: make the Gradio app look less raw,
@@ -17,9 +34,11 @@ align it with the Week 2 paper-grid style, and keep the existing presets visible
 
 **What I found:** defaults are part of the safety and reliability contract. The first quiz preset tried
 to generate three questions live, which is a legitimate core capability but a brittle recording path. A
-one-question hidden quiz still proves the important contract — retrieval, grounded generation, Python
+one-question hidden quiz proved the important backend contract — retrieval, grounded generation, Python
 grading, redacted trace, and hidden generated text — without asking the video to depend on three live
-generation successes. Likewise, loading `.env` locally and caching the Foundation runtime were not just
+generation successes. The later local/private demo path made generated questions visible again, but only
+with per-question answer controls so the UX is understandable. Likewise, loading `.env` locally and
+caching the Foundation runtime were not just
 developer conveniences; they removed confusing failure modes and repeated cold-start waits during a
 recording.
 

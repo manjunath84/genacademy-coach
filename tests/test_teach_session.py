@@ -325,6 +325,7 @@ def test_session_uses_grounded_teach_fallback_for_initial_unfaithful_explanation
 
     assert result.response.next_action == "drill"
     assert result.response.strategy == "analogy"
+    assert result.response._decision_source == "python safety gate"
     assert result.response.citation_ids == ["note/attention::0"]
     assert result.response.check_question == "What does attention help with?"
     assert "Attention highlights relevant context" in result.response.learner_message
@@ -358,6 +359,7 @@ def test_session_refuses_initial_unfaithful_cited_answer_without_grounded_check(
     result = session.start()
 
     assert result.response.next_action == "refuse_escalate"
+    assert result.response._decision_source == "python safety gate"
     assert "retrieved course citation text" in result.response.learner_message.lower()
     assert (tmp_path / "review_queue.jsonl").exists()
 
@@ -490,6 +492,7 @@ def test_session_uses_grounded_reexplain_fallback_after_wrong_answer(tmp_path):
     result = session.respond("It stores profiles.")
 
     assert result.response.next_action == "re_explain_differently"
+    assert result.response._decision_source == "python safety gate"
     assert result.response.strategy != "analogy"
     assert result.response.citation_ids == ["note/attention::0"]
     assert "Attention highlights relevant context" in result.response.learner_message
@@ -526,6 +529,7 @@ def test_session_uses_grounded_advance_fallback_after_correct_answer(tmp_path):
     result = session.respond("It helps with relevant context.")
 
     assert result.response.next_action == "advance"
+    assert result.response._decision_source == "python safety gate"
     assert result.response.citation_ids == ["note/attention::0"]
     assert "Attention highlights relevant context" in result.response.learner_message
     rows = load_trace(Path(result.trace_path))
@@ -907,3 +911,4 @@ def test_session_stops_at_turn_budget_without_agent_call(tmp_path):
     result = session.start()
 
     assert result.response.next_action == "stop"
+    assert result.response._decision_source == "python safety gate"
