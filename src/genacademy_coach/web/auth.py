@@ -13,7 +13,46 @@ from genacademy_rag.data.datastore import SQLiteDatastore
 from genacademy_coach.settings import CoachSettings
 
 VALID_ROLES = frozenset({"admin", "member"})
-DEFAULT_AUTH_MESSAGE = "Sign in with your GenAcademy cohort account."
+DEFAULT_AUTH_MESSAGE = """
+<section style="margin: 0 0 18px; text-align: left;">
+  <p style="
+    margin: 0 0 6px;
+    color: #66706b;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  ">
+    Adaptive grounded tutor
+  </p>
+  <h1 style="
+    margin: 0 0 8px;
+    color: #202629;
+    font-family: Georgia, Cambria, &quot;Times New Roman&quot;, Times, serif;
+    font-size: 32px !important;
+    line-height: 1.05 !important;
+  ">
+    GenAcademy Coach
+  </h1>
+  <p style="
+    margin: 0 0 12px;
+    color: #4f5b55;
+    font-size: 14px;
+    line-height: 1.45;
+  ">
+    Sign in with your cohort account to access cited tutoring,
+    deterministic quizzes, and scoped learner memory.
+  </p>
+  <p style="
+    margin: 0;
+    color: #314f37;
+    font-size: 12px;
+    font-weight: 700;
+  ">
+    Course-grounded answers &middot; Redacted traces &middot; Salted learner state
+  </p>
+</section>
+"""
 
 
 @dataclass(frozen=True)
