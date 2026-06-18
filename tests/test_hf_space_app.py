@@ -686,6 +686,81 @@ def test_generate_quiz_questions_ui_previews_without_answers(monkeypatch):
     assert metadata == {"status": "ok", "trace": []}
 
 
+def test_quiz_preview_and_score_use_same_deterministic_questions(tmp_path, monkeypatch):
+    class FakeProvider:
+        def __init__(self):
+            self.calls = []
+
+        def generate(self, messages, **kwargs):
+            self.calls.append({"messages": messages, **kwargs})
+            return json.dumps(
+                {
+                    "prompt": "Which statement is directly supported by the cited span?",
+                    "options": [
+                        {
+                            "option_id": "A",
+                            "text": "The Loop: think, act, observe, repeat.",
+                        },
+                        {
+                            "option_id": "B",
+                            "text": "The model operates without constraints.",
+                        },
+                        {
+                            "option_id": "C",
+                            "text": "Verification happens only at the end.",
+                        },
+                        {
+                            "option_id": "D",
+                            "text": "Recovery means repeating the same action.",
+                        },
+                    ],
+                    "correct_option_id": "A",
+                    "expected_answer": "The Loop: think, act, observe, repeat.",
+                    "rationale": "The Loop: think, act, observe, repeat.",
+                    "expected_keywords": ["loop"],
+                }
+            )
+
+    provider = FakeProvider()
+    settings = SimpleNamespace(
+        trace_dir=tmp_path,
+        stop_threshold=0.4,
+        confirm_threshold=0.85,
+        review_queue_path=tmp_path / "review_queue.jsonl",
+    )
+    foundation = SimpleNamespace(
+        provider=provider,
+        retrieve=lambda topic: [
+            {
+                "chunk_id": "week3::agent-loop::0",
+                "doc_id": "week3",
+                "text": "The Loop: think, act, observe, repeat. The core cycle makes it agentic.",
+                "score": 0.91,
+                "title": "Agent Loop",
+                "source_type": "slides",
+                "page_or_section": "slide 12",
+            }
+        ],
+    )
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (settings, foundation))
+
+    preview, _ = run_quiz_session("agent harness", 1, "", show_questions=True)
+    scored, _ = run_quiz_session("agent harness", 1, "A", show_questions=True)
+
+    for shared_text in [
+        "Which statement is directly supported by the cited span?",
+        "- **A.** The Loop: think, act, observe, repeat.",
+        "- **B.** The model operates without constraints.",
+        "- **C.** Verification happens only at the end.",
+        "- **D.** Recovery means repeating the same action.",
+    ]:
+        assert shared_text in preview
+        assert shared_text in scored
+    assert "### Score" not in preview
+    assert "**1/1 correct**" in scored
+    assert [call["temperature"] for call in provider.calls] == [0.0, 0.0]
+
+
 def test_run_quiz_session_metadata_uses_safe_trace_allow_list(tmp_path, monkeypatch):
     private_value = "PRIVATE_GENERATED_QUIZ_TEXT"
     trace_path = tmp_path / "quiz.jsonl"

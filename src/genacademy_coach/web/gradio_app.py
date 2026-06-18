@@ -1374,6 +1374,8 @@ def generate_quiz_questions_ui(
     question_count: int | float,
     show_questions: bool,
 ) -> tuple[str, str, dict[str, Any]]:
+    # Keep preview and scoring on the same deterministic quiz path unless this UI
+    # grows an explicit gr.State handoff for generated questions.
     output, metadata = run_quiz_session(topic, question_count, "", show_questions)
     return output, _format_trace_summary(metadata, mode="quiz"), metadata
 
