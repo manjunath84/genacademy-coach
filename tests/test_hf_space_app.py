@@ -246,6 +246,7 @@ def test_teach_trace_summary_shows_safe_decision_observation_and_source():
                 "decision_observation": (
                     "grounded fallback after ### **unsupported** <private> agent response"
                 ),
+                "decision_source": "python safety gate",
                 "evidence_score": 0.0,
                 "evidence_band": "stop",
                 "faithfulness_ok": None,
@@ -647,6 +648,8 @@ def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, mon
                 profile=self.profile,
                 response=SimpleNamespace(
                     learner_message="Grounded answer. [note/agent::0]",
+                    observation="### **Python gate** protected the trace",
+                    _decision_source="python safety gate",
                     check_question=None,
                 ),
                 trace_path=str(trace_path),
@@ -676,6 +679,8 @@ def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, mon
         "safe_state_written": True,
     }
     serialized = json.dumps(metadata, sort_keys=True)
+    assert metadata["trace"][0]["decision_source"] == "python safety gate"
+    assert r"\#\#\# \*\*Python gate\*\*" in _format_trace_summary(metadata, mode="teach")
     assert "member@example.com" not in serialized
 
 

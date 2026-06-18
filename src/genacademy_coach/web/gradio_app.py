@@ -35,17 +35,6 @@ TRACK_LENS_CHOICES = ["low_code_no_code", "code_heavy", "bridge"]
 VALID_OPTION_IDS = frozenset({"A", "B", "C", "D"})
 MARKDOWN_LITERAL_PATTERN = re.compile(r"([\\`*_{}\[\]()#+\-!|>])")
 DECISION_OBSERVATION_LIMIT = 240
-PYTHON_GATE_OBSERVATION_PREFIXES = (
-    "grounded fallback",
-    "turn budget reached",
-    "no citeable course corpus found",
-    "agent failed",
-    "agent chose",
-    "agent displayed",
-    "grounded check",
-    "agent response was not faithful",
-    "agent response had no retrieved citation_ids",
-)
 TEACH_GROUNDED_PRESET = (
     "agent harness",
     "analogy",
@@ -925,11 +914,9 @@ def _safe_decision_observation(value: Any) -> str:
     return _short_value(text, limit=DECISION_OBSERVATION_LIMIT)
 
 
-def _decision_source_from_observation(value: Any) -> str:
-    text = str(value or "").strip().lower()
-    if any(text.startswith(prefix) for prefix in PYTHON_GATE_OBSERVATION_PREFIXES):
-        return "python safety gate"
-    return "agent"
+def _decision_source_label(value: Any) -> str:
+    text = str(value or "agent").replace("_", " ").strip().lower()
+    return "python safety gate" if text == "python safety gate" else "agent"
 
 
 def _current_spans(session: Any) -> list[RetrievedSpan]:
@@ -1005,9 +992,7 @@ def _format_trace_summary(
             decision_observation = _safe_decision_observation(
                 row.get("decision_observation", "not captured")
             )
-            decision_source = row.get("decision_source") or _decision_source_from_observation(
-                decision_observation
-            )
+            decision_source = _decision_source_label(row.get("decision_source"))
             title = f"Turn {row.get('turn', '?')}"
             pills = [
                 _format_chip(f"action {row.get('next_action', 'unknown')}"),
@@ -1312,8 +1297,10 @@ def run_teach_session(
         session.finish()
         trace_rows = safe_trace_rows(result.trace_path, SAFE_TEACH_TRACE_FIELDS)
         decision_observations = {1: getattr(first.response, "observation", None)}
+        decision_sources = {1: getattr(first.response, "_decision_source", "agent")}
         if answer:
             decision_observations[2] = getattr(result.response, "observation", None)
+            decision_sources[2] = getattr(result.response, "_decision_source", "agent")
         for row in trace_rows:
             if not isinstance(row, dict):
                 continue
@@ -1322,7 +1309,9 @@ def run_teach_session(
                 # Intentionally demo-only and outside the persisted trace schema: this lets
                 # the UI explain the live decision without writing raw observations to disk.
                 row["decision_observation"] = _safe_decision_observation(observation)
-                row["decision_source"] = _decision_source_from_observation(observation)
+                row["decision_source"] = _decision_source_label(
+                    decision_sources.get(row.get("turn"), "agent")
+                )
 
         metadata = {
             "status": "ok",
