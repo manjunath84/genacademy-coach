@@ -69,9 +69,11 @@ Additional shipped features beyond the teach-loop MVP:
 - Hugging Face Space deployment shell; Pinecone adapter implemented, Chroma is the tested retrieval path,
   and no private corpus is uploaded
 
-Explicit LangGraph orchestration is deliberately deferred. The current version keeps course facts inside
-the retrieval/citation path, uses optional memory only for safe learner-state, and relies on LangChain
-`create_agent` on LangGraph's runtime without importing `langgraph.*` directly.
+Teach mode uses the course-recommended LangChain `create_agent`: a pre-assembled, LangGraph-backed
+agent. LangChain compiles the model/tool loop into a graph and runs it on LangGraph's runtime, so the
+project satisfies the LangChain + LangGraph track without hand-authoring a `StateGraph`. Explicit
+`langgraph.*` work (graph authoring, checkpointer, interrupts) is deferred until durable cross-session
+memory, HITL pause/resume, or multi-mode coordination earns it.
 
 ## System Architecture
 
@@ -124,8 +126,9 @@ flowchart TD
 Three load-bearing decisions (full rationale in [`docs/decisions.md`](docs/decisions.md)):
 
 1. **`create_agent`, not raw `StateGraph`.** The handout's LangChain + LangGraph track is satisfied
-   through the LangGraph-backed agent runtime. Explicit graph authoring is deferred until cross-session
-   memory, pause/resume HITL, or auditable state transitions outgrow the current loop. (AD-3)
+   through the course-recommended pre-assembled, LangGraph-backed agent runtime. Explicit graph
+   authoring is deferred until durable cross-session memory, HITL pause/resume, or multi-mode
+   coordination outgrows the current loop. (AD-3)
 2. **One source-prioritized retriever, not three tools.** Every chunk carries `source_type`; slides and
    handouts are preferred for teaching, notes fill gaps, transcripts are support/fallback. One retriever
    reduces sparse-index risk. (AD-4)

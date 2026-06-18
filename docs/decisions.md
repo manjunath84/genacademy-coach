@@ -23,11 +23,13 @@ re-explain differently when the learner stumbles.
 ### AD-3 - Build Track: LangChain `create_agent` on LangGraph Runtime
 **Decision.** Use LangChain `create_agent` for the Week-3 build. Do not hand-author an explicit
 LangGraph graph this week.
-**Why.** The handout's Track 2 is LangChain + LangGraph. Current LangChain docs describe `create_agent`
-as the agent harness and LangChain agents as built on LangGraph. That gives the project the required
-agent runtime while keeping MVP scope small.
-**Trigger to promote.** Cross-session memory, pause/resume human approval, or auditable state
-transitions becoming demo-core.
+**Why.** The handout's Track 2 is LangChain + LangGraph. The Week-3 LangGraph materials teach
+`create_agent` as the pre-assembled, LangGraph-backed agent path for a single-agent model/tool loop,
+and current LangChain docs describe LangChain agents as built on LangGraph. That gives the project the
+required agent runtime while keeping MVP scope small and reserving explicit graph authoring for a
+feature that needs it.
+**Trigger to promote.** Durable cross-session memory, HITL pause/resume, or multi-mode coordination
+becoming demo-core.
 **Rejected.** Direct `StateGraph` from day 1.
 
 ### AD-4 - Retrieval: One Source-Prioritized Course Retriever

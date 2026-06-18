@@ -123,8 +123,12 @@ flowchart LR
 ## 2. System Architecture
 
 One LangChain `create_agent` loop handles the adaptive teach mode on LangGraph's internal runtime.
-Quiz Mode and Skill-Gap Diagnosis are deterministic pull-ins over the same retrieval, grounding, trace,
-and refusal primitives. Most tools read; only escalation/review-queue writes.
+The Week-3 LangGraph materials describe `create_agent` as a pre-assembled, LangGraph-backed agent:
+LangChain wires the model/tool loop and compiles the graph, while this repo keeps explicit
+`StateGraph` authoring deferred until durable cross-session memory, HITL pause/resume, or multi-mode
+coordination earns it. Quiz Mode and Skill-Gap Diagnosis are deterministic pull-ins over the same
+retrieval, grounding, trace, and refusal primitives. Most tools read; only escalation/review-queue
+writes.
 
 ```mermaid
 flowchart TD
@@ -185,7 +189,34 @@ flowchart TD
     Eval -. dev regression only .-> Modes
 ```
 
-## 3. Adaptive Teach Loop
+## 3. Compiled Agent Runtime
+
+This is the conceptual runtime that LangChain `create_agent` assembles for the teach loop. It is
+LangGraph-backed, but not a hand-authored `StateGraph` in this repo. The project-specific work is the
+safety boundary around the agent: retrieval-grounding, deterministic grading, refusal, memory privacy,
+and trace redaction.
+
+```mermaid
+flowchart LR
+    subgraph Compiled["Compiled by create_agent — LangGraph-backed"]
+        Model["Model node\nchoose next_action + strategy"]
+        ToolNode["Tool node\nCoach tools"]
+        Model -->|tool call| ToolNode
+        ToolNode --> Model
+    end
+
+    subgraph Boundary["Python safety boundary — this repo"]
+        Safety["citation · grade · refusal · memory · redaction"]
+    end
+
+    Start["Learner turn"] --> Model
+    Model -->|structured response| Safety
+    Safety -->|grounded| LearnerOut["Learner-facing response\nwith retrieved citations"]
+    Safety -->|not grounded| Review["Refuse + review_queue.jsonl"]
+    Safety --> Trace["Typed redacted trace"]
+```
+
+## 4. Adaptive Teach Loop
 
 The MVP is agentic only if the model chooses the next action from observations. Python enforces
 thresholds, schema, citation presence, max turns, and stop conditions.
@@ -212,7 +243,7 @@ flowchart TD
     Continue -->|no| Report
 ```
 
-## 4. Teach Agent Orchestration
+## 5. Teach Agent Orchestration
 
 ```mermaid
 sequenceDiagram
@@ -241,7 +272,7 @@ sequenceDiagram
     end
 ```
 
-## 5. Grounded Quiz Mode Flow
+## 6. Grounded Quiz Mode Flow
 
 Quiz Mode is a deterministic assessment pull-in. The model may draft a multiple-choice item from a
 retrieved span, but Python pins the citation, validates grounding, owns the answer key, and grades the
@@ -265,7 +296,7 @@ flowchart TD
     Trace --> UI["UI shows score + metadata\nquestion text hidden by default"]
 ```
 
-## 6. Skill-Gap Diagnosis Flow
+## 7. Skill-Gap Diagnosis Flow
 
 Skill-Gap Diagnosis is the standout workflow. It composes existing evidence instead of adding a memory
 provider or a second agent loop: quiz grades, teach trace struggles, and review-queue events produce a
@@ -286,7 +317,7 @@ flowchart TD
     Trace -. exact IDs for audit only .-> JSON["Collapsed metadata JSON"]
 ```
 
-## 7. Local UI Flow and Redaction Boundary
+## 8. Local UI Flow and Redaction Boundary
 
 The UI is a thin view. It makes the grounded tutor legible without moving private data into public
 surfaces or adding web-framework imports to the core.
@@ -315,7 +346,7 @@ flowchart TD
     Core -. blocked .-> Private
 ```
 
-## 8. Failure Handling
+## 9. Failure Handling
 
 ```mermaid
 flowchart TD
@@ -330,7 +361,7 @@ flowchart TD
     Loop["Stalled/runaway"] --> Stop["Stop/progress guard"]
 ```
 
-## 9. State
+## 10. State
 
 ```mermaid
 flowchart TD
@@ -359,7 +390,7 @@ flowchart TD
     Session -. future surfaces .-> Later
 ```
 
-## 10. Corpus and Eval Boundary
+## 11. Corpus and Eval Boundary
 
 ```mermaid
 flowchart TD
@@ -382,7 +413,7 @@ flowchart TD
     Test -. blocked from prompts/index/local examples .-> Retriever
 ```
 
-## 11. Modes and Pull-Ins
+## 12. Modes and Pull-Ins
 
 ```mermaid
 flowchart LR
@@ -397,7 +428,7 @@ flowchart LR
     style MVP fill:#EAFF00,stroke:#0F1419,stroke-width:2px
 ```
 
-## 12. Deliverable Mapping
+## 13. Deliverable Mapping
 
 | Handout requirement | Architecture answer |
 |---|---|
