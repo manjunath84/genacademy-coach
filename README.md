@@ -6,7 +6,7 @@ style and teaching lens, checks understanding with a grounded question, and when
 the model chooses a different explanation strategy at runtime — not a hardcoded Python branch. When it
 cannot cite the answer, it refuses and escalates to a human mentor instead of guessing. Three shipped
 modes (teach, quiz, skill-gap diagnosis) share the same grounded core. Current dated dev evidence:
-**7/10 overall, 7/8 teachable** — the 2 non-passing scenarios are safe refusals of out-of-corpus
+**8/10 overall, 8/8 teachable** — the 2 non-passing scenarios are safe refusals of out-of-corpus
 topics. The held-out `test` split remains unused.
 
 Built as the Week-3 "Agentic Leap" project of the Mastering Agentic AI Bootcamp, layered on the
@@ -15,7 +15,7 @@ author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
 ## Grader's 5-Minute Path
 
 ```bash
-uv run pytest -q                                         # 199 tests
+uv run pytest -q                                         # full regression suite
 uv run ruff check .                                      # lint clean
 uv run python scripts/check_eval_leak.py                 # held-out split untouched
 uv run python scripts/check_memory_leak.py               # memory stores only safe state
@@ -56,6 +56,7 @@ Additional shipped features beyond the teach-loop MVP:
 - Skill-Gap Diagnosis composing teach/quiz traces into a cited next-step plan
 - Same-topic lens switching (low-code/no-code, code-heavy, bridge)
 - Local Gradio UI with redacted trace cards
+- Cohort member/admin login gate with admin account creation
 - Privacy-first memory slice (hashes only, off by default)
 - Hugging Face Space deployment shell (Pinecone-ready, no private corpus uploaded)
 
@@ -206,6 +207,11 @@ cp .env_example .env
 Fill `.env` with provider credentials. The local course corpus and generated traces are intentionally
 gitignored.
 
+The Gradio app is cohort-auth gated by default. Local seeded accounts come from the reused Week-2
+SQLite user store; set `GENACADEMY_SEED_ADMIN_PASSWORD` and `GENACADEMY_SEED_MEMBER_PASSWORD` as
+secrets before any shared deployment. Set `GENACADEMY_COACH_AUTH_ENABLED=false` only for an intentional
+local no-login demo.
+
 Memory is off by default. To enable the Mem0 adapter for local cohort runs, set both `MEM0_API_KEY`
 and `GENACADEMY_COACH_MEMORY_USER_SALT`; leaving either blank uses a no-op memory provider.
 
@@ -214,6 +220,15 @@ Launch the local UI:
 ```bash
 uv run python app.py
 ```
+
+For a no-login local recording that focuses on the teach/quiz/trace walkthrough, run:
+
+```bash
+GENACADEMY_COACH_AUTH_ENABLED=false uv run python app.py
+```
+
+If the login is part of the recording story, use non-sensitive seed credentials and avoid showing real
+deployment passwords on camera.
 
 Run verification:
 

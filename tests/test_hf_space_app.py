@@ -9,6 +9,7 @@ import pytest
 
 from genacademy_coach.web import gradio_app
 from genacademy_coach.web.gradio_app import (
+    DEFAULT_AUTH_MESSAGE,
     DEFAULT_LOCAL_SERVER_NAME,
     DEMO_PRESET_TOPICS,
     EMPTY_CORPUS_STATUS_MESSAGE,
@@ -20,20 +21,26 @@ from genacademy_coach.web.gradio_app import (
     TEACH_GROUNDED_PRESET,
     TEACH_REFUSAL_PRESET,
     UserInputError,
+    _auth_enabled,
     _coerce_choice,
     _error_payload,
     _format_trace_summary,
+    _launch_auth,
     _parse_answers,
     _parse_source_session_ids,
     _require_topic,
     _server_name,
     _space_status_message,
+    admin_tab_visibility_ui,
+    create_auth_user_ui,
     fill_quiz_grounded_preset,
     fill_skillgap_preset,
     fill_teach_grounded_preset,
     fill_teach_refusal_preset,
+    list_admin_users_ui,
     run_quiz_session,
     run_skillgap_session,
+    run_teach_session,
     safe_trace_rows,
 )
 
@@ -357,6 +364,163 @@ def test_runtime_reuses_foundation_for_local_demo(monkeypatch):
     assert build_calls == [settings]
 
 
+def test_gradio_launch_auth_is_enabled_by_default_and_can_be_disabled(monkeypatch):
+    calls = []
+
+    class FakeDemo:
+        def launch(self, **kwargs):
+            calls.append(kwargs)
+
+    class FakeAuth:
+        def authenticate(self, username, password):
+            return username == "member@example.com" and password == "secret"
+
+    monkeypatch.setattr(gradio_app, "demo", FakeDemo())
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+    monkeypatch.delenv("GENACADEMY_COACH_AUTH_ENABLED", raising=False)
+
+    gradio_app.launch()
+
+    assert _auth_enabled() is True
+    assert calls[-1]["auth"]("member@example.com", "secret") is True
+    assert calls[-1]["auth_message"] == DEFAULT_AUTH_MESSAGE
+    assert calls[-1]["share"] is False
+
+    monkeypatch.setenv("GENACADEMY_COACH_AUTH_ENABLED", "false")
+
+    gradio_app.launch()
+
+    assert _auth_enabled() is False
+    assert _launch_auth() is None
+    assert calls[-1]["auth"] is None
+    assert calls[-1]["auth_message"] is None
+
+
+def test_admin_tab_visibility_uses_authenticated_request_username(monkeypatch):
+    class FakeAuth:
+        def is_admin(self, email):
+            return email == "admin@example.com"
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+
+    admin_update = admin_tab_visibility_ui(SimpleNamespace(username="admin@example.com"))
+    member_update = admin_tab_visibility_ui(SimpleNamespace(username="member@example.com"))
+
+    assert admin_update["visible"] is True
+    assert member_update["visible"] is False
+
+
+def test_admin_user_actions_use_request_username_not_form_input(monkeypatch):
+    calls = []
+
+    class FakeAuth:
+        def create_user(self, **kwargs):
+            calls.append(kwargs)
+            return True, "created"
+
+        def list_users(self, *, actor_email):
+            calls.append({"list_actor_email": actor_email})
+            return [
+                {
+                    "email": "learner@example.com",
+                    "role": "member",
+                    "created_at": "2026-06-18 00:00:00",
+                }
+            ]
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+
+    message, users = create_auth_user_ui(
+        "learner@example.com",
+        "member",
+        "temporary-secret",
+        request=SimpleNamespace(username="admin@example.com"),
+    )
+
+    assert message == "created"
+    assert "learner@example.com" in users
+    assert calls[0]["actor_email"] == "admin@example.com"
+    assert calls[0]["email"] == "learner@example.com"
+    assert calls[1] == {"list_actor_email": "admin@example.com"}
+
+
+def test_member_admin_user_list_is_forbidden(monkeypatch):
+    class FakeAuth:
+        def list_users(self, *, actor_email):
+            assert actor_email == "member@example.com"
+            return []
+
+    monkeypatch.setattr(gradio_app, "_auth_backend", lambda: FakeAuth())
+
+    assert list_admin_users_ui(SimpleNamespace(username="member@example.com")) == (
+        "Admin access required."
+    )
+
+
+def test_run_teach_session_uses_authenticated_user_for_memory_hash(tmp_path, monkeypatch):
+    from genacademy_coach.privacy import user_id_hash
+
+    trace_path = tmp_path / "teach.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "session_id": "s1",
+                "turn": 1,
+                "topic_hash": "topic123",
+                "learner_input_hash": "input123",
+                "next_action": "drill",
+                "strategy": "analogy",
+                "evidence_score": 0.91,
+                "evidence_band": "proceed",
+                "faithfulness_ok": True,
+                "retrieved_citation_ids": ["note/agent::0"],
+                "tool_calls": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    settings = SimpleNamespace(memory_user_salt="salt")
+    seen = {}
+
+    class FakeCoachSession:
+        def __init__(self, **kwargs):
+            seen["user_id_hash"] = kwargs["user_id_hash"]
+            self.profile = kwargs["profile"]
+            self.finished = False
+
+        def start(self):
+            return SimpleNamespace(
+                session_id="s1",
+                profile=self.profile,
+                response=SimpleNamespace(
+                    learner_message="Grounded answer. [note/agent::0]",
+                    check_question=None,
+                ),
+                trace_path=str(trace_path),
+            )
+
+        def finish(self):
+            seen["finished"] = True
+
+    monkeypatch.setattr(gradio_app, "_runtime", lambda: (settings, object()))
+    monkeypatch.setattr(gradio_app, "CoachSession", FakeCoachSession)
+
+    message, metadata = run_teach_session(
+        "agent harness",
+        "analogy",
+        "code_heavy",
+        "",
+        user_email="member@example.com",
+    )
+
+    assert "Grounded answer" in message
+    assert seen["user_id_hash"] == user_id_hash("member@example.com", salt="salt")
+    assert seen["finished"] is True
+    serialized = json.dumps(metadata, sort_keys=True)
+    assert "member@example.com" not in serialized
+
+
 def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
     def fail_runtime():
         raise AssertionError("runtime should not be built for invalid input")
@@ -595,9 +759,13 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "_Awaiting teach run._" in app_text
     assert "_Awaiting quiz run._" in app_text
     assert "_Awaiting diagnosis run._" in app_text
+    assert "_Awaiting admin action._" in app_text
     assert "Skill-Gap" in app_text
+    assert "Admin" in app_text
+    assert "Sign out" in app_text
     assert "GENACADEMY_COACH_CSS" in app_text
     assert "css=GENACADEMY_COACH_CSS" in app_text
+    assert "auth=_launch_auth()" in app_text
     assert "Evidence fallback" in app_text
 
 
@@ -643,6 +811,7 @@ def test_hf_deploy_upload_allow_list_excludes_private_data():
     assert module.SPACE_VARIABLES["GENACADEMY_VECTORSTORE"] == "pinecone"
     assert module.SPACE_VARIABLES["GENACADEMY_PINECONE_INDEX"] == "genacademy-coach"
     assert module.SPACE_VARIABLES["GENACADEMY_COACH_COLLECTION"] == "coach_course"
+    assert module.SPACE_VARIABLES["GENACADEMY_COACH_AUTH_ENABLED"] == "true"
 
 
 def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
@@ -674,6 +843,7 @@ def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
     monkeypatch.setenv("HF_TOKEN", "token")
     monkeypatch.delenv("NEBIUS_API_KEY", raising=False)
     monkeypatch.delenv("PINECONE_API_KEY", raising=False)
+    monkeypatch.setenv("GENACADEMY_COACH_AUTH_ENABLED", "false")
     monkeypatch.delenv("GENACADEMY_HF_FACTORY_REBOOT", raising=False)
 
     module.main()
@@ -684,6 +854,10 @@ def test_hf_deploy_defaults_avoid_factory_reboot(monkeypatch, capsys):
     assert "factory_reboot=False" in out
     assert "secret_NEBIUS_API_KEY=skipped" in out
     assert "secret_PINECONE_API_KEY=skipped" in out
+    assert "secret_GENACADEMY_SEED_ADMIN_PASSWORD=skipped" in out
+    assert "secret_GENACADEMY_SEED_MEMBER_PASSWORD=skipped" in out
+    assert "secret_MEM0_API_KEY=skipped" in out
+    assert "secret_GENACADEMY_COACH_MEMORY_USER_SALT=skipped" in out
 
 
 def test_hf_deploy_uploads_provider_and_vectorstore_secrets(monkeypatch, capsys):
@@ -714,16 +888,43 @@ def test_hf_deploy_uploads_provider_and_vectorstore_secrets(monkeypatch, capsys)
     monkeypatch.setenv("HF_TOKEN", "token")
     monkeypatch.setenv("NEBIUS_API_KEY", "nebius-secret")
     monkeypatch.setenv("PINECONE_API_KEY", "pinecone-secret")
+    monkeypatch.setenv("GENACADEMY_SEED_ADMIN_PASSWORD", "admin-secret")
+    monkeypatch.setenv("GENACADEMY_SEED_MEMBER_PASSWORD", "member-secret")
 
     module.main()
 
     assert ("Manjunath84/genacademy-coach", "NEBIUS_API_KEY", "nebius-secret") in fake.secrets
     assert ("Manjunath84/genacademy-coach", "PINECONE_API_KEY", "pinecone-secret") in fake.secrets
+    assert (
+        "Manjunath84/genacademy-coach",
+        "GENACADEMY_SEED_ADMIN_PASSWORD",
+        "admin-secret",
+    ) in fake.secrets
+    assert (
+        "Manjunath84/genacademy-coach",
+        "GENACADEMY_SEED_MEMBER_PASSWORD",
+        "member-secret",
+    ) in fake.secrets
     out = capsys.readouterr().out
     assert "secret_NEBIUS_API_KEY=set" in out
     assert "secret_PINECONE_API_KEY=set" in out
+    assert "secret_GENACADEMY_SEED_ADMIN_PASSWORD=set" in out
+    assert "secret_GENACADEMY_SEED_MEMBER_PASSWORD=set" in out
     assert "nebius-secret" not in out
     assert "pinecone-secret" not in out
+    assert "admin-secret" not in out
+    assert "member-secret" not in out
+
+
+def test_hf_deploy_requires_seed_passwords_when_auth_enabled(monkeypatch):
+    module = load_deploy_script()
+
+    monkeypatch.setenv("HF_TOKEN", "token")
+    monkeypatch.delenv("GENACADEMY_SEED_ADMIN_PASSWORD", raising=False)
+    monkeypatch.delenv("GENACADEMY_SEED_MEMBER_PASSWORD", raising=False)
+
+    with pytest.raises(SystemExit, match="auth-enabled deploy requires secret seed passwords"):
+        module.main()
 
 
 def test_hf_deploy_factory_reboot_is_explicit_opt_in(monkeypatch):

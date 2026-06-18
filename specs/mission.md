@@ -49,6 +49,8 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
   facts, citations, retrieval input, grading, or refusal decisions.
 - A minimal Hugging Face/Gradio UI surface for teach and quiz, kept as a thin wrapper over the same
   core engine; no private corpus publishing.
+- Cohort member/admin login gate for the Gradio app, reusing the Week-2 user/password store and keeping
+  role enforcement at the web boundary.
 
 ## Out of scope (Week 3 — see `roadmap.md` for when each is earned)
 
@@ -57,7 +59,7 @@ brand, inherited from the Week-2 `genacademy-rag` system this is built on.
 - Track-aware *retrieval* (Week-3 track = prompt-level style only).
 - Admin upload for new docs/quiz questions (low-priority pull-in after the MVP works end-to-end).
 - ElevenLabs voice (pull-in idea over the same text engine; text transcript stays source of truth).
-- Memory retention/deletion/admin tooling, caching at scale, multimodal, cohort rollout/auth, and
+- Memory retention/deletion/admin tooling, per-user cost caps, caching at scale, multimodal, and
   production-grade deployment operations unless time permits after the grounded teach/refusal/eval path.
 
 ## How I'll know it worked
