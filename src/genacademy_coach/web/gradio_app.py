@@ -10,11 +10,17 @@ from pathlib import Path
 from typing import Any
 
 from genacademy_coach.foundation import Foundation, build_course_vectorstore
+from genacademy_coach.privacy import user_id_hash
 from genacademy_coach.quiz_session import QuizSession
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.skillgap_session import SkillGapSession, validate_skillgap_session_id
 from genacademy_coach.teach_session import CoachSession
 from genacademy_coach.teach_types import LearnerProfile
+from genacademy_coach.web.auth import (
+    DEFAULT_AUTH_MESSAGE,
+    CoachAuth,
+    auth_enabled_from_env,
+)
 
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 
@@ -933,6 +939,74 @@ def _runtime() -> tuple[CoachSettings, Foundation]:
     return settings, Foundation.build(settings)
 
 
+@lru_cache(maxsize=1)
+def _auth_backend() -> CoachAuth:
+    return CoachAuth(CoachSettings.from_env())
+
+
+def _auth_enabled() -> bool:
+    return auth_enabled_from_env(os.environ.get("GENACADEMY_COACH_AUTH_ENABLED"))
+
+
+def _launch_auth() -> Any | None:
+    return _auth_backend().authenticate if _auth_enabled() else None
+
+
+def _request_username(request: gr.Request | None) -> str | None:
+    username = getattr(request, "username", None) if request is not None else None
+    return str(username) if username else None
+
+
+def _memory_user_hash(settings: CoachSettings, user_email: str | None) -> str | None:
+    if user_email is None or settings.memory_user_salt is None:
+        return None
+    return user_id_hash(user_email, salt=settings.memory_user_salt)
+
+
+def auth_status_ui(request: gr.Request | None = None) -> str:
+    if not _auth_enabled():
+        return "**Access:** auth disabled for local development."
+    user = _auth_backend().get_user(_request_username(request))
+    if user is None:
+        return "**Access:** signed in cohort account."
+    return f"**Access:** `{user.role}` cohort account."
+
+
+def _format_admin_users(rows: list[dict[str, str]]) -> str:
+    if not rows:
+        return "No users are visible for this account."
+    lines = ["| Email | Role | Created |", "|---|---|---|"]
+    for row in rows:
+        lines.append(
+            f"| `{escape(row['email'])}` | `{escape(row['role'])}` | "
+            f"{escape(row['created_at'])} |"
+        )
+    return "\n".join(lines)
+
+
+def list_admin_users_ui(request: gr.Request | None = None) -> str:
+    rows = _auth_backend().list_users(actor_email=_request_username(request))
+    if not rows:
+        return "Admin access required."
+    return _format_admin_users(rows)
+
+
+def create_auth_user_ui(
+    email: str,
+    role: str,
+    password: str,
+    request: gr.Request | None = None,
+) -> tuple[str, str]:
+    ok, message = _auth_backend().create_user(
+        actor_email=_request_username(request),
+        email=email,
+        role=role,
+        password=password,
+    )
+    rows = _auth_backend().list_users(actor_email=_request_username(request)) if ok else []
+    return message, _format_admin_users(rows) if rows else "Admin access required."
+
+
 def _corpus_chunk_count(settings: CoachSettings) -> int:
     store = build_course_vectorstore(settings)
     return len(store.get_all_chunks())
@@ -975,6 +1049,7 @@ def run_teach_session(
     style: str,
     track_lens: str,
     learner_answer: str,
+    user_email: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     try:
         clean_topic = _require_topic(topic)
@@ -987,6 +1062,7 @@ def run_teach_session(
             settings=settings,
             foundation=foundation,
             profile=LearnerProfile(style=clean_style, track_lens=clean_lens),
+            user_id_hash=_memory_user_hash(settings, user_email),
         )
         first = session.start()
         sections = ["### Turn 1", first.response.learner_message]
@@ -1000,6 +1076,7 @@ def run_teach_session(
             sections.extend(["", "### Turn 2", result.response.learner_message])
             if result.response.check_question:
                 sections.extend(["", f"**Check:** {result.response.check_question}"])
+        session.finish()
 
         metadata = {
             "status": "ok",
@@ -1139,8 +1216,15 @@ def run_teach_ui(
     style: str,
     track_lens: str,
     learner_answer: str,
+    request: gr.Request | None = None,
 ) -> tuple[str, str, dict[str, Any]]:
-    output, metadata = run_teach_session(topic, style, track_lens, learner_answer)
+    output, metadata = run_teach_session(
+        topic,
+        style,
+        track_lens,
+        learner_answer,
+        user_email=_request_username(request),
+    )
     return output, _format_trace_summary(metadata, mode="teach"), metadata
 
 
@@ -1165,6 +1249,9 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
         elem_classes=["gc-root"],
     ) as demo:
         gr.HTML(APP_HEADER_HTML)
+        with gr.Row(elem_classes=["gc-action-row"]):
+            auth_status = gr.Markdown("**Access:** checking account.")
+            gr.Button("Sign out", link="/logout", elem_classes=["gc-preset-button"])
         if status_message is not None:
             gr.Markdown(status_message, elem_classes=["gc-deploy-note"])
         with gr.Accordion("Evidence fallback", open=False, elem_classes=["gc-fallback"]):
@@ -1422,6 +1509,65 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                     inputs=[source_session_ids],
                     outputs=[skillgap_output, skillgap_trace_summary, skillgap_metadata],
                 )
+            with gr.Tab("Admin"):
+                with gr.Row(elem_classes=["gc-workbench"]):
+                    with gr.Column(scale=5, min_width=320, elem_classes=["gc-panel"]):
+                        gr.HTML(
+                            """
+                            <p class="gc-eyebrow">Cohort administration</p>
+                            <h2 class="gc-panel-title">Create login accounts</h2>
+                            <p class="gc-panel-copy">
+                              Admin-only account management backed by the Week-2 user store.
+                            </p>
+                            <div class="gc-mode-card">
+                              <strong>Access boundary</strong>
+                              <span>Members can use Coach; only admins can create accounts.</span>
+                            </div>
+                            """
+                        )
+                        admin_email = gr.Textbox(
+                            label="Email",
+                            placeholder="learner@example.com",
+                            elem_classes=["gc-input"],
+                        )
+                        with gr.Row():
+                            admin_role = gr.Dropdown(
+                                ["member", "admin"],
+                                value="member",
+                                label="Role",
+                                elem_classes=["gc-input"],
+                            )
+                            admin_password = gr.Textbox(
+                                label="Temporary password",
+                                type="password",
+                                elem_classes=["gc-input"],
+                            )
+                        create_user_button = gr.Button(
+                            "Create account",
+                            elem_classes=["gc-run-button"],
+                        )
+                    with gr.Column(scale=7, min_width=420, elem_classes=["gc-panel-soft"]):
+                        gr.HTML(
+                            """
+                            <p class="gc-eyebrow">Admin state</p>
+                            <h2 class="gc-panel-title">Users</h2>
+                            """
+                        )
+                        admin_message = gr.Markdown(
+                            value="_Awaiting admin action._",
+                            elem_classes=["gc-output"],
+                        )
+                        admin_users = gr.Markdown(
+                            value="_User list appears for admins._",
+                            elem_classes=["gc-trace"],
+                        )
+                create_user_button.click(
+                    fn=create_auth_user_ui,
+                    inputs=[admin_email, admin_role, admin_password],
+                    outputs=[admin_message, admin_users],
+                )
+        demo.load(auth_status_ui, inputs=[], outputs=[auth_status])
+        demo.load(list_admin_users_ui, inputs=[], outputs=[admin_users])
     return demo
 
 
@@ -1439,4 +1585,6 @@ def launch() -> None:
         show_error=False,
         share=False,
         css=GENACADEMY_COACH_CSS,
+        auth=_launch_auth(),
+        auth_message=DEFAULT_AUTH_MESSAGE if _auth_enabled() else None,
     )

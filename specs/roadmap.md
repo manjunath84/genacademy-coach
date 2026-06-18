@@ -96,6 +96,7 @@ Completed requirements:
 - [x] Calibrated STOP threshold against seed/dev positives plus non-private negative controls.
 - [x] Local teach, quiz, and skill-gap workflows over the same grounded core.
 - [x] Honest dated dev numbers; held-out `test` split remains untouched.
+- [x] Cohort member/admin login gate for the Gradio app, reusing the Week-2 SQLite user/password store.
 
 ## Future Pull-Ins
 
@@ -113,7 +114,8 @@ This list is future-only; shipped pull-ins stay in Done.
    coordination outgrow `create_agent`.
 7. **Caching and model tiering** — latency/cost optimization after behavior is stable.
 8. **Multimodal slide questions** — only with a clear grounded-citation path.
-9. **Cohort rollout** — multi-user auth, per-user cost caps, and admin operations.
+9. **Cohort rollout hardening** — per-user cost caps, account lifecycle, and admin operations beyond
+   the minimal login/account-creation gate.
 10. **Flashcards / mind-map artifacts** — generated only from cited spans.
 11. **GraphRAG** — course knowledge graph if the single-retriever contract shows a measured recall gap.
 

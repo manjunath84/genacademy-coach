@@ -45,6 +45,7 @@ SPACE_VARIABLES = {
     "GENACADEMY_COACH_CONFIRM_THRESHOLD": "0.85",
     "GENACADEMY_COACH_COLLECTION": "coach_course",
     "GENACADEMY_COACH_SOURCE_PRIORITY": "slide,handout,note,transcript",
+    "GENACADEMY_COACH_AUTH_ENABLED": "true",
     "GENACADEMY_COACH_DATA_DIR": "/data",
     "GENACADEMY_COACH_TRACE_DIR": "/data/traces",
     "GENACADEMY_COACH_REVIEW_QUEUE_PATH": "/data/review_queue.jsonl",
@@ -69,10 +70,29 @@ def _bool_from_env(name: str, *, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _require_auth_seed_passwords_when_enabled() -> None:
+    auth_enabled = _bool_from_env(
+        "GENACADEMY_COACH_AUTH_ENABLED",
+        default=SPACE_VARIABLES["GENACADEMY_COACH_AUTH_ENABLED"] == "true",
+    )
+    if not auth_enabled:
+        return
+    missing = [
+        name
+        for name in ("GENACADEMY_SEED_ADMIN_PASSWORD", "GENACADEMY_SEED_MEMBER_PASSWORD")
+        if not os.environ.get(name)
+    ]
+    if missing:
+        raise SystemExit(
+            "auth-enabled deploy requires secret seed passwords: " + ", ".join(missing)
+        )
+
+
 def main() -> None:
     token = os.environ.get("HF_TOKEN")
     if not token:
         raise SystemExit("HF_TOKEN is required")
+    _require_auth_seed_passwords_when_enabled()
 
     repo_id = os.environ.get("GENACADEMY_HF_SPACE_ID", DEFAULT_SPACE_ID)
     private = _bool_from_env("GENACADEMY_HF_SPACE_PRIVATE", default=True)
@@ -89,7 +109,15 @@ def main() -> None:
         api.add_space_variable(repo_id, key, os.environ.get(key, default))
 
     secret_statuses = {}
-    for secret_name in ("NEBIUS_API_KEY", "PINECONE_API_KEY"):
+    secret_names = (
+        "NEBIUS_API_KEY",
+        "PINECONE_API_KEY",
+        "GENACADEMY_SEED_ADMIN_PASSWORD",
+        "GENACADEMY_SEED_MEMBER_PASSWORD",
+        "MEM0_API_KEY",
+        "GENACADEMY_COACH_MEMORY_USER_SALT",
+    )
+    for secret_name in secret_names:
         secret_value = os.environ.get(secret_name)
         if secret_value:
             api.add_space_secret(repo_id, secret_name, secret_value)
@@ -115,8 +143,8 @@ def main() -> None:
     print(f"commit={commit.oid}")
     print(f"private={private}")
     print(f"factory_reboot={factory_reboot}")
-    print(f"secret_NEBIUS_API_KEY={secret_statuses['NEBIUS_API_KEY']}")
-    print(f"secret_PINECONE_API_KEY={secret_statuses['PINECONE_API_KEY']}")
+    for secret_name in secret_names:
+        print(f"secret_{secret_name}={secret_statuses[secret_name]}")
     print("uploaded=deployment allow-list only")
 
 
