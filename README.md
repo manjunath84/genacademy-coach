@@ -19,7 +19,7 @@ Architecture entry points:
 [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) for the end-to-end diagram and
 [`docs/architecture.md`](docs/architecture.md) for the design decisions and trust boundary.
 
-## Grader's 5-Minute Path
+## Quick Verification Path
 
 ```bash
 uv run pytest -q                                         # full regression suite
