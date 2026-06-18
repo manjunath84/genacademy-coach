@@ -237,6 +237,7 @@ body {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  cursor: default;
 }
 
 .gc-chip.sage {
@@ -979,8 +980,8 @@ def _format_trace_summary(
         if mode == "teach":
             title = f"Turn {row.get('turn', '?')}"
             pills = [
-                _format_chip(row.get("next_action", "unknown")),
-                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"action {row.get('next_action', 'unknown')}"),
+                _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [
@@ -1009,7 +1010,7 @@ def _format_trace_summary(
         elif mode == "quiz":
             title = "Quiz run"
             pills = [
-                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [
@@ -1027,8 +1028,8 @@ def _format_trace_summary(
         else:
             title = f"Gap {index}"
             pills = [
-                _format_chip(row.get("next_action", "unknown")),
-                _format_chip(row.get("evidence_band", "unknown")),
+                _format_chip(f"action {row.get('next_action', 'unknown')}"),
+                _format_chip(f"band {row.get('evidence_band', 'unknown')}"),
                 _format_chip(f"score {_format_score(row.get('evidence_score', '?'))}"),
             ]
             fields = [

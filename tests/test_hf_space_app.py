@@ -223,7 +223,8 @@ def test_trace_summary_uses_only_safe_fields():
     assert "gc-trace-card" in summary
     assert "Decision basis" in summary
     assert "not captured" in summary
-    assert "drill" in summary
+    assert "action drill" in summary
+    assert "band confirm" in summary
     assert "0.711" in summary
     assert "2 cited spans" in summary
     assert "Week 1 Session 1 (slide 36)" in summary
