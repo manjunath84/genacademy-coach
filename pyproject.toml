@@ -13,6 +13,7 @@ dependencies = [
     "python-docx",
     "python-pptx",
     "torch>=2.11.0",
+    "mem0ai>=2.0.7",
 ]
 
 [build-system]

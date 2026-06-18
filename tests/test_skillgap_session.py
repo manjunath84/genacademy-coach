@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from genacademy_coach.privacy import learner_input_hash, topic_hash
 from genacademy_coach.quiz_trace import QuizTraceWriter
 from genacademy_coach.quiz_types import QuizTraceRow
 from genacademy_coach.skillgap_session import NO_CITEABLE_SKILL_GAP_REVIEW, SkillGapSession
@@ -50,8 +51,8 @@ def write_teach_trace(root: Path, session_id: str = "teach-1") -> None:
         TraceTurn(
             session_id=session_id,
             turn=1,
-            learner_input="PRIVATE LEARNER ANSWER",
-            observation="PRIVATE OBSERVATION",
+            topic_hash=topic_hash("agent harness"),
+            learner_input_hash=learner_input_hash("PRIVATE LEARNER ANSWER"),
             next_action="re_explain_differently",
             strategy="contrastive_example",
             evidence_score=0.72,
@@ -59,7 +60,6 @@ def write_teach_trace(root: Path, session_id: str = "teach-1") -> None:
             faithfulness_ok=True,
             retrieved_citation_ids=["note/agent-harness::0"],
             tool_calls=["retrieve_course_corpus"],
-            learner_message="PRIVATE GENERATED TEACHER MESSAGE",
         )
     )
 
@@ -144,6 +144,8 @@ def test_skillgap_refuses_gap_without_citeable_review_span(tmp_path):
     assert result.items[0].reason_code == NO_CITEABLE_SKILL_GAP_REVIEW
     review_row = json.loads(settings.review_queue_path.read_text(encoding="utf-8"))
     assert review_row["reason"] == NO_CITEABLE_SKILL_GAP_REVIEW
+    assert "topic_hash" in review_row
+    assert "topic" not in review_row
     trace_row = json.loads(Path(result.trace_path).read_text(encoding="utf-8"))
     assert trace_row["evidence_score"] == 0.2
     assert trace_row["evidence_band"] == "stop"

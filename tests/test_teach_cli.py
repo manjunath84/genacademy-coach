@@ -13,11 +13,16 @@ def load_script(path: str):
 
 def test_print_trace_formats_jsonl(tmp_path, capsys):
     path = tmp_path / "abc.jsonl"
+    private_value = "PRIVATE GENERATED TEXT"
     path.write_text(
-        '{"turn": 1, "next_action": "drill", "strategy": "analogy", '
+        '{"session_id": "abc", "turn": 1, "topic_hash": "topic123", '
+        '"learner_input_hash": "input123", '
+        '"next_action": "drill", "strategy": "analogy", '
         '"evidence_score": 0.91, "evidence_band": "proceed", '
+        '"faithfulness_ok": true, '
         '"retrieved_citation_ids": ["note/a::0"], '
-        '"learner_message": "hello"}\n',
+        '"tool_calls": ["retrieve_course_corpus"], '
+        f'"learner_message": "{private_value}"}}\n',
         encoding="utf-8",
     )
     module = load_script("scripts/print_trace.py")
@@ -28,4 +33,7 @@ def test_print_trace_formats_jsonl(tmp_path, capsys):
     assert "turn 1" in out
     assert "drill" in out
     assert "evidence=0.91 proceed" in out
+    assert "topic_hash=topic123" in out
+    assert "learner_input_hash=input123" in out
     assert "note/a::0" in out
+    assert private_value not in out

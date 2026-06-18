@@ -9,7 +9,7 @@ def append_review_queue(
     path: Path,
     *,
     session_id: str,
-    topic: str,
+    topic_hash: str,
     reason: str,
     score: float | None,
     citation_ids: list[str],
@@ -18,7 +18,7 @@ def append_review_queue(
     payload = {
         "timestamp": datetime.now(UTC).isoformat(),
         "session_id": session_id,
-        "topic": topic,
+        "topic_hash": topic_hash,
         "reason": reason,
         "score": score,
         "citation_ids": citation_ids,

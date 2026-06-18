@@ -102,18 +102,19 @@ def test_score_scenario_runs_teach_loop_instead_of_retrieval_only(tmp_path):
     module = load_eval_module()
     trace_path = tmp_path / "trace.jsonl"
     trace_path.write_text(
-        '{"session_id": "item-a-000", "turn": 1, "learner_input": "teach", '
-        '"observation": "retrieved span", "next_action": "drill", "strategy": "analogy", '
+        '{"session_id": "item-a-000", "turn": 1, "topic_hash": "topic123", '
+        '"learner_input_hash": "input123", '
+        '"next_action": "drill", "strategy": "analogy", '
         '"evidence_score": 0.91, "evidence_band": "proceed", '
         '"retrieved_citation_ids": ["note/attention::0"], "tool_calls": [], '
-        '"learner_message": "first"}\n'
-        '{"session_id": "item-a-000", "turn": 2, "learner_input": "wrong", '
-        '"observation": "learner confused attention", '
+        '"faithfulness_ok": true}\n'
+        '{"session_id": "item-a-000", "turn": 2, "topic_hash": "topic123", '
+        '"learner_input_hash": "input456", '
         '"next_action": "re_explain_differently", '
         '"strategy": "contrastive_example", "evidence_score": 0.91, '
         '"evidence_band": "proceed", '
         '"retrieved_citation_ids": ["note/attention::0"], "tool_calls": [], '
-        '"learner_message": "second"}\n',
+        '"faithfulness_ok": true}\n',
         encoding="utf-8",
     )
     calls = []

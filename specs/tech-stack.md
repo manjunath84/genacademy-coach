@@ -13,7 +13,7 @@ through clean metadata and adapter seams.
 | Generative call | **Nebius Token Factory via Week-2 provider surface** | The handout requires at least one Nebius model call. The richest MVP use is `generate_check_item`, grounded in a retrieved span. |
 | Retrieval | **One source-prioritized course-corpus retriever** | One retriever over the extended Week-2 collection is more reliable than sparse source-specific tools. Every chunk carries `source_type`; slides and handouts are preferred, notes fill gaps, transcripts support/fallback. |
 | Corpus | **Local owned corpus in `corpus/`** | `notes/`, `slides/`, `handouts/`, and `transcripts/` are the indexable sources; `eval-questions/` is never indexed. Content stays local/gitignored. |
-| State | **Within-session learner profile** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, turn budget, and transcript. Cross-session state is deferred. |
+| State | **Within-session profile + optional episodic memory** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, and turn budget stay in session. Mem0-backed cross-session memory is off by default and stores only safe learner-state hashes/counts. |
 | Grading | **Deterministic grounded gate** | The MVP pass/fail decision uses normalized answer matching plus citation-resolves checks. The inherited LLM judge is a secondary faithfulness audit, not the gate. |
 | Trace | **Local JSON trace + CLI pretty print; LangSmith optional** | The local artifact proves agenticity without external auth/network risk. LangSmith tracing is useful when configured; custom HTML is deferred. |
 | Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
@@ -71,7 +71,7 @@ The held-out test set is only credible if leakage is mechanically prevented:
 
 ## Success-Metric Protocol
 
-The "8/10" claim needs a reproducible scenario file:
+The dev eval result needs a reproducible scenario file:
 
 ```json
 {"concept":"...","initial_wrong_answer":"...","expected_citation_span_id":"...","target_check_id":"..."}
@@ -84,8 +84,10 @@ Pass criteria:
 - Every learner-visible citation resolves to a retrieved span.
 - The trace shows a model-chosen `next_action` and `strategy`, not a scripted branch.
 
-Target: at least 8/10 held-out scenarios pass. If the real number is lower, report the real number and
-the failure modes.
+Current result: **7/10 overall, 7/8 teachable** on the dev split (2026-06-16). The original planning
+target was 8/10. The 2 non-passing scenarios are safe low-retrieval refusals of out-of-corpus topics;
+the 1 remaining teachable failure was a model-behavior diagnostic (cautious refusal in a confirm-band
+retrieval case). The held-out `test` split remains unused.
 
 ## Confidence Bands
 
@@ -110,13 +112,17 @@ Per turn:
 
 ```json
 {
+  "session_id": "abc123",
   "turn": 3,
-  "observation": "learner confused attention with recurrence",
+  "topic_hash": "8f2e1d4c9a70",
+  "learner_input_hash": "ad1c9e8042bb",
   "next_action": "re_explain_differently",
   "strategy": "contrastive_example",
+  "evidence_score": 0.84,
+  "evidence_band": "confirm",
+  "faithfulness_ok": true,
   "tool_calls": ["retrieve_course_corpus"],
-  "retrieved_citation_ids": ["week3-session1:chunk-42"],
-  "confidence": 0.84
+  "retrieved_citation_ids": ["week3-session1:chunk-42"]
 }
 ```
 
@@ -140,7 +146,7 @@ On out-of-corpus or below-threshold retrieval, the agent returns a learner-visib
 line to `review_queue.jsonl`:
 
 ```json
-{"topic":"...","score":0.41,"reason":"no supporting span","timestamp":"..."}
+{"topic_hash":"8f2e1d4c9a70","score":0.41,"reason":"no supporting span","timestamp":"..."}
 ```
 
 No webhook or mentor-notification system is required for the MVP.
@@ -155,7 +161,7 @@ No webhook or mentor-notification system is required for the MVP.
 | **ElevenLabs voice** | Pull-in over the same text engine after text UX is reliable; text transcript remains source of truth. |
 | **Explicit LangGraph graph** | Cross-session memory, pause/resume HITL, or auditable state transitions become core. |
 | **MCP / A2A** | More than one system boundary or a genuine multi-agent split across systems appears. |
-| **Mem0 cross-session memory** | Cohort rollout needs "remembers you across days." |
+| **Memory hardening** | Cohort rollout needs retention/deletion/admin visibility beyond the off-by-default Mem0 adapter. |
 | **Caching + model tiering** | Multi-user cost/latency matters. |
 | **Layout-aware ingestion** | Raw diagram-heavy PDFs become central and Week-2 loaders are insufficient. |
 

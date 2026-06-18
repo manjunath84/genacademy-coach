@@ -54,7 +54,10 @@ def test_safe_trace_rows_omit_raw_teach_fields(tmp_path):
     trace_path.write_text(
         json.dumps(
             {
+                "session_id": "abc",
                 "turn": 1,
+                "topic_hash": "topic123",
+                "learner_input_hash": "input123",
                 "learner_input": private_value,
                 "learner_message": private_value,
                 "next_action": "drill",
@@ -74,7 +77,10 @@ def test_safe_trace_rows_omit_raw_teach_fields(tmp_path):
     serialized = json.dumps(rows, sort_keys=True)
     assert rows == [
         {
+            "session_id": "abc",
             "turn": 1,
+            "topic_hash": "topic123",
+            "learner_input_hash": "input123",
             "next_action": "drill",
             "strategy": "short_drill",
             "evidence_score": 0.71,
@@ -84,7 +90,7 @@ def test_safe_trace_rows_omit_raw_teach_fields(tmp_path):
         }
     ]
     assert private_value not in serialized
-    assert "learner_input" not in serialized
+    assert '"learner_input":' not in serialized
     assert "learner_message" not in serialized
 
 

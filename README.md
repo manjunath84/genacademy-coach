@@ -1,12 +1,127 @@
 # GenAcademy Coach
 
-An adaptive, grounded AI tutor for Gen Academy course material. It teaches a learner through a
-course concept, checks understanding, re-explains with a different strategy when the learner stumbles,
-tracks known and struggled topics within the session, and refuses to answer when it cannot cite course
-evidence.
+Learners re-watch lectures hoping a concept clicks. GenAcademy Coach replaces that loop with an
+adaptive, grounded AI tutor: it retrieves citeable course evidence, explains in the learner's chosen
+style and teaching lens, checks understanding with a grounded question, and when the learner stumbles,
+the model chooses a different explanation strategy at runtime — not a hardcoded Python branch. When it
+cannot cite the answer, it refuses and escalates to a human mentor instead of guessing. Three shipped
+modes (teach, quiz, skill-gap diagnosis) share the same grounded core. Current dated dev evidence:
+**7/10 overall, 7/8 teachable** — the 2 non-passing scenarios are safe refusals of out-of-corpus
+topics. The held-out `test` split remains unused.
 
 Built as the Week-3 "Agentic Leap" project of the Mastering Agentic AI Bootcamp, layered on the
 author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
+
+## Grader's 5-Minute Path
+
+```bash
+uv run pytest -q                                         # 199 tests
+uv run ruff check .                                      # lint clean
+uv run python scripts/check_eval_leak.py                 # held-out split untouched
+uv run python scripts/check_memory_leak.py               # memory stores only safe state
+uv run python scripts/run_memory_demo.py \
+  --user-id demo-user --topic "agent harness"             # optional memory recall
+```
+
+With provider credentials and local corpus:
+
+```bash
+GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
+  uv run python scripts/eval_teach_loop.py --split dev    # redacted dev eval
+```
+
+Expected proof points: redacted teach traces contain hashes, unsupported topics refuse, the HF Space is
+only a deployment shell without private corpus/index, and optional memory recalls safe learner-state
+without becoming a citation or grounding source.
+
+## The Agentic Leap: What Changed From Week 2
+
+The Week-2 project provided the RAG foundation: embedder, vectorstore schema/factory, chunking pipeline,
+citation metadata, provider boundary, eval harness, and refusal-first discipline.
+
+This project adds the agentic layer:
+
+| Handout Requirement | Implementation | Key Files |
+|---|---|---|
+| **Multi-step agentic task** | Teach loop: intake → retrieve → explain → check → grade → runtime decide → update profile → loop | [`teach_session.py`](src/genacademy_coach/teach_session.py) |
+| **Tool calls** | 6 tools: `retrieve_course_corpus`, `generate_check_item`, `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` | [`teach_tools.py`](src/genacademy_coach/teach_tools.py) |
+| **State management** | Within-session `LearnerProfile` + optional off-by-default Mem0 episodic memory | [`teach_types.py`](src/genacademy_coach/teach_types.py), [`memory.py`](src/genacademy_coach/memory.py) |
+| **Human-in-the-loop** | Refusal → `review_queue.jsonl` entry → mentor escalation | [`escalation.py`](src/genacademy_coach/escalation.py) |
+| **Tool failure / recovery** | 6 mechanisms: retry/validation, confidence bands, source fallback, human escalation, faithfulness fallback, stop/progress guard | [`teach_session.py#_enforce_grounding`](src/genacademy_coach/teach_session.py) |
+| **Eval / "how it worked"** | Deterministic eval on dev split, redacted diagnostics, held-out test never used | [`scripts/eval_teach_loop.py`](scripts/eval_teach_loop.py) |
+| **Architecture diagram** | 12 Mermaid diagrams covering system, teach loop, quiz, skill-gap, state, failure handling, eval boundary | [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md) |
+
+Additional shipped features beyond the teach-loop MVP:
+- Grounded Quiz Mode with deterministic Python grading of selected option IDs
+- Skill-Gap Diagnosis composing teach/quiz traces into a cited next-step plan
+- Same-topic lens switching (low-code/no-code, code-heavy, bridge)
+- Local Gradio UI with redacted trace cards
+- Privacy-first memory slice (hashes only, off by default)
+- Hugging Face Space deployment shell (Pinecone-ready, no private corpus uploaded)
+
+Explicit LangGraph orchestration is deliberately deferred. The current version keeps course facts inside
+the retrieval/citation path, uses optional memory only for safe learner-state, and relies on LangChain
+`create_agent` on LangGraph's runtime without importing `langgraph.*` directly.
+
+## System Architecture
+
+One LangChain `create_agent` loop handles the adaptive teach mode. Quiz and Skill-Gap are deterministic
+pull-ins over the same retrieval, grounding, trace, and refusal primitives.
+
+```mermaid
+flowchart TD
+    UI["Thin views — Gradio + CLI"]
+
+    subgraph Modes["Mode layer"]
+        TeachMode["Teach mode — agentic runtime decision"]
+        QuizMode["Quiz mode — deterministic assessment"]
+        SkillGapMode["Skill-Gap mode — deterministic next-step report"]
+    end
+
+    subgraph Agent["Teach Agent — LangChain create_agent"]
+        Reason["Model chooses next_action + strategy"]
+        Profile[("Within-session profile")]
+    end
+
+    subgraph SharedCore["Shared safety/core primitives"]
+        R["retrieve_course_corpus"]
+        Ground["evidence_score + evidence_band + require_citeable_spans"]
+        Gen["generate_check_item / quiz item — Nebius provider"]
+        Grade["Python deterministic grading"]
+        Trace["Typed redacted trace writers"]
+        Esc["escalate_to_mentor — review_queue.jsonl"]
+    end
+
+    subgraph Foundation["Week-2 genacademy-rag foundation"]
+        Corpus["Extended course vectorstore — Chroma local · Pinecone hosted"]
+        Provider["Nebius/OpenAI-compatible provider"]
+        Eval["Eval harness + split manifest — held-out test never indexed"]
+    end
+
+    UI --> Modes
+    TeachMode --> Reason
+    Reason <--> Profile
+    Reason --> R & Gen & Grade & Trace & Esc
+    QuizMode --> R & Ground & Gen & Grade & Trace
+    SkillGapMode --> Trace & R & Ground & Esc
+    R --> Corpus
+    Gen --> Provider
+    Eval -. dev regression only .-> Modes
+```
+
+### Why This Architecture
+
+Three load-bearing decisions (full rationale in [`docs/decisions.md`](docs/decisions.md)):
+
+1. **`create_agent`, not raw `StateGraph`.** The handout's LangChain + LangGraph track is satisfied
+   through the LangGraph-backed agent runtime. Explicit graph authoring is deferred until cross-session
+   memory, pause/resume HITL, or auditable state transitions outgrow the current loop. (AD-3)
+2. **One source-prioritized retriever, not three tools.** Every chunk carries `source_type`; slides and
+   handouts are preferred for teaching, notes fill gaps, transcripts are support/fallback. One retriever
+   reduces sparse-index risk. (AD-4)
+3. **Deterministic grading gate, not LLM self-assessment.** The pass/fail decision uses normalized
+   answer matching plus citation-resolves checks. The inherited Week-2 LLM judge is available only as a
+   secondary faithfulness audit. (AD-6)
 
 ## Status
 
@@ -20,31 +135,12 @@ author's Week-2 RAG system (`genacademy-rag` / GenAcademy Compass).
 | Skill-Gap Diagnosis | Shipped pull-in | Produces a deterministic, cited next-step report from teach/quiz traces and review-queue events. |
 | Local Gradio UI | Shipped | Thin web view over teach, quiz, and skill-gap workflows; core logic has no web-framework imports. |
 | Hugging Face Space | Deployment shell | Private Space smoke-passes HTTP; hosted retrieval is Pinecone-ready, but no approved corpus/index is seeded yet, so the shell shows an empty-corpus notice. |
-| Mock interview / admin upload / voice / cross-session memory | Roadmap | Deferred until they earn separate plans and privacy reviews. |
+| Cross-session memory | Shipped off by default | Mem0 adapter and local demo are implemented after the privacy slice. It is disabled unless `MEM0_API_KEY` and `GENACADEMY_COACH_MEMORY_USER_SALT` are set, and it never supplies facts, citations, grading, or refusal decisions. |
+| Mock interview / admin upload / voice | Roadmap | Deferred until they earn separate plans and privacy reviews. |
 
 Private course material, traces, review queues, screenshots, and handoff packaging stay local-only.
 Local handoff materials can live under ignored `localdocs/`.
 The repository tracks structure, code, redacted metrics, and safety checks.
-
-## Architecture
-
-The system has one agentic loop and two deterministic pull-ins:
-
-- **Teach** — retrieve course evidence, explain with a chosen teaching lens, ask a grounded check,
-  grade deterministically, and let the model choose the next action.
-- **Quiz** — generate cited MCQs from retrieved spans, validate grounding, and grade in Python.
-- **Skill-Gap Diagnosis** — rank gaps from existing trace and quiz signals, then retrieve cited
-  next-step material for each gap.
-
-Architecture diagrams live in [`docs/architecture-diagrams.md`](docs/architecture-diagrams.md):
-
-| Need | Diagram |
-|---|---|
-| Local app, deployment shell, and private-data boundary | [Product surface and deployment boundary](docs/architecture-diagrams.md#1-product-surface-and-deployment-boundary) |
-| Shared grounded core across teach, quiz, and skill-gap | [System architecture](docs/architecture-diagrams.md#2-system-architecture) |
-| Agentic teach decisioning | [Adaptive teach loop](docs/architecture-diagrams.md#3-adaptive-teach-loop) and [Teach agent orchestration](docs/architecture-diagrams.md#4-teach-agent-orchestration) |
-| Deterministic assessment and diagnosis | [Quiz Mode flow](docs/architecture-diagrams.md#5-grounded-quiz-mode-flow) and [Skill-Gap Diagnosis flow](docs/architecture-diagrams.md#6-skill-gap-diagnosis-flow) |
-| Redaction and held-out eval boundaries | [Local UI flow and redaction boundary](docs/architecture-diagrams.md#7-local-ui-flow-and-redaction-boundary) and [Corpus and eval boundary](docs/architecture-diagrams.md#10-corpus-and-eval-boundary) |
 
 ## Design Principles
 
@@ -58,6 +154,28 @@ Architecture diagrams live in [`docs/architecture-diagrams.md`](docs/architectur
   Gradio is only a presentation wrapper.
 - **Protected eval split.** The held-out `test` split is never indexed, prompted, tuned against, or
   used for local examples.
+- **Privacy-first artifacts.** Teach traces, review queues, and memory payloads store hashes and
+  allow-listed metadata instead of raw learner answers, generated tutor text, or corpus snippets.
+
+## Build-in-Public: Decisions Under Pressure
+
+I kept a running log of every non-obvious surprise during the build — the full trail is in
+[`docs/build-learnings.md`](docs/build-learnings.md). Format: *what I believed → what I found → the
+reusable principle.* Three examples:
+
+- **"A pivot can silently break the safeguard your old design depended on."** Switching to my own course
+  notes almost contaminated the held-out eval set because the quiz-yourself questions lived *inside* the
+  notes I was now indexing. The real student chat questions are corpus-independent — they're the leak-safe
+  held-out set.
+
+- **"If Python computes the canonical grade, tool calls cannot be allowed to overwrite it."** After
+  moving answer grading to the session boundary, the agent's tool calls could still overwrite the
+  canonical grade mid-turn. The fix: lock the grade to the check item it belongs to and clear the lock
+  on ownership change.
+
+- **"A working refusal path can hide a retrieval problem unless you count it."** The first dev eval
+  showed the agent mostly refusing safely. Without per-reason diagnostic counts, all failures collapsed
+  into "failed eval" and pointed in the wrong direction.
 
 ## Documentation
 
@@ -88,6 +206,9 @@ cp .env_example .env
 Fill `.env` with provider credentials. The local course corpus and generated traces are intentionally
 gitignored.
 
+Memory is off by default. To enable the Mem0 adapter for local cohort runs, set both `MEM0_API_KEY`
+and `GENACADEMY_COACH_MEMORY_USER_SALT`; leaving either blank uses a no-op memory provider.
+
 Launch the local UI:
 
 ```bash
@@ -100,6 +221,7 @@ Run verification:
 uv run pytest -q
 uv run ruff check .
 uv run python scripts/check_eval_leak.py
+uv run python scripts/check_memory_leak.py
 ```
 
 Run the redacted dev eval when provider credentials and the local corpus are available:
@@ -113,22 +235,3 @@ GENACADEMY_PROVIDER=nebius GENACADEMY_COACH_STOP_THRESHOLD=0.40 \
 ```
 
 Do not run or tune against `--split test` until final evaluation/reporting.
-
-## What Changed From Week 2
-
-The Week-2 project provided the RAG foundation: embedder, vectorstore schema/factory, chunking pipeline,
-citation metadata, provider boundary, eval harness, and refusal-first discipline.
-
-This project adds the agentic layer:
-
-- a teach loop with model-chosen next actions,
-- within-session learner profile state,
-- strategy switching after stumbles,
-- deterministic quiz assessment,
-- deterministic skill-gap diagnosis,
-- typed redacted traces,
-- local Gradio UI over the same core.
-
-Cross-session memory and explicit LangGraph orchestration are deliberately deferred. They are useful
-future layers, but this version keeps personalization within the session and relies on LangChain
-`create_agent` on LangGraph's runtime without importing `langgraph.*` directly.

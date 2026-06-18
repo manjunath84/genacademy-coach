@@ -11,6 +11,9 @@ from genacademy_coach.grounding import (
 from genacademy_coach.grounding import (
     grade_understanding as grade_answer_understanding,
 )
+from genacademy_coach.memory import NullEpisodicMemory, build_episodic_memory, seed_from_records
+from genacademy_coach.memory_types import EpisodicMemory, EpisodicMemoryRecord
+from genacademy_coach.privacy import learner_input_hash, topic_hash, topic_hash_or_existing
 from genacademy_coach.teach_agent import build_coach_agent
 from genacademy_coach.teach_tools import TeachRuntime
 from genacademy_coach.teach_types import (
@@ -76,12 +79,25 @@ class CoachSession:
         foundation: Any,
         profile: LearnerProfile,
         agent_port: AgentPort | None = None,
+        memory: EpisodicMemory | None = None,
+        user_id_hash: str | None = None,
     ):
         self.session_id = session_id
         self.topic = topic
         self.settings = settings
         self.foundation = foundation
         self.profile = profile
+        self.user_id_hash = user_id_hash
+        if memory is not None:
+            self.memory = memory
+        elif user_id_hash is not None:
+            self.memory = build_episodic_memory(settings)
+        else:
+            self.memory = NullEpisodicMemory()
+        self._memory_recalled = False
+        self._memory_written = False
+        self._last_response: CoachAgentResponse | None = None
+        self._last_faithfulness_ok: bool | None = None
         self.runtime = TeachRuntime(
             session_id=session_id,
             topic=topic,
@@ -95,6 +111,7 @@ class CoachSession:
         self.trace_writer = TraceWriter(settings.trace_dir)
 
     def start(self) -> TeachSessionResult:
+        self._recall_memory_once()
         return self._invoke_agent(f"Teach me this Gen Academy concept: {self.topic}")
 
     def respond(self, learner_answer: str) -> TeachSessionResult:
@@ -210,8 +227,8 @@ class CoachSession:
             TraceTurn(
                 session_id=self.session_id,
                 turn=self.profile.turn_count,
-                learner_input=learner_input,
-                observation=response.observation,
+                topic_hash=topic_hash(self.topic),
+                learner_input_hash=learner_input_hash(learner_input),
                 next_action=response.next_action,
                 strategy=response.strategy,
                 evidence_score=self.runtime.current_evidence_score(),
@@ -219,9 +236,10 @@ class CoachSession:
                 faithfulness_ok=faithfulness_ok,
                 retrieved_citation_ids=[span.citation_id for span in self.runtime.last_spans],
                 tool_calls=list(self.runtime.tool_calls),
-                learner_message=response.learner_message,
             )
         )
+        self._last_response = response
+        self._last_faithfulness_ok = faithfulness_ok
         self.runtime.tool_calls.clear()
         self.runtime.escalation_queued = False
         self.runtime.grade_locked = False
@@ -230,6 +248,75 @@ class CoachSession:
             profile=self.profile,
             response=response,
             trace_path=str(trace_path),
+        )
+
+    def finish(self) -> None:
+        if not self._should_write_memory():
+            return
+        assert self.user_id_hash is not None
+        assert self._last_response is not None
+        self.memory.write(
+            user_id_hash=self.user_id_hash,
+            record=self._memory_record_from_profile(self._last_response),
+        )
+        self._memory_written = True
+
+    def _recall_memory_once(self) -> None:
+        if self._memory_recalled:
+            return
+        self._memory_recalled = True
+        if self.user_id_hash is None:
+            return
+        records = self.memory.recall(
+            user_id_hash=self.user_id_hash,
+            topic_hash=topic_hash(self.topic),
+        )
+        if not records:
+            return
+        seed = seed_from_records(records)
+        if seed.style is not None:
+            self.profile.style = seed.style
+        if seed.track_lens is not None:
+            self.profile.track_lens = seed.track_lens
+        self.profile.known = sorted(set([*self.profile.known, *seed.known_topic_hashes]))
+        self.profile.struggled = sorted(
+            set([*self.profile.struggled, *seed.struggled_topic_hashes])
+        )
+
+    def _should_write_memory(self) -> bool:
+        if self._memory_written or self.user_id_hash is None or self._last_response is None:
+            return False
+        if self._last_response.next_action in {"refuse_escalate", "stop"}:
+            return False
+        if self.runtime.current_evidence_band() == "stop":
+            return False
+        if not self.runtime.last_spans:
+            return False
+        return self._last_faithfulness_ok is not False
+
+    def _memory_record_from_profile(
+        self,
+        response: CoachAgentResponse,
+    ) -> EpisodicMemoryRecord:
+        active_topic_hash = topic_hash(self.topic)
+        known = {topic_hash_or_existing(item) for item in self.profile.known}
+        struggled = {topic_hash_or_existing(item) for item in self.profile.struggled}
+        if self.profile.last_grade_correct is True or response.next_action == "advance":
+            known.add(active_topic_hash)
+        if self.profile.last_grade_correct is False or response.next_action in {
+            "drill",
+            "re_explain_differently",
+        }:
+            struggled.add(active_topic_hash)
+        return EpisodicMemoryRecord(
+            topic_hash=active_topic_hash,
+            source_session_id=self.session_id,
+            style=self.profile.style,
+            track_lens=self.profile.track_lens,
+            known_topic_hashes=sorted(known),
+            struggled_topic_hashes=sorted(struggled),
+            session_count=1,
+            turn_count=self.profile.turn_count,
         )
 
     def _enforce_grounding(
@@ -438,7 +525,7 @@ class CoachSession:
             append_review_queue(
                 self.settings.review_queue_path,
                 session_id=self.session_id,
-                topic=self.topic,
+                topic_hash=topic_hash(self.topic),
                 reason=reason,
                 score=self.runtime.current_evidence_score(),
                 citation_ids=cited,

@@ -17,6 +17,7 @@ from genacademy_coach.grounding import (
 from genacademy_coach.grounding import (
     grade_understanding as grade_answer_understanding,
 )
+from genacademy_coach.privacy import topic_hash
 from genacademy_coach.teach_types import (
     CheckItem,
     EvidenceBand,
@@ -140,7 +141,7 @@ def build_teach_tools(runtime: TeachRuntime):
             append_review_queue(
                 runtime.review_queue_path,
                 session_id=runtime.session_id,
-                topic=runtime.topic,
+                topic_hash=topic_hash(runtime.topic),
                 reason=reason,
                 score=runtime.current_evidence_score(),
                 citation_ids=[span.citation_id for span in runtime.last_spans],
