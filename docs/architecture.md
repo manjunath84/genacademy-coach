@@ -4,6 +4,10 @@ GenAcademy Coach is a thin agentic layer on top of the Week-2 `genacademy-rag` f
 claim is not "the model knows the course"; it is "the app teaches only from retrieved course evidence,
 or refuses and escalates."
 
+For a course-concept walkthrough of how agent loops, workflows, tools, memory, HITL, confidence bands,
+observability, and multi-agent restraint show up in this codebase, see
+[`docs/agent-concepts-from-genacademy-coach.md`](agent-concepts-from-genacademy-coach.md).
+
 ## Trust Boundary
 
 The `create_agent` teach loop is trusted for pedagogy, not facts or safety. It chooses the learner-facing
