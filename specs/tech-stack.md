@@ -27,8 +27,8 @@ through clean metadata and adapter seams.
 - **State:** the within-session learner profile drives subsequent explanations and the session report.
   Track is a switchable teaching lens (`low_code_no_code`, `code_heavy`, or bridge), not a permanent
   persona.
-- **Tool calls:** retrieval, check-item generation, grading, profile/session updates, trace writing, and
-  mentor escalation.
+- **Tool calls:** retrieval, check-item generation, grading, profile/session updates, and mentor
+  escalation. Trace writing is a Python side-effect at the session boundary, not a model tool.
 - **Human-in-the-loop:** out-of-corpus or low-confidence questions produce a learner-visible refusal and a
   review-queue entry.
 - **Failure handling:** retry/tool validation, confidence thresholds, fallback source policy,

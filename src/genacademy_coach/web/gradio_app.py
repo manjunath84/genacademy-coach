@@ -510,6 +510,17 @@ button.gc-score-button[disabled],
 .gc-output {
   min-height: 220px;
   padding: 12px;
+  color: var(--gc-ink);
+}
+
+.gc-output h1,
+.gc-output h2,
+.gc-output h3,
+.gc-output h4,
+.gc-output p,
+.gc-output li,
+.gc-output strong {
+  color: var(--gc-ink) !important;
 }
 
 .gc-output em,

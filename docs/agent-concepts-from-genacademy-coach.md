@@ -44,7 +44,7 @@ The Teach loop is the project version of reason -> act -> observe -> adapt.
 |---|---|
 | Goal | Teach the requested course topic in the selected style and track lens. |
 | State | `LearnerProfile`, current turn, active check item, topic hash, style, lens, recent observations. |
-| Tools | Retrieve course corpus, generate check item, grade understanding, update profile, write trace, escalate to mentor. |
+| Tools | Retrieve course corpus, generate check item, grade understanding, update profile, escalate to mentor. (Trace writing is a Python side-effect, not a model tool.) |
 | Observation | Retrieved spans, evidence band, citation presence, learner answer grade, tool results, refusal state. |
 | Runtime decision | `CoachAgentResponse.next_action` and `strategy`. |
 | Stop condition | Turn limits, low grounding, explicit stop, progress guard, or mentor escalation. |
