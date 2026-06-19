@@ -51,6 +51,7 @@ from genacademy_coach.web.gradio_app import (
     run_teach_ui,
     safe_trace_rows,
     score_generated_quiz_ui,
+    submit_teach_answer_ui,
 )
 
 
@@ -429,13 +430,15 @@ def test_input_helpers_return_specific_safe_errors():
 def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries():
     assert fill_teach_grounded_preset() == TEACH_GROUNDED_PRESET
     assert fill_teach_refusal_preset() == TEACH_REFUSAL_PRESET
-    assert gradio_app.fill_teach_grounded_preset_ui(None) == (
+    grounded_ui_preset = gradio_app.fill_teach_grounded_preset_ui(None)
+    assert grounded_ui_preset[:5] == (
         TEACH_GROUNDED_PRESET[0],
         TEACH_GROUNDED_PRESET[1],
         TEACH_GROUNDED_PRESET[2],
         "",
         None,
     )
+    assert grounded_ui_preset[5]["interactive"] is False
     assert fill_quiz_grounded_preset() == QUIZ_GROUNDED_PRESET
     assert fill_skillgap_preset() == SKILLGAP_SOURCE_PRESET
     assert QUIZ_GROUNDED_PRESET == ("agent harness", 1, "A", True)
@@ -882,6 +885,72 @@ def test_run_teach_ui_does_not_keep_pending_state_without_check(tmp_path, monkey
     assert state_token is None
     assert seen["finished"] is True
     assert metadata["trace"][0]["next_action"] == "refuse_escalate"
+
+
+def test_submit_teach_answer_ui_requires_active_check():
+    output, trace_summary, metadata, state_token, answer, submit_update = submit_teach_answer_ui(
+        "agent harness",
+        "analogy",
+        "code_heavy",
+        "This is just a reusable prompt template.",
+        None,
+    )
+
+    assert output == "Start a check before submitting an answer."
+    assert trace_summary == "**Status:** `invalid_input`"
+    assert metadata == {"status": "invalid_input"}
+    assert state_token is None
+    assert answer == "This is just a reusable prompt template."
+    assert submit_update["interactive"] is False
+
+
+def test_submit_teach_answer_ui_rejects_expired_check():
+    output, trace_summary, metadata, state_token, answer, submit_update = submit_teach_answer_ui(
+        "agent harness",
+        "analogy",
+        "code_heavy",
+        "This is just a reusable prompt template.",
+        "missing-state",
+    )
+
+    assert output == "Start a check before submitting an answer."
+    assert trace_summary == "**Status:** `invalid_input`"
+    assert metadata == {"status": "invalid_input"}
+    assert state_token is None
+    assert answer == "This is just a reusable prompt template."
+    assert submit_update["interactive"] is False
+
+
+def test_submit_teach_answer_ui_requires_matching_check():
+    finished = []
+
+    class FakeSession:
+        def finish(self):
+            finished.append(True)
+
+    gradio_app.TEACH_UI_SESSIONS["state-1"] = {
+        "session": FakeSession(),
+        "topic": "agent harness",
+        "style": "analogy",
+        "track_lens": "code_heavy",
+    }
+
+    output, trace_summary, metadata, state_token, answer, submit_update = submit_teach_answer_ui(
+        "agent harness",
+        "step_by_step",
+        "code_heavy",
+        "This is just a reusable prompt template.",
+        "state-1",
+    )
+
+    assert output == "Start a new check after changing topic, style, or track lens."
+    assert trace_summary == "**Status:** `invalid_input`"
+    assert metadata == {"status": "invalid_input"}
+    assert state_token is None
+    assert answer == "This is just a reusable prompt template."
+    assert submit_update["interactive"] is False
+    assert finished == [True]
+    assert "state-1" not in gradio_app.TEACH_UI_SESSIONS
 
 
 def test_quiz_answer_count_mismatch_returns_specific_input_error(monkeypatch):
@@ -1592,6 +1661,7 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "gc-auth-row" in app_text
     assert "gc-signout-button" in app_text
     assert "button.gc-run-button" in app_text
+    assert "button.gc-submit-button" in app_text
     assert "button.gc-score-button:not([disabled])" in app_text
     assert "label=\"Answers\"" not in app_text
     assert "font-weight: 600 !important;" in app_text
@@ -1607,8 +1677,10 @@ def test_gradio_ui_uses_genacademy_console_shell():
     assert "Skill-Gap" in app_text
     assert "Admin" in app_text
     assert "Demo traces" in app_text
-    assert "continue the same teach cycle" in app_text
-    assert "Run teach cycle" in app_text
+    assert "Start check" in app_text
+    assert "Submit answer" in app_text
+    assert "Learner answer to current check" in app_text
+    assert "gc-teach-command-row" in app_text
     assert "Sign out" in app_text
     assert "GENACADEMY_COACH_CSS" in app_text
     assert "css=GENACADEMY_COACH_CSS" in app_text

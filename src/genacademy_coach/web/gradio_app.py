@@ -376,6 +376,15 @@ body {
   min-width: 0 !important;
 }
 
+.gc-teach-command-row {
+  gap: 8px !important;
+  align-items: stretch !important;
+}
+
+.gc-teach-command-row > * {
+  min-width: 0 !important;
+}
+
 .gc-auth-row {
   gap: 16px !important;
   align-items: flex-start !important;
@@ -400,6 +409,8 @@ button.gc-preset-button,
 .gc-preset-button button,
 button.gc-run-button,
 .gc-run-button button,
+button.gc-submit-button,
+.gc-submit-button button,
 button.gc-score-button,
 .gc-score-button button {
   min-height: 44px !important;
@@ -422,8 +433,10 @@ button.gc-preset-button:hover,
 .gc-preset-button button:hover,
 button.gc-run-button:hover,
 .gc-run-button button:hover,
-button.gc-score-button:hover,
-.gc-score-button button:hover {
+button.gc-submit-button:not([disabled]):hover,
+.gc-submit-button button:not([disabled]):hover,
+button.gc-score-button:not([disabled]):hover,
+.gc-score-button button:not([disabled]):hover {
   transform: translateY(-1px);
 }
 
@@ -433,6 +446,24 @@ button.gc-run-button,
   background: var(--gc-ink) !important;
   color: #fff !important;
   box-shadow: 0 2px 6px rgba(15, 20, 25, 0.08) !important;
+}
+
+button.gc-submit-button:not([disabled]),
+.gc-submit-button button:not([disabled]) {
+  border-color: #31533d !important;
+  background: #31533d !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(49, 83, 61, 0.14) !important;
+}
+
+button.gc-submit-button[disabled],
+.gc-submit-button button[disabled] {
+  border-color: var(--gc-rule) !important;
+  background: #eef2ec !important;
+  color: var(--gc-muted) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.72 !important;
 }
 
 button.gc-score-button,
@@ -794,15 +825,17 @@ def fill_teach_refusal_preset() -> tuple[str, str, str, str]:
 
 def fill_teach_grounded_preset_ui(
     state_token: str | None = None,
-) -> tuple[str, str, str, str, None]:
+) -> tuple[str, str, str, str, None, Any]:
     _finish_teach_state(state_token)
     topic, style, lens, _answer = TEACH_GROUNDED_PRESET
-    return topic, style, lens, "", None
+    return topic, style, lens, "", None, _teach_submit_button_update(interactive=False)
 
 
-def fill_teach_refusal_preset_ui(state_token: str | None = None) -> tuple[str, str, str, str, None]:
+def fill_teach_refusal_preset_ui(
+    state_token: str | None = None,
+) -> tuple[str, str, str, str, None, Any]:
     _finish_teach_state(state_token)
-    return (*TEACH_REFUSAL_PRESET, None)
+    return (*TEACH_REFUSAL_PRESET, None, _teach_submit_button_update(interactive=False))
 
 
 def fill_quiz_grounded_preset() -> tuple[str, int, str, bool]:
@@ -1633,6 +1666,10 @@ def _quiz_score_button_update(*, interactive: bool) -> Any:
     return gr.update(interactive=interactive)
 
 
+def _teach_submit_button_update(*, interactive: bool) -> Any:
+    return gr.update(interactive=interactive)
+
+
 def _selected_quiz_answers(
     question_count: int,
     answer_1: str | None,
@@ -1761,8 +1798,8 @@ def run_teach_ui(
                 "style": clean_style,
                 "track_lens": clean_lens,
                 "sections": [
-                    "_Active teach cycle: answer the check below, then run again to continue "
-                    "the same session._",
+                    "_Active teach cycle: answer the check below, then click Submit answer "
+                    "to continue the same session._",
                     "",
                     *_teach_turn_sections(
                         session=session,
@@ -1833,8 +1870,8 @@ def run_teach_ui(
                 entry["sections"].extend(
                     [
                         "",
-                        "_Paste a learner answer, then run again. The next click will respond "
-                        "to this check instead of starting over._",
+                        "_Paste a learner answer, then click Submit answer. The response will "
+                        "continue this check instead of starting over._",
                     ]
                 )
                 entry["awaiting_answer_note"] = True
@@ -1864,6 +1901,123 @@ def run_teach_ui(
     except Exception as exc:
         output, metadata = _error_payload(exc)
         return output, _format_trace_summary(metadata, mode="teach"), metadata, state_token, answer
+
+
+def start_teach_check_ui(
+    topic: str,
+    style: str,
+    track_lens: str,
+    state_token: str | None = None,
+    request: gr.Request | None = None,
+) -> tuple[str, str, dict[str, Any], str | None, str, Any]:
+    _finish_teach_state(state_token)
+    output, trace_summary, metadata, next_state_token, answer = run_teach_ui(
+        topic,
+        style,
+        track_lens,
+        "",
+        None,
+        request,
+    )
+    return (
+        output,
+        trace_summary,
+        metadata,
+        next_state_token,
+        answer,
+        _teach_submit_button_update(interactive=next_state_token is not None),
+    )
+
+
+def submit_teach_answer_ui(
+    topic: str,
+    style: str,
+    track_lens: str,
+    learner_answer: str,
+    state_token: str | None = None,
+    request: gr.Request | None = None,
+) -> tuple[str, str, dict[str, Any], str | None, str, Any]:
+    answer = learner_answer.strip()
+    if not state_token:
+        metadata = {"status": "invalid_input"}
+        return (
+            "Start a check before submitting an answer.",
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            state_token,
+            answer,
+            _teach_submit_button_update(interactive=False),
+        )
+    if not answer:
+        metadata = {"status": "invalid_input"}
+        return (
+            "Paste a learner answer before submitting.",
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            state_token,
+            answer,
+            _teach_submit_button_update(interactive=True),
+        )
+
+    try:
+        clean_topic = _require_topic(topic)
+        clean_style = _coerce_choice(style, STYLE_CHOICES, "style")
+        clean_lens = _coerce_choice(track_lens, TRACK_LENS_CHOICES, "track lens")
+    except UserInputError as exc:
+        metadata = {"status": "invalid_input"}
+        return (
+            str(exc),
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            state_token,
+            answer,
+            _teach_submit_button_update(interactive=True),
+        )
+
+    entry = TEACH_UI_SESSIONS.get(state_token)
+    if entry is None:
+        metadata = {"status": "invalid_input"}
+        return (
+            "Start a check before submitting an answer.",
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            None,
+            answer,
+            _teach_submit_button_update(interactive=False),
+        )
+    if not _teach_state_matches(
+        entry,
+        clean_topic=clean_topic,
+        clean_style=clean_style,
+        clean_lens=clean_lens,
+    ):
+        _finish_teach_state(state_token)
+        metadata = {"status": "invalid_input"}
+        return (
+            "Start a new check after changing topic, style, or track lens.",
+            _format_trace_summary(metadata, mode="teach"),
+            metadata,
+            None,
+            answer,
+            _teach_submit_button_update(interactive=False),
+        )
+
+    output, trace_summary, metadata, next_state_token, cleared_answer = run_teach_ui(
+        topic,
+        style,
+        track_lens,
+        answer,
+        state_token,
+        request,
+    )
+    return (
+        output,
+        trace_summary,
+        metadata,
+        next_state_token,
+        cleared_answer,
+        _teach_submit_button_update(interactive=next_state_token is not None),
+    )
 
 
 def run_quiz_ui(
@@ -2041,8 +2195,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             <p class="gc-eyebrow">Teach session</p>
                             <h2 class="gc-panel-title">Coach the learner</h2>
                             <p class="gc-panel-copy">
-                              Pick a demo path, start Turn 1, then paste a learner answer to
-                              continue the same teach cycle.
+                              Teach from cited course evidence, then react to the learner answer.
                             </p>
                             <div class="gc-mode-card">
                               <strong>Safety posture</strong>
@@ -2064,10 +2217,6 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 "Refusal preset",
                                 elem_classes=["gc-preset-button"],
                             )
-                            teach_button = gr.Button(
-                                "Run teach cycle",
-                                elem_classes=["gc-run-button"],
-                            )
                         with gr.Row():
                             style = gr.Dropdown(
                                 STYLE_CHOICES,
@@ -2081,8 +2230,18 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                                 label="Track lens",
                                 elem_classes=["gc-input"],
                             )
+                        with gr.Row(elem_classes=["gc-teach-command-row"]):
+                            start_teach_button = gr.Button(
+                                "Start check",
+                                elem_classes=["gc-run-button"],
+                            )
+                            submit_teach_button = gr.Button(
+                                "Submit answer",
+                                interactive=False,
+                                elem_classes=["gc-submit-button"],
+                            )
                         learner_answer = gr.Textbox(
-                            label="Learner answer",
+                            label="Learner answer to current check",
                             lines=3,
                             elem_classes=["gc-input"],
                         )
@@ -2115,15 +2274,41 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                 grounded_preset.click(
                     fn=fill_teach_grounded_preset_ui,
                     inputs=[teach_state],
-                    outputs=[teach_topic, style, track_lens, learner_answer, teach_state],
+                    outputs=[
+                        teach_topic,
+                        style,
+                        track_lens,
+                        learner_answer,
+                        teach_state,
+                        submit_teach_button,
+                    ],
                 )
                 refusal_preset.click(
                     fn=fill_teach_refusal_preset_ui,
                     inputs=[teach_state],
-                    outputs=[teach_topic, style, track_lens, learner_answer, teach_state],
+                    outputs=[
+                        teach_topic,
+                        style,
+                        track_lens,
+                        learner_answer,
+                        teach_state,
+                        submit_teach_button,
+                    ],
                 )
-                teach_button.click(
-                    fn=run_teach_ui,
+                start_teach_button.click(
+                    fn=start_teach_check_ui,
+                    inputs=[teach_topic, style, track_lens, teach_state],
+                    outputs=[
+                        teach_output,
+                        teach_trace_summary,
+                        teach_metadata,
+                        teach_state,
+                        learner_answer,
+                        submit_teach_button,
+                    ],
+                )
+                submit_teach_button.click(
+                    fn=submit_teach_answer_ui,
                     inputs=[teach_topic, style, track_lens, learner_answer, teach_state],
                     outputs=[
                         teach_output,
@@ -2131,6 +2316,7 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                         teach_metadata,
                         teach_state,
                         learner_answer,
+                        submit_teach_button,
                     ],
                 )
 
