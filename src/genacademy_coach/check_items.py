@@ -60,9 +60,20 @@ def keywords_for_expected_answer(
     matched = [
         keyword for keyword in expected_keywords if keyword_present(expected_answer, keyword)
     ]
-    if matched:
+    if len(matched) >= 2:
         return matched
 
+    derived = _derive_supported_keywords(expected_answer=expected_answer, span_text=span_text)
+    if len(derived) >= 2:
+        return derived
+    if matched:
+        return matched
+    if derived:
+        return derived
+    raise ValueError("expected_answer must contain at least one supported keyword")
+
+
+def _derive_supported_keywords(*, expected_answer: str, span_text: str) -> list[str]:
     span_terms = set(WORD_RE.findall(span_text.lower()))
     derived = []
     for term in WORD_RE.findall(expected_answer.lower()):
@@ -74,8 +85,6 @@ def keywords_for_expected_answer(
             derived.append(term)
         if len(derived) == 4:
             break
-    if not derived:
-        raise ValueError("expected_answer must contain at least one supported keyword")
     return derived
 
 

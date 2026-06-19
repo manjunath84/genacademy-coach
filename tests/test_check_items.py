@@ -85,3 +85,43 @@ def test_generate_check_item_derives_keywords_when_provider_keywords_do_not_matc
 
     assert item.expected_keywords == ["focus", "relevant", "context"]
     assert grade_understanding(item.expected_answer, item).correct is True
+
+
+def test_generate_check_item_expands_subject_only_keywords_for_manual_demo_answer():
+    provider = FakeProvider(
+        {
+            "question": "What is the purpose of an Agent Harness?",
+            "expected_answer": (
+                "An Agent Harness controls tools, context, guardrails, verification, "
+                "and recovery around the model."
+            ),
+            "expected_keywords": ["agent harness"],
+        }
+    )
+    harness_span = RetrievedSpan(
+        chunk_id="slide/harness::37",
+        doc_id="slide/harness",
+        text=(
+            "Agent Harness controls tools, context, guardrails, verification, "
+            "and recovery around the model."
+        ),
+        score=0.91,
+        title="agent-harness.md",
+        source_type="slide",
+    )
+
+    item = generate_check_item(provider, harness_span)
+
+    assert item.expected_keywords == ["agent", "harness", "controls", "tools"]
+    assert grade_understanding(
+        "An Agent Harness is just the prompt template the model uses.",
+        item,
+    ).correct is False
+    assert grade_understanding(
+        "It controls the tools around the model.",
+        item,
+    ).correct is False
+    assert grade_understanding(
+        "An agent harness controls the tools around the model.",
+        item,
+    ).correct is True
