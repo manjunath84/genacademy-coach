@@ -24,7 +24,7 @@
 | **Agent goal** | Teach one course concept until the learner can pass a grounded check-question. |
 | **Where used** | Local Gradio web chat and CLI for teach/quiz/Skill-Gap; Hugging Face shell for deployment proof; ElevenLabs voice is a later pull-in over the same engine. |
 | **Steps** | teach: intake -> retrieve -> explain -> check -> grade -> runtime decide -> update profile -> loop/report. Quiz and Skill-Gap compose the same retrieval, grounding, trace, and refusal primitives. |
-| **Tools** | Teach tools: `retrieve_course_corpus` (READ), `generate_check_item` (Nebius), `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` (WRITE/HITL). Deterministic pull-ins reuse the same retrieval, grading, trace, and review-queue primitives. |
+| **Tools** | Five teach tools: `retrieve_course_corpus` (READ), `generate_check_item_for_span` (Nebius), `grade_understanding`, `update_profile`, `escalate_to_mentor` (HITL). Trace-writing is a Python side-effect at the session boundary, not a model tool. Deterministic pull-ins reuse the same retrieval, grading, trace, and review-queue primitives. |
 | **State** | Within-session learner profile plus optional off-by-default memory for style/lens/topic-hash state. Memory never supplies facts, citations, grading, or refusal decisions. |
 | **Never do** | Answer from model priors, fabricate citations, index held-out eval questions, or silently skip failure handling. |
 | **HITL** | Refuse and write a review-queue entry when confidence is low, evidence is missing, or the learner flags an issue. |
@@ -45,7 +45,7 @@ flowchart TD
 
     subgraph Agent["LangChain create_agent teach loop"]
         Decide["Model chooses\nnext_action + strategy"]
-        Tools["Tool calls\nretrieve · generate check · grade · profile · trace · escalate"]
+        Tools["Tool calls\nretrieve · generate check · grade · profile · escalate"]
     end
 
     subgraph Deterministic["Python trust boundary"]

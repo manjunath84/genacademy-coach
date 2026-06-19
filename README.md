@@ -53,7 +53,7 @@ This project adds the agentic layer:
 | Handout Requirement | Implementation | Key Files |
 |---|---|---|
 | **Multi-step agentic task** | Teach loop: intake → retrieve → explain → check → grade → runtime decide → update profile → loop | [`teach_session.py`](src/genacademy_coach/teach_session.py) |
-| **Tool calls** | 6 tools: `retrieve_course_corpus`, `generate_check_item`, `grade_understanding`, `update_profile`, `write_trace`, `escalate_to_mentor` | [`teach_tools.py`](src/genacademy_coach/teach_tools.py) |
+| **Tool calls** | 5 agent tools: `retrieve_course_corpus`, `generate_check_item_for_span`, `grade_understanding`, `update_profile`, `escalate_to_mentor`; trace-writing stays a Python side-effect outside the model's tool surface | [`teach_tools.py`](src/genacademy_coach/teach_tools.py) |
 | **State management** | Within-session `LearnerProfile` + optional off-by-default Mem0 episodic memory | [`teach_types.py`](src/genacademy_coach/teach_types.py), [`memory.py`](src/genacademy_coach/memory.py) |
 | **Human-in-the-loop** | Refusal → `review_queue.jsonl` entry → mentor escalation | [`escalation.py`](src/genacademy_coach/escalation.py) |
 | **Tool failure / recovery** | 6 mechanisms: retry/validation, confidence bands, source fallback, human escalation, faithfulness fallback, stop/progress guard | [`teach_session.py#_enforce_grounding`](src/genacademy_coach/teach_session.py) |
