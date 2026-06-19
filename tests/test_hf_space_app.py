@@ -797,7 +797,7 @@ def test_run_teach_ui_continues_pending_turn_after_manual_answer(tmp_path, monke
     assert seen["sessions"][0].startswith("hf-teach-")
     assert seen["answers"] == ["### **An Agent Harness is just a prompt template.**"]
     assert "Turn 1 - Initial teach and check" in first_output
-    assert "Paste a learner answer" in first_output
+    assert "Paste a learner answer" not in first_output
     assert "Learner answer for Turn 1" in second_output
     assert r"\#\#\# \*\*An Agent Harness is just a prompt template.\*\*" in second_output
     assert "Turn 2 - Coach response (re-explain differently)" in second_output
@@ -885,6 +885,69 @@ def test_run_teach_ui_does_not_keep_pending_state_without_check(tmp_path, monkey
     assert state_token is None
     assert seen["finished"] is True
     assert metadata["trace"][0]["next_action"] == "refuse_escalate"
+
+
+def test_teach_ui_session_pruning_finishes_expired_sessions(monkeypatch):
+    finished = []
+
+    class FakeSession:
+        def finish(self):
+            finished.append("expired")
+
+    gradio_app.TEACH_UI_SESSIONS.clear()
+    gradio_app.TEACH_UI_SESSIONS["expired-state"] = {
+        "session": FakeSession(),
+        "created_at": 10.0,
+        "updated_at": 10.0,
+    }
+    monkeypatch.setattr(
+        gradio_app,
+        "_now_seconds",
+        lambda: 10.0 + gradio_app.TEACH_UI_SESSION_TTL_SECONDS + 1.0,
+    )
+
+    gradio_app._prune_teach_ui_sessions()
+
+    assert finished == ["expired"]
+    assert gradio_app.TEACH_UI_SESSIONS == {}
+
+
+def test_teach_ui_session_pruning_keeps_store_bounded(monkeypatch):
+    finished = []
+
+    class FakeSession:
+        def __init__(self, name):
+            self.name = name
+
+        def finish(self):
+            finished.append(self.name)
+
+    gradio_app.TEACH_UI_SESSIONS.clear()
+    monkeypatch.setattr(gradio_app, "TEACH_UI_SESSION_LIMIT", 2)
+    gradio_app.TEACH_UI_SESSIONS.update(
+        {
+            "oldest": {
+                "session": FakeSession("oldest"),
+                "created_at": 1.0,
+                "updated_at": 1.0,
+            },
+            "middle": {
+                "session": FakeSession("middle"),
+                "created_at": 2.0,
+                "updated_at": 2.0,
+            },
+            "newest": {
+                "session": FakeSession("newest"),
+                "created_at": 3.0,
+                "updated_at": 3.0,
+            },
+        }
+    )
+
+    gradio_app._prune_teach_ui_sessions(now=3.0)
+
+    assert finished == ["oldest"]
+    assert set(gradio_app.TEACH_UI_SESSIONS) == {"middle", "newest"}
 
 
 def test_submit_teach_answer_ui_requires_active_check():

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import time
 import uuid
 from functools import lru_cache
 from html import escape
@@ -122,6 +123,8 @@ SAFE_SKILLGAP_TRACE_FIELDS = (
     "reason_code",
 )
 
+TEACH_UI_SESSION_TTL_SECONDS = 30 * 60
+TEACH_UI_SESSION_LIMIT = 128
 TEACH_UI_SESSIONS: dict[str, dict[str, Any]] = {}
 
 GENACADEMY_COACH_CSS = """
@@ -1331,6 +1334,39 @@ def _teach_state_matches(
     )
 
 
+def _now_seconds() -> float:
+    return time.monotonic()
+
+
+def _prune_teach_ui_sessions(now: float | None = None) -> None:
+    current_time = _now_seconds() if now is None else now
+    expired_tokens = [
+        token
+        for token, entry in TEACH_UI_SESSIONS.items()
+        if current_time
+        - float(entry.get("updated_at", entry.get("created_at", current_time)))
+        > TEACH_UI_SESSION_TTL_SECONDS
+    ]
+    for token in expired_tokens:
+        _finish_teach_state(token)
+
+    overflow = len(TEACH_UI_SESSIONS) - TEACH_UI_SESSION_LIMIT
+    if overflow <= 0:
+        return
+
+    ordered_tokens = sorted(
+        TEACH_UI_SESSIONS,
+        key=lambda token: float(
+            TEACH_UI_SESSIONS[token].get(
+                "updated_at",
+                TEACH_UI_SESSIONS[token].get("created_at", current_time),
+            )
+        ),
+    )
+    for token in ordered_tokens[:overflow]:
+        _finish_teach_state(token)
+
+
 def _finish_teach_state(state_token: str | None) -> None:
     if not state_token:
         return
@@ -1772,6 +1808,7 @@ def run_teach_ui(
 ) -> tuple[str, str, dict[str, Any], str | None, str]:
     answer = learner_answer.strip()
     try:
+        _prune_teach_ui_sessions()
         clean_topic = _require_topic(topic)
         clean_style = _coerce_choice(style, STYLE_CHOICES, "style")
         clean_lens = _coerce_choice(track_lens, TRACK_LENS_CHOICES, "track lens")
@@ -1792,11 +1829,14 @@ def run_teach_ui(
             )
             result = session.start()
             state_token = uuid.uuid4().hex
+            now = _now_seconds()
             entry = {
                 "session": session,
                 "topic": clean_topic,
                 "style": clean_style,
                 "track_lens": clean_lens,
+                "created_at": now,
+                "updated_at": now,
                 "sections": [
                     "_Active teach cycle: answer the check below, then click Submit answer "
                     "to continue the same session._",
@@ -1814,7 +1854,9 @@ def run_teach_ui(
             }
             _record_teach_decision(entry, result)
             TEACH_UI_SESSIONS[state_token] = entry
+            _prune_teach_ui_sessions(now=now)
         else:
+            entry["updated_at"] = _now_seconds()
             session = entry["session"]
             result = entry["last_result"]
 
@@ -1866,15 +1908,7 @@ def run_teach_ui(
             TEACH_UI_SESSIONS.pop(state_token or "", None)
             state_token = None
         else:
-            if entry.get("awaiting_answer_note") is None:
-                entry["sections"].extend(
-                    [
-                        "",
-                        "_Paste a learner answer, then click Submit answer. The response will "
-                        "continue this check instead of starting over._",
-                    ]
-                )
-                entry["awaiting_answer_note"] = True
+            entry["awaiting_answer_note"] = True
 
         metadata = _teach_metadata(
             session=entry["session"],
@@ -1974,6 +2008,7 @@ def submit_teach_answer_ui(
             _teach_submit_button_update(interactive=True),
         )
 
+    _prune_teach_ui_sessions()
     entry = TEACH_UI_SESSIONS.get(state_token)
     if entry is None:
         metadata = {"status": "invalid_input"}
