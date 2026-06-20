@@ -21,6 +21,8 @@ Architecture entry points:
 course-concept walkthrough grounded in this build, see
 [`docs/agent-concepts-from-genacademy-coach.md`](docs/agent-concepts-from-genacademy-coach.md).
 
+![Bounded Agent Design in GenAcademy Coach: one model decision surrounded by Python verification, cited evidence, safe memory, deterministic workflows, trace proof, and stop conditions.](docs/assets/genacademy-coach-bounded-agent-design.png)
+
 ## Quick Verification Path
 
 ```bash
