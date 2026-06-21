@@ -1,11 +1,16 @@
 # Roadmap
 
-Status updated: 2026-06-18.
+Status updated: 2026-06-21.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
 course facts still come from retrieved citations, grading remains deterministic, and the held-out `test`
 split remains unused until final evaluation/reporting.
+
+Production hardening is tracked in [`docs/production-roadmap.md`](../docs/production-roadmap.md). That
+roadmap preserves the current direction but makes "reliable" measurable before more product surface is
+added: baseline + reliability bar, deterministic decision safety, the FastAPI/HTMX service boundary,
+provider resilience, stable corpus references, and datastore/deployment seams.
 
 ## Status Snapshot
 
@@ -75,6 +80,9 @@ split remains unused until final evaluation/reporting.
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
   Do not upload private course material.
+- **Production hardening plan.** Follow `docs/production-roadmap.md` before adding new surfaces:
+  define the reliability bar, pin or concretely replace the editable `genacademy-rag` dependency,
+  expand diagnostics/failure taxonomy, and decide the FastAPI sync/threadpool boundary.
 
 ### Pending
 
