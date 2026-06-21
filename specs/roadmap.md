@@ -1,11 +1,26 @@
 # Roadmap
 
-Status updated: 2026-06-18.
+Status updated: 2026-06-21.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
 course facts still come from retrieved citations, grading remains deterministic, and the held-out `test`
 split remains unused until final evaluation/reporting.
+
+## Active priority: Week 4 — Evaluation (target Thu 2026-06-25)
+
+Evaluation is the current top priority. The filled framework, golden-dataset spec, metric set, and
+day-by-day plan live in **`docs/week4-eval-plan.md`**: run the teach agent over a 30–50 case
+class-balanced golden set, score every quality metric as precision/recall/F1 **paired** with
+cost/latency, cross-check on the cloud-safe subset with pinned RAGAS + a calibrated LLM-judge, then
+baseline → error-analysis loop → 3–4 improvements → measured delta. LangSmith is adopted **scoped**
+(cloud-safe rows + masking; the frozen `test` split stays local) per `docs/decisions.md` AD-12. The
+existing local harness (`scripts/eval_teach_loop.py`, `split_eval.py`, negative controls) is reused, not
+rebuilt.
+
+**Deferred until Week 4 ships (not dropped):** the production-hardening track beyond the in-flight doc
+fixes (`docs/production-roadmap.md`), the public-safe deployment decision (below), and the Future
+Pull-Ins. These resume after the evaluation work lands.
 
 ## Status Snapshot
 
