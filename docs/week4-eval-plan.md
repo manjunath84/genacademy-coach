@@ -45,9 +45,12 @@ artifacts.
 
 ## Metric set (mapped to the existing harness)
 
-Every quality metric is reported as **precision / recall / F1**, not bare accuracy — accuracy lies on
-imbalanced sets, and the golden set is deliberately class-balanced. Each is **paired** with a
-cost/latency metric so improvements are read on the **accuracy ↔ cost ↔ speed** triangle.
+**Classification-style** metrics (task-completion, refusal correctness, `citation_f1`, `tool_f1`) are
+reported as **precision / recall / F1**, not bare accuracy — accuracy lies on imbalanced sets, and the
+golden set is deliberately class-balanced. **Rank / scalar** metrics keep their native definitions
+(retrieval `recall@5`; RAGAS faithfulness / answer-relevancy / context-precision-recall as 0–1 scores),
+read against their own pass bars below. Each metric is **paired** with a cost/latency metric so
+improvements are read on the **accuracy ↔ cost ↔ speed** triangle.
 
 | Metric | What it measures | Reuses | Paired cost/latency |
 |---|---|---|---|
@@ -67,8 +70,11 @@ redo the agent's task. Report the **judge's** precision / recall / F1 **against 
 calls (see below).
 
 **Cost / latency definition (the metric-pair other half — the current gap).**
-- **Cost** = input + output tokens (output typically 3–5× input) summed over **every** LLM call:
-  generation, intermediate reasoning, tool calls, retrieval, the LLM-judge, and retries.
+- **Cost (USD)** = Σ over **every** LLM call of `input_tokens × input_price + output_tokens ×
+  output_price`, plus any embedding / rerank / vector-store and LLM-judge costs — summed across
+  generation, intermediate reasoning, tool calls, retrieval, the judge, and retries. (Output **price per
+  token** is typically ~3–5× input price, so concise outputs matter; this is a price ratio, not a token
+  ratio.) Track `input_tokens` / `output_tokens` / `cost_usd` as separate columns.
 - **Latency** = TTFT + tokens/sec + inter-token + retrieval time + tool time; **report p95**.
 - Levers (each re-measured — whack-a-mole): cap steps/retries, early-stop, right-size model, cache,
   summarize context, parallelize tool calls, smaller judge.
@@ -89,7 +95,7 @@ plus a human verdict:
 
 | Band | Columns (designed for the tutoring domain) |
 |---|---|
-| **(a) Golden inputs** | `case_id`, `query_type` (happy/edge/known_failure/adversarial), `concept`, `user_query` *(inline text on cloud-safe rows only; hash/ID on test)*, `initial_wrong_answer` (stumble cases), `expected_citation_span_id`, `target_check_id`, `expected_next_action`, `expected_tools`, `refusal_expected`, `strategy_changed_on_stumble`, `split`, `cloud_safe` |
+| **(a) Golden inputs** | `case_id`, `query_type` (happy/edge/known_failure/adversarial), `concept`, `user_query` *(inline text on cloud-safe rows only; hash/ID on test)*, `initial_wrong_answer` (stumble cases), `expected_citation_span_id`, `target_check_id`, `expected_next_action`, `expected_tools`, `refusal_expected`, `strategy_changed_on_stumble`, `split`, `cloud_safe`, `cloud_safe_reason` (required when `cloud_safe=true`) |
 | **(b) Run output** | `actual_next_action`, `actual_strategy`, `actual_tools`, `retrieved_citation_ids`, `evidence_score`, `evidence_band`, `faithfulness_ok`, `answer_text` *(cloud-safe only)*, `turns_used`, `latency_p50_ms`, `latency_p95_ms`, `input_tokens`, `output_tokens`, `cost_usd` |
 | **(c) Metric scores** | `task_completion_pass`, `citation_precision/recall/f1`, `tool_f1`, `retrieval_recall_at_5`, `refusal_correct`, RAGAS columns *(cloud-safe only)* |
 | **(d) Human verdict** | `overall_pass_fail`, `reviewer_comment` (free text), `failure_category` (filled during error analysis) |
@@ -97,8 +103,8 @@ plus a human verdict:
 **Sourcing.** Corpus-derived seed/dev via `scripts/split_eval.py` + synthetic-from-seed expansion + the
 10 entries in `eval/non_private_negative_controls.json` (out-of-domain → adversarial/refusal cases).
 **The frozen private `test` split stays in the existing manifest + private-files form** (`eval/split_manifest.json`,
-no inline question text) and is **excluded from LangSmith and RAGAS**. Cloud-safe rows carry inline text
-and upload to a LangSmith dataset. Everything is versioned (bump `split_manifest.json` `version`) and
+no inline question text) and is **excluded from LangSmith and RAGAS**. Only rows that pass the
+**cloud-safe rule** (defined below) carry inline text and upload to a LangSmith dataset. Everything is versioned (bump `split_manifest.json` `version`) and
 tagged for baseline vs re-eval. Expansion touches **seed/dev only** — the `test` split is never grown or
 edited here.
 
@@ -109,8 +115,16 @@ edited here.
   documented in `specs/tech-stack.md`).
 - **Masking on:** enable input/output masking (`hide_inputs` / `hide_outputs` / anonymizer) and a short
   **retention TTL** for any run that could brush real text.
-- **What's traced:** cloud-safe (synthetic / corpus-derived) golden + dev rows **only**. The frozen
-  `test` split and any run over raw learner text are **never** traced — they run on the local harness.
+- **Cloud-safe rule (what `cloud_safe=true` is allowed to mean).** A row is cloud-safe **only if** it
+  contains **none** of: verbatim private course-corpus spans, real learner questions, raw generated tutor
+  prose, or close paraphrases of any private material. "Corpus-derived" alone is **not** sufficient — a
+  reworded private span is still private. Synthetic-from-seed and out-of-domain negative controls
+  qualify; a private span dressed up as `user_query`/`answer_text` does not. Every `cloud_safe=true` row
+  carries a required `cloud_safe_reason` justifying it (e.g. "synthetic, no private text"), and the
+  `check_eval_leak.py`-style guard runs before any upload. When in doubt, mark `cloud_safe=false` and
+  keep it local.
+- **What's traced:** cloud-safe rows **only** (per the rule above). The frozen `test` split and any run
+  over raw learner text are **never** traced — they run on the local harness.
 - **Evaluators:** code-based `citation_f1` + tool/trajectory check + the deterministic grounded grader
   (the gate) run locally and, for cloud-safe rows, as LangSmith custom evaluators; **RAGAS** LLM-judge
   metrics and the calibrated single-category judge run on **cloud-safe rows only**.
