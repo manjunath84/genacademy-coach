@@ -1,8 +1,8 @@
 # Production Roadmap
 
-Status: planning draft  
-Date: 2026-06-21  
-Target: turn GenAcademy Coach from a Week-3 demo into a reliable cohort learning product
+- Status: planning draft
+- Date: 2026-06-21
+- Target: turn GenAcademy Coach from a Week-3 demo into a reliable cohort learning product
 
 ## Executive Verdict
 
@@ -84,23 +84,27 @@ Architecture rules:
 
 ## Failure Taxonomy
 
-Every failure class must have detection, diagnostics, fallback behavior, and test/eval coverage:
+Every failure class must have detection, diagnostics, fallback behavior, and test/eval coverage. The
+table below is the contract: a failure class is not "handled" until all five columns are filled and the
+coverage cell points at a real test or eval.
 
-- structured-output/schema violations;
-- malformed or invalid agent action;
-- tool retry failure;
-- tool timeout;
-- provider timeout, rate-limit, or outage;
-- empty retrieval;
-- low-confidence retrieval;
-- citation mismatch;
-- faithfulness mismatch;
-- deterministic grading edge case;
-- prompt-injection attempt through learner input, retrieved content, tool output, or model output;
-- model drift;
-- non-deterministic decision behavior;
-- rate/cost limit reached;
-- expired session.
+| Failure | Detection signal | Diagnostic fields | Fallback / user state | Coverage |
+|---|---|---|---|---|
+| Structured-output / schema violation | Pydantic parse/validation error on decision payload | `reason_code=schema_invalid`, raw model output, schema version | `refuse_escalate`; user sees "Coach hit an internal snag, escalating" | fake-agent schema-violation test |
+| Malformed or invalid agent action | Action not in allowed enum / missing required args | `reason_code=invalid_action`, attempted action, allowed set | `stop`; user sees invalid-agent-decision state | fake-agent invalid-action test |
+| Tool retry failure | Retries exhausted (count == max) | `reason_code=tool_retry_exhausted`, tool name, attempts, last error | `refuse_escalate`; transient-error state | tool-retry test (forced failures) |
+| Tool timeout | Tool call exceeds per-tool deadline | `reason_code=tool_timeout`, tool name, elapsed ms, budget | `refuse_escalate`; transient-error state | tool-timeout test |
+| Provider timeout / rate-limit / outage | Provider exception or deadline exceeded | `reason_code=provider_unavailable`, provider, http/status, elapsed ms | degraded mode; user sees provider-timeout state | provider-failure injection test |
+| Empty retrieval | Retrieval returns zero chunks | `reason_code=retrieval_empty`, query, k, corpus version | refuse to answer; user sees empty-retrieval state | empty-retrieval eval case |
+| Low-confidence retrieval | Top score below configured threshold | `reason_code=retrieval_low_conf`, top score, threshold, corpus version | refuse or hedge; user sees low-confidence state | low-confidence eval case + threshold test |
+| Citation mismatch | Cited chunk ID not resolvable to a real source | `reason_code=citation_mismatch`, cited IDs, resolvable IDs | `refuse_escalate`; citation not shown | citation-resolution test (100% bar) |
+| Faithfulness mismatch | Output claim not entailed by retrieved context | `reason_code=faithfulness_fail`, claim, supporting chunk IDs | refuse to assert; user sees grounding-failure state | faithfulness eval case |
+| Deterministic grading edge case | Grader hits ambiguous/uncovered branch | `reason_code=grading_edge`, grader input, branch | `refuse_escalate` to mentor review | deterministic-grading unit test |
+| Prompt injection (learner / retrieved / tool / model) | Injection heuristic or scope-gate trip | `reason_code=injection_suspected`, source channel, matched signal | drop instruction, scope-refuse; user sees scope-refusal state | prompt-injection test suite (all 4 channels) |
+| Model drift | Eval scores regress vs recorded baseline | `reason_code=drift_detected`, metric, baseline, current, git SHA | alert + hold release; no user-facing change | regression eval vs baseline |
+| Non-deterministic decision behavior | Same input yields differing decisions at temp 0 | `reason_code=nondeterministic`, input hash, decisions seen | `stop`; treat as bug, not learner-facing | decision-determinism test (temp 0 invariant) |
+| Rate / cost limit reached | Per-user request/token/cost cap exceeded | `reason_code=rate_or_cost_limit`, limit type, usage, cap | refuse new work; user sees rate/cost-limit state | rate/cost-cap test |
+| Expired session | Session TTL elapsed on request | `reason_code=session_expired`, session ID, TTL | re-auth/resume prompt; user sees expired-session state | session-TTL test |
 
 User-facing states must distinguish provider timeout, empty retrieval, low confidence, expired session,
 invalid agent decision, and rate/cost limit reached.
@@ -235,8 +239,13 @@ uv run python scripts/eval_teach_loop.py --split test
 1. **Baseline + reliability bar + dependency pin**
    No behavior change. Add SLOs, baseline output, eval artifact requirements, expanded taxonomy, and
    replace or concretely schedule replacement of the editable `genacademy-rag` path.
-   Acceptance: baseline artifacts include model ID, params, prompt/corpus version, git SHA, and leak
-   checks; the dependency plan is pinned or dated.
+   Acceptance: baseline eval artifacts carry the full Phase 0 reproducibility set — model ID, provider,
+   model params, prompt version, corpus version, chunk ID scheme, thresholds, dependency SHA, and git
+   SHA — and the leak checks pass. The `genacademy-rag` dependency is resolved one of two ways, no third
+   option: (a) `pyproject.toml` pins an actual git SHA (replacing the editable relative path at
+   `pyproject.toml:30`), or (b) a named follow-up PR or issue exists with an owner, a target date, and
+   the exact pin target (repo + commit SHA) recorded in it. "Pinned or dated" with no owner/target does
+   not pass.
 
 2. **Teach diagnostics + regression harness + deterministic safety**
    Add structured reason codes, fake-agent/schema/invalid-action tests, decision-temperature invariant,
