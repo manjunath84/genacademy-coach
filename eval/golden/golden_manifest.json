@@ -1,0 +1,13 @@
+{
+  "version": "2026-06-24-plan1",
+  "seed": "genacademy-coach-v1",
+  "created": "2026-06-24",
+  "total_cases": 40,
+  "counts_by_query_type": {
+    "happy": 16,
+    "edge": 9,
+    "known_failure": 5,
+    "adversarial": 10
+  },
+  "cloud_safe_count": 10
+}
