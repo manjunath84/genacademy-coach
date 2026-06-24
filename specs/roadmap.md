@@ -94,7 +94,8 @@ Pull-Ins. These resume after the evaluation work lands.
 
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
-  Do not upload private course material.
+  Do not upload private course material to a public deployment. Owner-approved private LangSmith eval
+  uploads are governed separately by `docs/decisions.md` AD-12.
 - **Production hardening plan.** Follow `docs/production-roadmap.md` before adding new surfaces:
   define the reliability bar, pin or concretely replace the editable `genacademy-rag` dependency,
   expand diagnostics/failure taxonomy, and decide the FastAPI sync/threadpool boundary.

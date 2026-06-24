@@ -15,7 +15,12 @@
 - **No `langgraph.*` imports.** Instrumentation uses stdlib `time` + dict reads of `usage_metadata` only.
 - **Reuse, do not rebuild:** reuse `grounding.py` grader (per-turn correctness signal), the `eval_teach_loop.py` 3-turn scenario pattern, `eval/non_private_negative_controls.json`. No new grader/embedder/threshold scheme.
 - **Frozen `test` is sacred:** golden `split` ∈ {seed, dev, synthetic, negative_control} — **never `test`**. `eval/split_manifest.json` rows stay byte-stable.
-- **Cloud-safe rule (AD-12):** real seed/dev student questions are **real learner questions → `cloud_safe=false`** (no inline text; referenced by `source_ref`, resolved locally at run time, redacted from artifacts). Synthetic-from-seed + the 10 controls are `cloud_safe=true` with a required `cloud_safe_reason`. Nothing in Plan 1 uploads anywhere (that is Plan 2).
+- **Committed artifact redaction rule (historical AD-12 wording, revised 2026-06-24):** real seed/dev
+  student questions remain `cloud_safe=false` in committed JSON (no inline text; referenced by
+  `source_ref`, resolved locally at run time, redacted from public/committed artifacts).
+  Synthetic-from-seed + the 10 controls are `cloud_safe=true` with a required `cloud_safe_reason`.
+  Revised AD-12 now permits owner-approved private LangSmith upload of seed/dev golden eval runs by
+  resolving the text locally at upload time; the frozen `test` split still never uploads.
 - **Scope (handout-grounded):** ~30 in-corpus teachable cases (≈16 happy / 9 edge / 5 known-failure) + the 10 negative controls; real-seed-leaning, pure-LLM-generated < 20%.
 - **Recorded tool names** (for `expected_tools` / tool_f1): `retrieve_course_corpus`, `generate_check_item`, `grade_understanding`, `update_profile`, `escalate_to_mentor`.
 - **Bands (verbatim):** STOP < 0.40 · CONFIRM 0.40–0.85 · PROCEED > 0.85.

@@ -106,17 +106,19 @@ without letting memory become a knowledge source.
 without a separate plan and privacy review.
 
 ### AD-12 - LangSmith Data-Egress Scoping for Evaluation
-**Decision.** Adopt LangSmith for Week 4 evaluation in a default-private workspace, but **scoped**: only
-synthetic / corpus-derived **cloud-safe** golden/dev rows are traced or sent to RAGAS / an LLM-judge, with
-input/output masking and a retention TTL enabled. The frozen held-out `test` split and any run over raw
-learner text stay on the local harness; the held-out number always comes from local artifacts. Recorded
-2026-06-21.
-**Why.** LangSmith workspaces are private-by-default, but that is **access control, not data egress**:
-auto-instrumentation uploads raw LLM inputs/outputs — which include retrieved private-corpus spans and
-real learner questions — to a third party. That collides with the guardrail that private-corpus trace
-leakage is unacceptable. Scoping to cloud-safe rows plus masking lets the project use LangSmith's
-dataset/trace/run-comparison convenience without egressing private content, and keeps the local notebook
-harness as the source of truth. See `docs/week4-eval-plan.md`.
-**Rejected.** Auto-instrumenting raw LLM inputs/outputs to LangChain's cloud; treating workspace privacy
-as sufficient for private content; sending the frozen `test` split or raw learner text through any
-third-party judge or tracer.
+**Decision.** Adopt LangSmith for Week 4 evaluation in a private workspace, with **owner-approved eval
+egress**: seed/dev golden eval runs may be uploaded to the private LangSmith project, including raw
+learner questions, generated tutor prose, retrieved citation IDs/text, tool calls, scores, latency, and
+token counts, when the upload is intentional and documented. The frozen held-out `test` split still stays
+local-only and never enters LangSmith, prompts, examples, tuning, RAGAS, or an LLM judge. Public/committed
+artifacts remain redacted; secrets are never uploaded. Recorded 2026-06-21; revised 2026-06-24 after
+explicit project-owner approval to use LangSmith as the full Week-4 eval trace workspace.
+**Why.** The course corpus covers a bounded Gen Academy project context, and the owner wants the Week-4
+submission to show the full golden-set evaluation in LangSmith rather than only a cloud-safe subset.
+LangSmith is still data egress, not merely local storage, so uploads must be deliberate: use a private
+project, avoid secrets, keep the frozen `test` split local, and delete/retire traces after the submission
+window if desired. Local JSON artifacts remain the reproducible source of truth, while LangSmith is the
+review and observability surface.
+**Rejected.** Publicly posting raw traces or screenshots that expose raw learner/corpus text; committing
+raw traces or private source files; uploading secrets; sending the frozen `test` split through any
+third-party tracer or judge; accidental auto-tracing outside the named eval project.
