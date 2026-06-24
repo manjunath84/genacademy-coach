@@ -16,6 +16,11 @@ calibration study proves they are safe.
 **Tech Stack:** Python, LangChain `create_agent`, OpenAI-compatible chat providers, local Chroma
 retrieval through the Week-2 foundation adapter, existing 40-case golden eval.
 
+**Current status:** Tasks 1, 3, and 4 are implemented and merged via PR #45. PR #46 merged the AD-12
+governance path for owner-approved private LangSmith seed/dev eval traces. The current missing evidence
+is a governed full 40-case eval on `main`; the cloud-safe smoke run only verifies the adversarial refusal
+path.
+
 ---
 
 ## Current Diagnosis
@@ -47,7 +52,9 @@ Most likely bottlenecks:
 
 Current comparison baseline:
 
-- Use a fresh 3-run baseline from the current shipped preferred-check state before claiming deltas.
+- Use a fresh full eval from the current `main` state before claiming final deltas. The old
+  preferred-check runs are historical context because PR #45 added latency attribution, loop controls, and
+  stricter slide-first selection afterward.
 - Do not compare future deltas to the older `0.444` citation-F1 artifact except as historical context.
 - Label latency metrics precisely:
   - turn p50/p95: one agent turn
@@ -62,11 +69,11 @@ Important code anchors:
 - `src/genacademy_coach/teach_tools.py`
   - `retrieve_course_corpus` filters by STOP threshold.
   - `generate_check_item_for_span` calls the check generator.
-  - `_preferred_check_citation_id` currently chooses the first slide-or-handout, then fallback.
+  - `_preferred_check_citation_id` chooses first slide, then first handout, then fallback.
 - `src/genacademy_coach/check_items.py`
   - `generate_check_item` calls the model through the Week-2 provider.
 - `src/genacademy_coach/eval_metrics.py`
-  - latency p50/p95 is computed over turn latencies.
+  - latency aggregates now distinguish turn p50/p95 from full-case p50/p95.
 
 ## Guardrails
 
@@ -79,6 +86,9 @@ Do not violate these while improving latency:
 - Do not lower the STOP threshold globally to rescue one case.
 - Do not add scorer hacks, citation rewrites, or golden-label shortcuts.
 - Keep all changes measurable through the existing 40-case golden eval.
+- For LangSmith tracing, follow AD-12: seed/dev traces require the private eval project and explicit
+  egress opt-in; the frozen `test` split stays local; RAGAS/LLM-judge remain cloud-safe-only unless a
+  separate judge-egress decision is approved.
 
 ## Priority Plan
 
@@ -192,9 +202,10 @@ Run protocol:
 - Run 3 full evals per finalist.
 - Use separate tags and run IDs per candidate.
 - Record cost env vars correctly so `cost_usd` is not falsely zero.
-- Use private LangSmith tracing only if owner-approved env vars are set.
-- Compare against the fresh 3-run preferred-check/current-state baseline, not the older historical
-  baseline artifact.
+- Use private LangSmith tracing only with `LANGSMITH_PROJECT=genacademy-coach-week4-eval` and
+  `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true`.
+- Compare candidates against a fresh current-main full eval, not the older preferred-check or historical
+  baseline artifacts.
 
 Pass/fail gates:
 
@@ -259,7 +270,7 @@ Golden-eval success:
 
 **Purpose:** Preserve the citation improvement from preferred-check selection and make it robust to
 future source-priority env changes. Treat this as no-regression hardening, not as a guaranteed citation
-lift beyond the current preferred-check state.
+lift beyond the historical preferred-check baseline.
 
 Files:
 
@@ -362,20 +373,21 @@ golden eval.
 
 - [x] Task 1: add redacted latency attribution and aggregate metrics.
 - [x] Run one current-model cloud-safe golden eval with attribution to confirm the refusal-path delay split.
-      Full 40-case eval remains blocked for non-cloud-safe remote provider egress.
+      Full 40-case eval is now governed by AD-12 but has not been run after PR #45.
 - [x] Task 3: reduce repeated tool loops.
 - [x] Run an isolated cloud-safe golden eval and compare refusal recall, tool counts, and turn/case
       latency for the refusal path.
-      Full teachable-path comparison still requires a governed full 40-case run.
+      Full teachable-path comparison still requires the governed full 40-case run.
 - [x] Task 4: harden slide-first preferred check selection.
 - [ ] Run an isolated golden eval and verify citation/task/refusal no-regression.
-      Cloud-safe refusal no-regression passed; citation/task teachable no-regression remains blocked
-      until a governed full 40-case run.
+      Cloud-safe refusal no-regression passed; citation/task teachable no-regression still requires the
+      governed full 40-case run.
+- [x] Complete the AD-12 LangSmith eval-egress governance gate for the current seed/dev golden eval path.
 - [ ] Complete the Task 2 governance gate for any new inference provider.
 - [ ] Task 2: run approved model/provider screening evals.
 - [ ] Promote at most 2 finalists, then run 3x finalist golden evals.
 - [ ] Pick one latency winner only if it passes safety, quality, privacy, and cost gates.
-- [ ] Task 5: document accepted remaining failures and future calibration/label-audit path.
+- [x] Task 5: document accepted remaining failures and future calibration/label-audit path.
 - [x] Document cloud-safe measured latency labels in `docs/week4-eval-progress-handoff.md`.
       Full measured deltas still require the governed 40-case run.
 
