@@ -126,14 +126,17 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         if "retrieval_recall_at_5" in row
     ]
 
-    task_completion = _prf_dict(task_tp, 0, task_fn)
+    task_total = task_tp + task_fn
     return {
         "n": len(rows),
         "class_balance": dict(
             sorted(Counter(row.get("query_type", "unknown") for row in rows).items())
         ),
-        "task_completion": task_completion,
-        "task_completion_f1": task_completion["f1"],
+        "task_completion": {
+            "pass_rate": task_tp / task_total if task_total else 0.0,
+            "passed": task_tp,
+            "n": task_total,
+        },
         "citation": {
             "precision": _mean(citation_precision or citation_f1),
             "recall": _mean(citation_recall or citation_f1),

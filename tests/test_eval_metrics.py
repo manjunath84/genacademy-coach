@@ -63,7 +63,17 @@ def test_aggregate_computes_p95_across_turns():
             "input_tokens": 100,
             "output_tokens": 50,
             "model_id": "m",
-        }
+        },
+        {
+            "task_completion_pass": False,
+            "refusal_expected": False,
+            "turn_latencies_ms": [30.0],
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "model_id": "m",
+        },
     ]
     out = aggregate(rows, price_table=PriceTable(prices={"m": (1e-6, 2e-6)}))
-    assert "latency_p95_ms" in out and "task_completion" in out and out["cost_usd"] >= 0.0
+    assert out["task_completion"] == {"pass_rate": 0.5, "passed": 1, "n": 2}
+    assert "task_completion_f1" not in out
+    assert "latency_p95_ms" in out and out["cost_usd"] >= 0.0
