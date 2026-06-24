@@ -7,12 +7,12 @@ the filled evaluation framework for the GenAcademy Coach **teach-loop agent**. I
 the eval build; **no eval code, dataset, LangSmith wiring, or runs are produced by the doc itself** —
 those are the next task, gated on approval of this file.
 
-It deliberately **reuses the Coach's existing local-first eval system** rather than rebuilding it, and
-keeps the privacy boundary intact: the frozen held-out `test` split and any run over raw learner text
-stay on the local harness; only synthetic / corpus-derived **cloud-safe** rows ever reach a third-party
-judge or tracer. This matches the course's own guidance — build metrics ground-up in a notebook first,
-treat eval platforms as an optional management layer — and the data-egress decision recorded as
-**AD-12** in `docs/decisions.md`.
+It deliberately **reuses the Coach's existing local-first eval system** rather than rebuilding it. The
+frozen held-out `test` split stays local-only, but seed/dev golden eval runs may be uploaded to a private
+LangSmith project when explicitly owner-approved and documented. Public/committed artifacts remain
+redacted. This matches the course's own guidance — build metrics ground-up in a notebook first, then use
+eval platforms as a management/observability layer — and the data-egress decision recorded as **AD-12**
+in `docs/decisions.md`.
 
 ## Evaluation one-liner
 
@@ -20,11 +20,10 @@ Run the Coach teach agent over a versioned **30–50 case** class-balanced golde
 with deterministic code metrics (task completion, `citation_f1`, tool/trajectory match, retrieval
 recall@5, refusal correctness) reported as **precision / recall / F1**, each **paired** with a
 cost/latency metric (p95 latency, cost/run, tokens); cross-check quality on the **cloud-safe subset only**
-with pinned **RAGAS** and a calibrated **LLM-judge** (targeted at the one dominant failure category,
-validated against human labels across ≥2 judge models); establish a baseline, run the error-analysis
-loop, ship 3–4 improvements, and **report the measured per-metric and per-category delta** — with the
-cloud-safe runs mirrored to a private LangSmith project and the held-out number coming from local
-artifacts.
+with pinned **RAGAS** and a calibrated **LLM-judge** unless a separate judge-egress decision is approved;
+establish a baseline, run the error-analysis loop, ship 3–4 improvements, and **report the measured
+per-metric and per-category delta** — with seed/dev golden runs mirrored to a private LangSmith project
+when owner-approved and the frozen held-out `test` number coming from local artifacts.
 
 ## Framework table (filled)
 
@@ -95,50 +94,56 @@ plus a human verdict:
 
 | Band | Columns (designed for the tutoring domain) |
 |---|---|
-| **(a) Golden inputs** | `case_id`, `query_type` (happy/edge/known_failure/adversarial), `concept`, `user_query` *(inline text on cloud-safe rows only; hash/ID on test)*, `initial_wrong_answer` (stumble cases), `expected_citation_span_id`, `target_check_id`, `expected_next_action`, `expected_tools`, `refusal_expected`, `strategy_changed_on_stumble`, `split`, `cloud_safe`, `cloud_safe_reason` (required when `cloud_safe=true`) |
-| **(b) Run output** | `actual_next_action`, `actual_strategy`, `actual_tools`, `retrieved_citation_ids`, `evidence_score`, `evidence_band`, `faithfulness_ok`, `answer_text` *(cloud-safe only)*, `turns_used`, `latency_p50_ms`, `latency_p95_ms`, `input_tokens`, `output_tokens`, `cost_usd` |
+| **(a) Golden inputs** | `case_id`, `query_type` (happy/edge/known_failure/adversarial), `concept`, `user_query` *(inline in committed/local JSON only for cloud-safe rows; seed/dev may be resolved locally at owner-approved LangSmith upload time; hash/ID only for test)*, `initial_wrong_answer` (stumble cases), `expected_citation_span_id`, `target_check_id`, `expected_next_action`, `expected_tools`, `refusal_expected`, `strategy_changed_on_stumble`, `split`, `cloud_safe`, `cloud_safe_reason` (required when `cloud_safe=true`) |
+| **(b) Run output** | `actual_next_action`, `actual_strategy`, `actual_tools`, `retrieved_citation_ids`, `evidence_score`, `evidence_band`, `faithfulness_ok`, `answer_text` *(redacted from committed/local JSON except cloud-safe rows; seed/dev answer text may be sent to private LangSmith when owner-approved)*, `turns_used`, `latency_p50_ms`, `latency_p95_ms`, `input_tokens`, `output_tokens`, `cost_usd` |
 | **(c) Metric scores** | `task_completion_pass`, `citation_precision/recall/f1`, `tool_f1`, `retrieval_recall_at_5`, `refusal_correct`, RAGAS columns *(cloud-safe only)* |
 | **(d) Human verdict** | `overall_pass_fail`, `reviewer_comment` (free text), `failure_category` (filled during error analysis) |
 
 **Sourcing.** Corpus-derived seed/dev via `scripts/split_eval.py` + synthetic-from-seed expansion + the
 10 entries in `eval/non_private_negative_controls.json` (out-of-domain → adversarial/refusal cases).
 **The frozen private `test` split stays in the existing manifest + private-files form** (`eval/split_manifest.json`,
-no inline question text) and is **excluded from LangSmith and RAGAS**. Only rows that pass the
-**cloud-safe rule** (defined below) carry inline text and upload to a LangSmith dataset. Everything is
+no inline question text) and is **excluded from LangSmith and RAGAS**. Seed/dev golden rows may carry
+inline text and upload to the private LangSmith eval project when owner-approved under AD-12. Everything is
 versioned and tagged for baseline vs re-eval — but the version bump records **seed/dev or golden-row
 growth only**. Expansion touches **seed/dev only**: the frozen `test` entries and their checksums in
 `eval/split_manifest.json` stay **byte-stable**, so a `version` bump never means a `test`-split edit. If
 golden/dev versioning ever needs to move independently, split it into a separate golden manifest rather
 than rewriting the `test` rows.
 
-## LangSmith + RAGAS playbook (scoped)
+## LangSmith + RAGAS playbook (owner-approved eval egress)
 
 - **Project:** `genacademy-coach-week4-eval`, default-private LangSmith workspace.
-- **Env vars:** `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT` (the same trio already
-  documented in `specs/tech-stack.md`).
-- **Masking on (defense-in-depth):** enable input/output masking (`hide_inputs` / `hide_outputs` /
-  anonymizer) and a short **retention TTL** on the cloud-safe rows that do get traced. This is
-  belt-and-suspenders, **not** permission to trace borderline rows: any run that could include real
-  learner text or private-corpus spans is **never traced at all** — it runs local-only per the
-  cloud-safe rule and AD-12. Masking protects against mislabeling, it does not widen what may be sent.
+- **Env vars:** `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`,
+  `LANGSMITH_PROJECT=genacademy-coach-week4-eval`, and
+  `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true`. The CLI preflight requires the named project and explicit
+  egress opt-in before tracing.
+- **Owner-approved LangSmith egress:** seed/dev golden eval runs may be uploaded to the private LangSmith
+  project, including raw learner questions, generated tutor prose, retrieved spans/citation IDs, tool
+  calls, metric scores, latency, and token counts. Document the upload command, project, and experiment
+  URL in the submission notes.
+- **Masking / retention floor:** mask inputs/outputs that are not needed for the submission or evaluators
+  by default, and delete/retire eval traces after the submission window unless the owner records a
+  retention reason. Masking is defense-in-depth; the actual permission comes from explicit owner approval
+  under AD-12.
 - **Cloud-safe rule (what `cloud_safe=true` is allowed to mean).** A row is cloud-safe **only if** it
   contains **none** of: verbatim private course-corpus spans, real learner questions, raw generated tutor
   prose, or close paraphrases of any private material. "Corpus-derived" alone is **not** sufficient — a
   reworded private span is still private. Synthetic-from-seed and out-of-domain negative controls
   qualify; a private span dressed up as `user_query`/`answer_text` does not. Every `cloud_safe=true` row
   carries a required `cloud_safe_reason` justifying it (e.g. "synthetic, no private text"), and the
-  `check_eval_leak.py`-style guard runs before any upload. When in doubt, mark `cloud_safe=false` and
-  keep it local.
-- **What's traced:** cloud-safe rows **only** (per the rule above). The frozen `test` split and any run
-  over raw learner text are **never** traced — they run on the local harness.
+  `check_eval_leak.py`-style guard runs before any public/committed artifact. `cloud_safe=false` no
+  longer blocks owner-approved private LangSmith eval upload for seed/dev rows; it still means the row is
+  not safe for public docs, commits, screenshots, or additional judge services by default.
+- **What's traced:** owner-approved seed/dev golden eval rows and cloud-safe controls may be traced in
+  LangSmith. The frozen `test` split is never traced and remains local-only.
 - **Evaluators:** code-based `citation_f1` + tool/trajectory check + the deterministic grounded grader
-  (the gate) run locally and, for cloud-safe rows, as LangSmith custom evaluators; **RAGAS** LLM-judge
-  metrics and the calibrated single-category judge run on **cloud-safe rows only**.
+  (the gate) run locally and in LangSmith. **RAGAS** LLM-judge metrics and the calibrated single-category
+  judge stay on **cloud-safe rows only** unless a separate explicit judge-egress decision is made.
 - **Pin RAGAS exactly** — the course repo's `ragas_compat.py` signals RAGAS version churn, so pin the
   exact version and treat its scores as *understood*, not blindly trusted.
 - **Run comparison:** baseline vs post-improvement via LangSmith experiments **and** local artifacts; the
-  report cites the LangSmith project link for cloud-safe runs, but the **held-out `test` number comes from
-  local artifacts only**. The notebook / local harness stays the source of truth.
+  report cites the LangSmith project link for seed/dev golden runs, but the **held-out `test` number comes
+  from local artifacts only**. The notebook / local harness stays the source of truth.
 
 ## Failure-analysis + improvement playbook
 
@@ -180,9 +185,11 @@ ground-up; do not blindly trust off-the-shelf evaluators.
 1. Expand the golden set to 30–50 (class-balanced) via `scripts/split_eval.py` seed/dev + synthetic-from-seed;
    hand-label in the schema above (with `expected_tools`).
 2. Add token/latency capture to the trace at the agent boundary (`teach_agent.py` / `teach_session.py`).
-3. Add `citation_f1` + pinned RAGAS evaluators alongside the deterministic grader, reporting precision/recall/F1.
-4. Optionally wire LangSmith (`client.create_dataset` + `client.evaluate`) on the **cloud-safe** subset
-   with masking — the notebook stays the source of truth.
+3. Add `citation_f1` alongside the deterministic grader, reporting precision/recall/F1; add pinned RAGAS
+   only for cloud-safe rows unless a separate judge-egress decision is approved.
+4. Wire LangSmith (`client.create_dataset` + `client.evaluate`) as the owner-approved private eval
+   surface for seed/dev golden rows plus cloud-safe controls, gated by
+   `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true`; the notebook/local JSON stays the source of truth.
 5. Run the baseline, then the error-analysis loop (human-annotate → LLM-cluster → categorize).
 6. Calibrate the single-category LLM-judge to the dominant failure category; compare ≥2 judge models vs human labels.
 7. Implement 3–4 improvements, re-run on the same set, report per-metric + per-category delta.
@@ -193,5 +200,5 @@ ground-up; do not blindly trust off-the-shelf evaluators.
 - Writing eval code, building the dataset, wiring LangSmith/RAGAS, or running evals — those are the next
   task, gated on approval of this doc.
 - Touching, growing, or editing the frozen `test` split.
-- Sending any private corpus span, real learner question, or raw tutor prose through a third-party judge
-  or tracer (AD-12).
+- Sending any private corpus span, real learner question, or raw tutor prose through a third-party judge,
+  RAGAS, or any tracer outside the owner-approved private LangSmith eval project covered by AD-12.

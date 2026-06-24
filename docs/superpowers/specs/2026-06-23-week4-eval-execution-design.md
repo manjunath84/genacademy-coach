@@ -1,15 +1,16 @@
 # Week-4 Eval Execution — Implementation Design
 
 > **Status:** design draft (2026-06-23). Brainstorming output for the eval **build**. The eval
-> *framework* (what to measure, pass bars, schema bands, cloud-safe rule, error-analysis loop,
+> *framework* (what to measure, pass bars, schema bands, LangSmith egress rule, error-analysis loop,
 > improvement hypotheses) is already settled and merged in **[`docs/week4-eval-plan.md`](../../week4-eval-plan.md)**
 > and **`docs/decisions.md` AD-12** — this file does **not** restate it. It locks the open
 > *implementation* decisions and the handout-grounded scope, then feeds `superpowers:writing-plans`.
 
 ## 1. Source-of-truth inputs
 
-- **Framework / pass bars / schema bands / cloud-safe rule:** `docs/week4-eval-plan.md` (merged).
-- **Data-egress decision:** `docs/decisions.md` AD-12 (cloud-safe rows only; frozen `test` stays local).
+- **Framework / pass bars / schema bands / LangSmith egress rule:** `docs/week4-eval-plan.md` (merged).
+- **Data-egress decision:** `docs/decisions.md` AD-12 (owner-approved seed/dev LangSmith eval upload;
+  frozen `test` stays local).
 - **Course handout (grading spec, local-only):** `localdocs/docs/Week4 Project Handout_ AI Evals.docx`.
 - **Foundation reuse contract:** `docs/genacademy-rag-foundation.md`; gates/guardrails: `AGENTS.md` §2–3.
 
@@ -21,8 +22,9 @@ left open:
 1. **LangSmith is a required deliverable, not optional.** Required submission = evaluation report +
    golden dataset + **LangSmith project link** + Loom; LLM-as-judge materials are **optional**.
    `week4-eval-plan.md` build-step 4 said "*optionally* wire LangSmith" — this design **upgrades
-   scoped-LangSmith to a MUST stage** (Stage 4), kept inside AD-12: only the **cloud-safe subset** is
-   uploaded/traced; the frozen `test` and any private-text run stay local as the source of truth.
+   scoped-LangSmith to a MUST stage** (Stage 4), kept inside AD-12: owner-approved seed/dev golden eval
+   runs may be uploaded/traced in a private LangSmith project; the frozen `test` split stays local as the
+   source of truth.
 2. **Sourcing: "real beats synthetic, always"; LLM-generated < 20% of the set.** Backbone = the
    Coach's **real seed/dev student questions** (hand-labeled) + **synthetic-from-seed** (paraphrased
    real seeds, hand-labeled). Pure LLM-generated stays < 20% (likely 0 — the 10 hand-written negative
@@ -79,11 +81,12 @@ eval/
 - **Leak guard extension** (`scripts/check_eval_leak.py`): also scan `golden_cases.jsonl` to assert
   (1) no row has `split=="test"`; (2) every `cloud_safe=true` row has a non-empty `cloud_safe_reason`;
   (3) no `test` ids/checksums/phrases appear in any inline field; (4) `cloud_safe=false` rows carry no
-  inline `user_query`/`answer_text`/`initial_wrong_answer`. The cloud-safe rule becomes machine-checked
-  before any upload.
+  inline `user_query`/`answer_text`/`initial_wrong_answer`. The committed/local artifact redaction rule is
+  machine-checked before public docs, commits, or unapproved uploads; owner-approved LangSmith upload may
+  resolve seed/dev text locally at upload time under AD-12.
 - The handout's "store as a LangSmith dataset, not a CSV" is satisfied **in addition**: the local
-  JSONL is the full/private-safe source of truth; the cloud-safe subset is **also** uploaded as a
-  LangSmith dataset (Stage 4). Not either/or.
+  JSONL is the full reproducible source of truth; owner-approved seed/dev golden rows and cloud-safe
+  controls may also be uploaded as a private LangSmith dataset/experiment (Stage 4). Not either/or.
 
 ### Fork 3 — scoring / metrics code structure
 
@@ -135,7 +138,7 @@ grader/embedder/threshold scheme).
 | 1 | Golden dataset: `golden_cases.jsonl` (~30 in-corpus + 10 controls) + `golden_manifest.json` + leak-guard extension + tests | Day 1 | Codex |
 | 2 | Cost/latency instrumentation: `TokenUsage`, `AgentPort.last_usage`, latency capture, optional `TraceTurn` fields + tests | Day 2 (local) | Codex |
 | 3 | Deterministic scoring: pure `eval_metrics.py` + `run_golden_eval.py` runner (P/R/F1 + cost/latency) + tests | Day 1/3 | Codex |
-| 4 | Scoped LangSmith on the cloud-safe subset: dataset upload + code-based custom evaluators + project link (MUST per handout, AD-12-bounded) | Day 2 (cloud) | Codex |
+| 4 | Private LangSmith eval upload: owner-approved seed/dev golden rows + controls, code-based custom evaluators + project link (MUST per handout, AD-12-bounded) | Day 2 (cloud) | Codex |
 | 5 | Baseline run + error-analysis loop: baseline artifact, human-annotate failures, LLM-cluster into 3–4 `failure_category` | Day 3 | Codex |
 | 6 | 3–4 improvements (prompt-first) + re-run on the same set + per-metric/per-category delta (regressions included) + report + Loom | Day 4 | Codex |
 | 7 *(optional)* | Calibrated single-category LLM-judge (≥2 models vs human labels) + pinned RAGAS, cloud-safe only | Day 3 (optional) | Codex |
@@ -161,5 +164,6 @@ grader/embedder/threshold scheme).
   threshold scheme.
 - **Frozen `test` is sacred:** golden set excludes `test`; `split_manifest.json` rows stay byte-stable;
   leak guard enforces it.
-- **Cloud-safe rule (AD-12):** only `cloud_safe=true` rows (with a required reason) upload to
-  LangSmith/RAGAS/judge; the held-out number comes from local artifacts.
+- **LangSmith egress rule (AD-12):** owner-approved seed/dev golden eval runs may upload to private
+  LangSmith; RAGAS/judge stays cloud-safe-only unless separately approved; the frozen `test` split and
+  held-out number come from local artifacts.

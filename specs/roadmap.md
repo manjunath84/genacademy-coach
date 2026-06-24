@@ -17,11 +17,12 @@ provider resilience, stable corpus references, and datastore/deployment seams.
 Evaluation is the current top priority. The filled framework, golden-dataset spec, metric set, and
 day-by-day plan live in **`docs/week4-eval-plan.md`**: run the teach agent over a 30–50 case
 class-balanced golden set, score every quality metric as precision/recall/F1 **paired** with
-cost/latency, cross-check on the cloud-safe subset with pinned RAGAS + a calibrated LLM-judge, then
-baseline → error-analysis loop → 3–4 improvements → measured delta. LangSmith is adopted **scoped**
-(cloud-safe rows + masking; the frozen `test` split stays local) per `docs/decisions.md` AD-12. The
-existing local harness (`scripts/eval_teach_loop.py`, `scripts/split_eval.py`, negative controls) is
-reused, not rebuilt.
+cost/latency, cross-check on the cloud-safe subset with pinned RAGAS + a calibrated LLM-judge unless a
+separate judge-egress decision is approved, then baseline → error-analysis loop → 3–4 improvements →
+measured delta. LangSmith is adopted for owner-approved private seed/dev golden eval traces plus
+cloud-safe controls; the frozen `test` split stays local and public/committed artifacts stay redacted per
+`docs/decisions.md` AD-12. The existing local harness (`scripts/eval_teach_loop.py`,
+`scripts/split_eval.py`, negative controls) is reused, not rebuilt.
 
 **Deferred until Week 4 ships (not dropped):** the production-hardening track beyond the in-flight doc
 fixes (`docs/production-roadmap.md`), the public-safe deployment decision (below), and the Future
@@ -94,7 +95,8 @@ Pull-Ins. These resume after the evaluation work lands.
 
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
-  Do not upload private course material.
+  Do not upload private course material to a public deployment. Owner-approved private LangSmith eval
+  uploads are governed separately by `docs/decisions.md` AD-12.
 - **Production hardening plan.** Follow `docs/production-roadmap.md` before adding new surfaces:
   define the reliability bar, pin or concretely replace the editable `genacademy-rag` dependency,
   expand diagnostics/failure taxonomy, and decide the FastAPI sync/threadpool boundary.

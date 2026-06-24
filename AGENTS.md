@@ -65,10 +65,16 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   (`advance`, `re_explain_differently`, `drill`, `refuse_escalate`, `stop`) and the explanation strategy
   are chosen from observations, not hardcoded in Python. If the path is scripted, it's a workflow, and
   we must call it that.
-- **Demo trace cards may show rendered decisions; raw traces stay local.** Local/private demo UI can
+- **Demo trace cards may show rendered decisions; raw traces are not committed.** Local/private demo UI can
   show allow-listed trace cards with `Decision basis`, `action ...`, `band ...`, scores, strategies,
   citation summaries, and tool-call summaries. Do not commit raw trace JSON, raw learner answers,
-  generated tutor prose, retrieved span text, secrets, or unreviewed screenshots.
+  generated tutor prose, retrieved span text, secrets, or unreviewed screenshots. For Week-4 evaluation,
+  the project owner may approve private LangSmith upload of seed/dev eval runs, including raw learner
+  questions and generated tutor prose, when the workspace/project is private and the upload is documented
+  in `docs/decisions.md` AD-12. This exception does **not** allow public posting, commits, screenshots,
+  secrets, the frozen `test` split, or sending seed/dev raw text to RAGAS / LLM judges without a separate
+  judge-egress decision. Mask fields not needed for submission/evaluators by default, and delete/retire
+  eval traces after the submission window unless the owner records a retention reason.
 - **MINT restraint — earn each layer.** One LangChain `create_agent` loop on LangGraph's internal
   runtime + a small read-mostly toolset. **No MCP, no A2A, and no _explicit_ LangGraph graph/imports**
   this week — the handout's LangChain + LangGraph track is satisfied through the LangGraph-backed
@@ -105,7 +111,9 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   so originality is structural. Keep it that way.
 - **Do NOT publish corpus material.** Course PDFs/transcripts, slides, handouts, chat-question files, and
   any third-party or cohort data are `.gitignore`d. Confirm attribution/permission before any data lands
-  (see `specs/roadmap.md` risk caps).
+  (see `specs/roadmap.md` risk caps). Owner-approved upload to a private LangSmith evaluation project is
+  data egress for eval/observability, not public publishing; still do not commit, screenshot, or publicly
+  share raw corpus, learner text, or generated tutor traces.
 - **Do NOT add new modes/surfaces ahead of the grounded core.** Quiz, Skill-Gap, cohort auth/admin, and
   privacy-first memory are shipped bounded pull-ins because the teach-loop MVP works. Interview, admin
   upload, ElevenLabs voice, explicit LangGraph, and public corpus hosting still need separate plans and
