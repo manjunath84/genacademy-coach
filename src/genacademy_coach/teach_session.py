@@ -21,6 +21,7 @@ from genacademy_coach.teach_types import (
     DecisionSource,
     LearnerProfile,
     TeachSessionResult,
+    TokenUsage,
     TraceTurn,
     UnderstandingGrade,
 )
@@ -47,7 +48,19 @@ class AgentResponseError(RuntimeError):
     pass
 
 
+def _sum_usage(messages: list[Any]) -> TokenUsage:
+    usage = TokenUsage()
+    for message in messages:
+        metadata = getattr(message, "usage_metadata", None) or {}
+        usage.input_tokens += int(metadata.get("input_tokens") or 0)
+        usage.output_tokens += int(metadata.get("output_tokens") or 0)
+        usage.total_tokens += int(metadata.get("total_tokens") or 0)
+    return usage
+
+
 class AgentPort(Protocol):
+    last_usage: TokenUsage
+
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse: ...
 
 
@@ -55,6 +68,7 @@ class StaticAgentPort:
     def __init__(self, *responses: CoachAgentResponse):
         self._responses = list(responses)
         self._initial_count = len(self._responses)
+        self.last_usage = TokenUsage()
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
         if not self._responses:
@@ -67,9 +81,12 @@ class StaticAgentPort:
 class LangChainAgentPort:
     def __init__(self, runtime: TeachRuntime, *, model: Any | None = None):
         self._agent = build_coach_agent(runtime, model=model)
+        self.last_usage = TokenUsage()
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
+        self.last_usage = TokenUsage()
         result = self._agent.invoke({"messages": messages})
+        self.last_usage = _sum_usage(result.get("messages", []))
         structured = result.get("structured_response")
         if structured is None:
             raise AgentResponseError("missing structured_response")
