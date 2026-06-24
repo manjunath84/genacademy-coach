@@ -12,7 +12,7 @@
 
 ## Where it lives
 
-- **Local path:** `/Users/manjunathans/projects/GenAcademy/Week2-RAG_ContextEngineering/genacademy-rag/`
+- **Local development location:** sibling Week-2 `genacademy-rag` checkout, outside this Coach repo.
 - **Package:** `src/genacademy_rag/` (installable; `core/`, `eval/`, `data/`, `web/`).
 - A separate git repo (not this one) and a deployed HF Space. The Coach repo does **not** vendor it; it
   depends on it through a thin **adapter** (see "Reuse contract").

@@ -10,6 +10,9 @@ Quick pointers:
 - **Roadmap (MUST vs SHOULD):** `specs/roadmap.md`
 - **Architecture, visualized:** `docs/architecture-diagrams.md`
 - **Demo trace/privacy boundary:** `AGENTS.md` §3 plus `README.md` Safety & Privacy
+- **Optional local-only context:** `AGENTS.md` §7 "Optional local-only context"; ignored `localdocs/`
+  files are private inputs only and must not be committed or quoted into public artifacts unless
+  explicitly requested.
 
 **No code until the plan is approved** (`AGENTS.md` §2, gate 1).
 

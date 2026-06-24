@@ -229,12 +229,11 @@ indexed, copied into prompts, tuned against, or used in demos.
 - **Privacy-first artifacts.** Teach traces, review queues, and memory payloads store hashes and
   allow-listed metadata instead of raw learner answers, generated tutor text, or corpus snippets.
 
-## Build-in-Public: Decisions Under Pressure
+## Decisions Under Pressure
 
 I kept a running log of every non-obvious surprise during the build — the full trail is in
-[`docs/build-learnings.md`](docs/build-learnings.md). The public-series plan is in
-[`docs/linkedin-agentic-ai-series-plan.md`](docs/linkedin-agentic-ai-series-plan.md). Format:
-*what I believed → what I found → the reusable principle.* Three examples:
+[`docs/build-learnings.md`](docs/build-learnings.md). Format: *what I believed → what I found → the
+reusable principle.* Three examples:
 
 - **"A pivot can silently break the safeguard your old design depended on."** Switching to my own course
   notes almost contaminated the held-out eval set because the quiz-yourself questions lived *inside* the
@@ -267,8 +266,6 @@ I kept a running log of every non-obvious surprise during the build — the full
 - [`docs/teach-loop-status.md`](docs/teach-loop-status.md) — redacted teach-loop status and eval
   evidence.
 - [`docs/build-learnings.md`](docs/build-learnings.md) — implementation lessons and tradeoffs.
-- [`docs/linkedin-agentic-ai-series-plan.md`](docs/linkedin-agentic-ai-series-plan.md) —
-  public-safe build-in-public post series plan.
 - Ignored `localdocs/` — local-only demo scripts, screenshots, and DOCX packets; never publish or
   commit generated screenshots/raw trace artifacts without separate review.
 - [`docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md`](docs/superpowers/plans/2026-06-17-skill-gap-diagnosis.md)

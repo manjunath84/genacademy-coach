@@ -55,6 +55,28 @@ course evidence exists, whether an answer is grounded, or whether a grade is cor
 Check yourself: when the learner gives a partial answer, the interesting product moment is not the
 explanation text. It is whether the next action changes because of the observation.
 
+## Agent Vocabulary And Components
+
+| Term | Course meaning | GenAcademy Coach mapping |
+|---|---|---|
+| Agent | System that pursues a goal with tools and runtime decisions. | Teach loop. |
+| Action | One thing the agent decides to do this turn. | Advance, re-explain, drill, refuse/escalate, or stop. |
+| Observation | Result that feeds the next turn. | Retrieval band, citations, learner answer grade, tool result, refusal reason. |
+| Tool | A callable capability with a name and schema. | Course retrieval, check generation, grading, profile update, escalation. |
+| State | What the system currently knows. | Topic, style, lens, active check, learner profile, trace metadata. |
+| Memory | Recalled learner context. | Optional safe learner-state facts, not course facts. |
+| Planner | The part deciding what should happen next. | The `create_agent` response selecting `next_action` and strategy. |
+| Executor | Code that runs the selected action/tool. | Python functions and typed tool wrappers. |
+| Knowledge | Domain content used to answer. | Week-2 course corpus and citations. |
+| Perception/input | What the system receives. | Topic, learner answer, style, lens, prior session summary. |
+| Communication | How components pass information. | Typed Python objects, Gradio events, trace cards, review queue rows. |
+| Environment | External systems the agent can affect. | Mostly local app state; no irreversible production writes. |
+| Supervision/control | Constraints around behavior. | Grounding thresholds, citation checks, auth, review queue. |
+| Monitoring/observability | Visibility into what happened. | Trace cards, tests, lint, leak checks, demo QA. |
+| Learning/adaptation | Improving from feedback. | Session profile updates and optional Mem0 learner-state recall. |
+| Security/safety | Boundaries that prevent bad outcomes. | No secrets, no raw private data in commits, no held-out test leakage. |
+| Evaluation | Measuring whether it works. | Dev evals, regression tests, Playwright smoke, manual demo paths. |
+
 ## Autonomy And Control
 
 GenAcademy Coach is not fully autonomous. It sits closer to a supervised or semi-autonomous system:
@@ -98,12 +120,83 @@ The project separates memory from evidence.
 | Long-term memory | Durable facts/preferences across sessions | Optional Mem0 safe state: style, lens, topic hashes, counts. Off by default. |
 | Semantic memory | Stable facts/preferences | Safe learner preferences only, not course facts. |
 | Episodic memory | Prior events/actions | Safe event summaries and hashes, not raw learner text or generated tutor prose. |
+| Procedural memory | How something is done | Mostly code and prompt policy today: adapt style, re-explain, drill, advance, refuse. |
+| Vector memory | Find by similarity | Possible backend for learner-state recall; course retrieval already uses vector search. |
+| Graph memory | Find by relationships | Future option for learner -> concept -> struggle -> recommendation links. |
 
 Memory can make the tutor feel continuous, but it must not become a hidden evidence source. Course facts
 still come only from retrieval with citations.
 
 Anchors: `src/genacademy_coach/memory.py`, `scripts/check_memory_leak.py`,
 `docs/architecture.md`.
+
+## Mem0 Write And Read Path
+
+Mem0's mental model is useful even if the backing store changes: extract, store, retrieve. For this
+project, memory is not the course knowledge base. Memory is the learner-state layer around the
+grounded tutor.
+
+### Write Path
+
+| Mem0 step | Project mapping | Guardrail |
+|---|---|---|
+| Conversation | A Teach turn, quiz result, refusal event, or Skill-Gap run creates an event. | Do not store raw learner text, private corpus spans, generated tutor prose, screenshots, or raw trace JSON. |
+| Extract | Distill safe learner-state facts from the event. | Keep facts about learning state, style, lens, topic hashes, counts, and timestamps. |
+| Append | Add a new memory rather than silently overwrite the old one. | A later success can coexist with an earlier struggle; history should not vanish. |
+| Link | Attach by salted user, topic hash, session, and time. | Raw identifiers and private content stay out of memory metadata. |
+
+Public-safe memory examples:
+
+- `learner prefers analogy style`
+- `learner practiced agent harness`
+- `learner struggled with loop vs workflow`
+- `learner improved after drill on citations`
+
+Things that are not memory:
+
+- the retrieved course span itself
+- the full learner answer
+- raw trace JSON
+- generated quiz screenshots
+- secrets, tokens, or private corpus text
+
+### Read Path
+
+| Mem0 step | Project mapping | Guardrail |
+|---|---|---|
+| Query | A new Teach request or check continuation asks what learner context is useful. | Query only within the current user scope. |
+| Search | Retrieve relevant learner-state memories by topic, style, lens, and recent struggle. | Do not retrieve every past event. |
+| Rank | Keep only a small, useful top-k memory set. | Over-retrieval is a common memory bug. |
+| Inject | Add a compact hint into the Teach context. | Memory never becomes a citation or source of truth. |
+
+The most important rule is simple: memory can personalize the teaching move, but evidence still comes
+from retrieval over the course corpus.
+
+## Memory At Scale
+
+The Mem0 slides framed scale around accuracy, latency, and tokens. GenAcademy Coach uses the same
+trade-off, but at demo scale.
+
+| Scale pressure | What it means | Project design choice |
+|---|---|---|
+| Accuracy | Recall the right learner state. | Store only high-signal learner facts and keep course facts in RAG. |
+| Latency | Memory can run on every turn. | Memory is optional and compact; the app should still work when it is off. |
+| Tokens | Every injected fact spends context. | Inject summaries, not full history. |
+
+Do not quote benchmark numbers from slides or vendor pages in public docs unless they have just been
+re-checked from the source. Model prices, latency, and benchmark claims move quickly.
+
+## Where Memory Can Go Next
+
+| Mem0 direction | GenAcademy Coach interpretation |
+|---|---|
+| Portable personal memory | A learner profile that follows the same cohort member across Teach, Quiz, and Skill-Gap. |
+| Multiplayer memory | Future mentor/admin views that summarize cohort struggles without exposing raw learner text. |
+| Temporal and reasoning-aware recall | Old confusion should decay after the learner demonstrates understanding. |
+| Memory as infrastructure | A shared learner-state layer that multiple teaching surfaces can use. |
+
+The product lesson: memory is a differentiator only when it improves the next teaching move. Saving
+everything is not memory design. It is just a larger prompt bill and a larger privacy surface.
 
 ## Planning, Feedback, And Progress
 
@@ -189,6 +282,57 @@ posting. Model speed, price, and IDs change.
 
 Anchors: `src/genacademy_coach/teach_agent.py`, `docs/build-learnings.md`, `specs/tech-stack.md`.
 
+## Decision Tree: Which Tool For Which Task
+
+The useful design question is not "Can this be an agent?" It is "What is the lightest thing that can do
+the job?"
+
+| Question | If yes | Project example |
+|---|---|---|
+| Can one prompt answer with no data or action? | Prompt-only. | Not the core product, because the tutor must cite course evidence. |
+| Is the path fixed and predictable? | Workflow. | Quiz generation/scoring and Skill-Gap diagnosis. |
+| Is it just retrieve and answer? | RAG. | The Week-2 `genacademy-rag` foundation. |
+| Is one tool call enough, no loop? | Tool calling. | A simple provider or retrieval call. |
+| Does the next step depend on observations? | Agent. | Teach deciding `advance`, `re_explain_differently`, `drill`, `refuse_escalate`, or `stop`. |
+
+This also explains the difference between deterministic and workflow:
+
+- Deterministic is a property: the same inputs follow the same rules and produce the same kind of path.
+- Workflow is a structure: a predefined sequence of steps.
+- A workflow can be deterministic.
+- Quiz is a deterministic assessment workflow.
+- Skill-Gap is a deterministic analysis workflow.
+- Teach is an agentic workflow because the model chooses the next teaching action from learner
+  observations at runtime.
+
+## Human Review Patterns
+
+The project does not perform irreversible external actions, but it still uses human-review thinking.
+The refusal/escalation path is the review boundary.
+
+| Pattern | Meaning | Project mapping |
+|---|---|---|
+| Approve | Ship the recommendation as-is. | A mentor could accept a grounded coaching response. |
+| Reject | Kill the output. | Unsupported topics refuse instead of fabricating. |
+| Edit | Human fixes, then ships. | Future mentor view can rewrite a weak explanation. |
+| Retry | Run again with a hint. | Learner answer causes re-explain or drill. |
+| Escalate | Pass to someone with more authority or context. | Out-of-corpus topics escalate to a mentor. |
+| Annotate | Approve/reject and tag why. | Future eval data can tag "bad citation", "weak retrieval", or "unclear check". |
+| Override | Human chooses a different action. | Future admin can mark a concept as understood despite agent uncertainty. |
+
+A useful review queue for this app would show:
+
+- task/topic
+- recommended next action
+- reason summary
+- evidence/citations
+- tool-call summary
+- confidence band
+- learner-safe state summary
+
+This is exactly why the UI trace cards matter. They are not decoration; they are the human-readable
+audit trail.
+
 ## Risks We Actually Faced
 
 | Slide risk | Project version | Guard |
@@ -199,6 +343,11 @@ Anchors: `src/genacademy_coach/teach_agent.py`, `docs/build-learnings.md`, `spec
 | Bad decisions | Agent might advance after a weak learner answer. | Deterministic grading and boundary grade lock. |
 | Wrong tools | Too many retrievers would invite routing mistakes. | One source-prioritized retriever. |
 | Weak evals | Safe refusal can hide retrieval gaps. | Dev split diagnostics, reason counts, leak checks. |
+| Unclear goals | A vague tutor could become a generic chatbot. | Scope is fixed: teach cited course concepts and adapt from learner observations. |
+| High-cost tool calls | Repeated retrieval and generation can slow the demo. | Keep the loop short, make Quiz/Skill-Gap deterministic, and use cached/local resources where possible. |
+| Sensitive actions | Raw learner data, private corpus text, and secrets could leak. | `.gitignore`, leak checks, safe trace cards, no raw traces or private corpus in commits. |
+| Irreversible operations | Deploys, deletes, and external writes are risky agent actions. | The app is read-mostly; review/escalation writes are bounded and local. |
+| Low tolerance for errors | Teaching the wrong concept is costly even in a demo. | Grounded-or-refuse policy, citation checks, and mentor escalation. |
 
 This is the "failure path is the demo" lesson: the interesting parts of the project are the places where
 it refuses, stops, or asks for review.
@@ -218,6 +367,54 @@ The runtime app is intentionally not a multi-agent system yet.
 
 This is a good public lesson: not building multi-agent architecture can be the correct senior decision.
 
+## Orchestration Framework Mapping
+
+The framework slides list the primitives an agent framework usually provides. GenAcademy Coach uses a
+small subset.
+
+| Framework primitive | Project mapping |
+|---|---|
+| State management | `TeachSessionState`, active check ownership, learner profile, quiz session results. |
+| Tool registry | Bounded Teach tools in Python, exposed through LangChain `create_agent`. |
+| Routing primitives | UI chooses Teach, Quiz, or Skill-Gap; Teach agent chooses the next teaching action. |
+| Tracing and observability | Safe trace cards, decision basis, action, band, score, strategy, tool summaries. |
+| Persistence | Optional safe memory and local session state. |
+| Human checkpoints | Refusal/escalation and future mentor review queue. |
+
+The current contract is deliberate: LangChain `create_agent` gives the agent loop, while explicit
+LangGraph authoring stays deferred until the app needs durable pause/resume, cross-session handoffs, or
+more complex routing than the current Teach loop.
+
+## Single-Agent And Multi-Agent Architecture
+
+The shipped product is intentionally a single-agent architecture plus deterministic workflows.
+
+```mermaid
+flowchart LR
+    User["Learner"] --> UI["Gradio UI"]
+    UI --> Teach["Teach agent"]
+    UI --> Quiz["Quiz workflow"]
+    UI --> Gap["Skill-Gap workflow"]
+    Teach --> Tools["Course retrieval and check tools"]
+    Teach --> Memory["Optional safe memory"]
+    Quiz --> Retrieval["Course retrieval"]
+    Gap --> Sessions["Teach and quiz session summaries"]
+```
+
+That is a product architecture choice. During development, multiple AI agents helped review and improve
+the app, but the runtime product does not become multi-agent just because multiple builders touched the
+repo.
+
+Multi-agent architecture should be earned. Good triggers would be:
+
+- enough tools in one agent prompt that tool selection quality starts to drop
+- truly independent subtasks
+- separate expert domains
+- a validator that must be independent from the generator
+- latency tolerance measured in seconds, not instant UI feedback
+
+Until those triggers appear, one focused Teach agent is easier to test, explain, and debug.
+
 ## Development Lifecycle
 
 The project followed the Agent Development Lifecycle in miniature:
@@ -231,17 +428,5 @@ The project followed the Agent Development Lifecycle in miniature:
 | Deploy | Private Hugging Face Space shell, no private corpus uploaded. |
 | Monitor/improve | Build learnings, PR review, trace-card UX fixes, threshold calibration. |
 
-## Public-Safe Storytelling Rules
-
-Use the concepts publicly, but keep the project boundary intact:
-
-- Do not post private corpus excerpts, raw traces, generated tutor prose, held-out eval text, secrets, or
-  local demo artifacts.
-- Prefer original diagrams, redacted screenshots, or screenshots that show UI structure without private
-  course text.
-- If using course slide screenshots directly, confirm attribution and permission first.
-- For model speed/pricing claims, re-check current sources before posting.
-- Good public phrasing: "In this project, Teach is agentic; Quiz and Skill-Gap are workflows by design."
-
-The strongest learning is not "agents are powerful." It is "agents are powerful only when the boundary
-around them is explicit."
+The strongest product lesson is not "agents are powerful." It is "agents are useful only when the
+boundary around them is explicit."
