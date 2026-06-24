@@ -133,6 +133,8 @@ class GoldenCase(BaseModel):
                 raise ValueError(f"{self.case_id}: cloud_safe=false must not carry inline text")
             if not self.source_ref:
                 raise ValueError(f"{self.case_id}: cloud_safe=false requires source_ref")
+        if not self.refusal_expected and not self.expected_check_keywords:
+            raise ValueError(f"{self.case_id}: teachable case requires expected_check_keywords")
         return self
 
 def load_golden_cases(path: Path) -> list[GoldenCase]:
@@ -204,6 +206,7 @@ Write `eval/golden/golden_cases.jsonl`, one `GoldenCase` per line:
 - **Synthetic-from-seed rows → `cloud_safe=true`** (paraphrased, hand-labeled) with inline `user_query`/`expected_answer` + `cloud_safe_reason="synthetic paraphrase, no private text"`.
 - **10 controls → `cloud_safe=true`**, `query_type="adversarial"`, `refusal_expected=true`, `expected_next_action="refuse_escalate"`, `expected_tools=["retrieve_course_corpus","escalate_to_mentor"]`, `cloud_safe_reason="out-of-domain control, no private text"`.
 - Mix ≈ 50/30/15/5 across happy/edge/known_failure/adversarial; pure-LLM-generated < 20%.
+- **Every teachable (non-refusal) case requires `expected_check_keywords`** (short golden labels, committable): the runner builds the simulated correct answer from them when a row has no cloud-safe `expected_answer`, so task-completion never depends on a runtime-generated check.
 
 - [ ] **Step 3: Manifest** — write `eval/golden/golden_manifest.json` (`version`, `seed`, `counts_by_query_type`, `cloud_safe_count`, `created`) with counts matching the file.
 
@@ -351,7 +354,7 @@ def test_trace_records_latency_and_threaded_tokens(make_session):
 
 - [ ] **Step 3: Run** → FAIL (token fields default 0; latency 0.0 before wiring).
 
-- [ ] **Step 4: Implement** — in `teach_session.py`: `import time`; in `_invoke_agent` wrap the port call (`start=time.perf_counter()` … `latency_ms=(time.perf_counter()-start)*1000.0`) on both success and `AgentResponseError` branches; turn-budget early return passes `latency_ms=0.0`. Add params `latency_ms: float = 0.0, usage: TokenUsage | None = None` to `_write_result`; set `usage = usage or TokenUsage()`; pass `input_tokens=usage.input_tokens, output_tokens=usage.output_tokens, total_tokens=usage.total_tokens, latency_ms=latency_ms` into the `TraceTurn(...)`. Pass `self.agent_port.last_usage` + measured `latency_ms` from `_invoke_agent`.
+- [ ] **Step 4: Implement** — in `teach_session.py`: `import time`; in `_invoke_agent` wrap the port call (`start=time.perf_counter()` … `latency_ms=(time.perf_counter()-start)*1000.0`) on both success and `AgentResponseError` branches; turn-budget early return passes `latency_ms=0.0`. Add params `latency_ms: float = 0.0, usage: TokenUsage | None = None` to `_write_result`; set `usage = usage or TokenUsage()`; pass `input_tokens=usage.input_tokens, output_tokens=usage.output_tokens, total_tokens=usage.total_tokens, latency_ms=latency_ms` into the `TraceTurn(...)`. Pass `getattr(self.agent_port, "last_usage", None) or TokenUsage()` (defensive — existing custom fake ports may only implement `invoke`, e.g. in `tests/test_teach_session.py`) + measured `latency_ms` from `_invoke_agent`.
 
 - [ ] **Step 5: Run + regressions** — `pytest tests/test_teach_instrumentation.py tests/test_teach_session.py -q` → PASS, no regressions.
 - [ ] **Step 6: Commit** — `git add tests/conftest.py src/genacademy_coach/teach_session.py tests/test_teach_instrumentation.py && git commit -m "feat(eval): record per-turn latency and threaded token usage in the trace"`
@@ -428,7 +431,7 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
     row = score_golden_case(settings=fake_settings, foundation=fake_foundation, case=case,
                             scenario_index={"i:000":"what is a token"}, session_factory=FakeSession)
     for k in ("task_completion_pass","citation_f1","tool_f1","retrieval_recall_at_5",
-              "refusal_outcome","turn_latencies_ms","input_tokens","cost_inputs_present"):
+              "refusal_outcome","turn_latencies_ms","input_tokens","output_tokens","model_id"):
         assert k in row
     assert "user_query" not in row and "answer_text" not in row  # non-cloud-safe redaction
 ```
@@ -438,9 +441,9 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
 
 - [ ] **Step 3: Implement** `src/genacademy_coach/eval_runner.py`:
   - `resolve_query(case, scenario_index)`: `case.user_query` if `case.cloud_safe` else `scenario_index[case.source_ref.split(":",1)[1]]`.
-  - `score_golden_case(*, settings, foundation, case, scenario_index, session_factory=CoachSession)`: drive the 3-turn pattern from `eval_teach_loop.score_scenario` using `resolve_query` as the topic and `case.expected_answer or runtime.current_check.expected_answer` as the "correct" turn; read the trace (`load_trace`) for `actual_tools`, `turn_latencies_ms`, summed tokens; compute `citation_f1=citation_prf(predicted, {case.expected_citation_span_id})`, `tool_f1=tool_match(actual, case.expected_tools)["f1"]`, `retrieval_recall_at_5=recall_at_k([r["chunk_id"] for r in foundation.retrieve(query)][:5], case.expected_citation_span_id)`, `refusal_outcome=refusal_outcome(refusal_expected=case.refusal_expected, actual_next_action=final_action)`, and **`task_completion_pass = (final_action == case.expected_next_action) and (case.refusal_expected or grade_correct)`** (grounded grader's `grade_correct` for teachable cases). Emit only redacted fields (ids, scores, metrics); include `answer_text`/`user_query` **only** when `case.cloud_safe`.
+  - `score_golden_case(*, settings, foundation, case, scenario_index, session_factory=CoachSession)`: drive the 3-turn pattern using `resolve_query(case, scenario_index)` as the topic and, for the "correct" turn, **`case.expected_answer` (cloud-safe) else `" ".join(case.expected_check_keywords)`** (golden labels — committable, works for non-cloud-safe; the runtime-generated check is NOT the golden answer source). Read the trace (`load_trace`) for `actual_tools`, `turn_latencies_ms`, summed tokens; set `model_id = (getattr(foundation, "rag_settings", None) and foundation.rag_settings.gen_model) or DEFAULT_NEBIUS_MODEL` (import `DEFAULT_NEBIUS_MODEL` from `teach_agent`); compute `citation_f1=citation_prf(predicted, {case.expected_citation_span_id})`, `tool_f1=tool_match(actual, case.expected_tools)["f1"]`, `retrieval_recall_at_5=recall_at_k([r["chunk_id"] for r in foundation.retrieve(query)][:5], case.expected_citation_span_id)`, `refusal_outcome=refusal_outcome(refusal_expected=case.refusal_expected, actual_next_action=final_action)`, and **`task_completion_pass = (final_action == case.expected_next_action) and (case.refusal_expected or grade_correct)`** (grounded grader's `grade_correct` for teachable cases). Emit redacted fields incl. `model_id`, `input_tokens`, `output_tokens` (ids/scores/metrics only); include `answer_text`/`user_query` **only** when `case.cloud_safe`.
   - `run_golden_eval(*, settings, foundation, cases, tag, price_table)`: build `scenario_index` once via `eval_scenarios.load_scenarios(settings, split="seed"/"dev")`; map `score_golden_case`; `aggregate(rows, price_table=...)`; write `eval/runs/golden-<tag>-<YYYYMMDD>.json` (`sort_keys=True`).
-  - `scripts/run_golden_eval.py`: `load_local_env`-style dotenv, argparse `--tag`/`--limit`, build `CoachSettings`/`Foundation`/`PriceTable`, call `run_golden_eval`, print summary.
+  - `scripts/run_golden_eval.py`: `load_local_env`-style dotenv, argparse `--tag`/`--limit`, build `CoachSettings`/`Foundation`; build `PriceTable` keyed by the gen `model_id` (`foundation.rag_settings.gen_model`) using the **verified Nebius per-token price** for that model (AGENTS.md §4 — confirm the number at build); call `run_golden_eval`, print summary.
 
 - [ ] **Step 4: Run + real dry-run** — `pytest tests/test_eval_runner.py -q` → PASS; then `python scripts/run_golden_eval.py --tag baseline --limit 3` → writes `eval/runs/golden-baseline-<date>.json` with per-metric P/R/F1 + p95 + cost.
 - [ ] **Step 5: Commit** — `git add src/genacademy_coach/eval_runner.py scripts/run_golden_eval.py tests/test_eval_runner.py && git commit -m "feat(eval): golden-set runner (core) emitting per-metric P/R/F1 + cost/latency"`
@@ -458,6 +461,7 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
 
 - **Spec coverage:** Stage 1 → Tasks 1,3,4; Stage 2 → Tasks 5–7; Stage 3 → Tasks 2,8,9. Fork 1 = Tasks 5–7. Fork 2 = Tasks 1,3,4. Fork 3 = Tasks 2,8,9. Fork 4 = Plan 2.
 - **Codex FAIL fixes:** P1#1 (source_ref) → `resolve_query` + `eval_scenarios` extraction (T2/T9); P1#2 (golden gate) → `task_completion_pass` on golden `expected_next_action` + grounded `grade_correct` (T9); P1#3 (fixtures/imports) → core `eval_runner` + `tests/conftest.py` (T7/T9); P2#4 → fail-first token-threading test (T7); P2#5 → p50/p95 in `aggregate` across `turn_latencies_ms` (T8); P2#6 → Python 3.12.
+- **Codex round-2 fixes:** golden answer source = `expected_check_keywords` (validator-required for teachable, used to build the correct turn; no runtime-check dependency) (T1/T3/T9); per-row `model_id` from `foundation.rag_settings.gen_model or DEFAULT_NEBIUS_MODEL` → `PriceTable` cost (T8/T9); defensive `getattr(port, "last_usage", TokenUsage())` so existing fake ports keep working (T7).
 - **Type consistency:** `TokenUsage` (T5) → T6/T7; `GoldenCase` (T1) → T3/T4/T9; `eval_metrics` names (T8) → T9; `eval_scenarios` (T2) → T9; tool names match `teach_tools.py`.
 - **Reuse vs rebuild:** grounded grader, scenario loaders, and the 3-turn pattern are reused, not rebuilt; the legacy `eval_teach_loop.py` keeps working via re-import.
 
