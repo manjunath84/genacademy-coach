@@ -146,8 +146,15 @@ public repo and must not be committed, copied into public docs, or quoted into p
 user explicitly asks. Use them only when the task clearly involves local demo prep, private handoff
 context, or continuity from prior local work.
 
-If local notes are missing, continue with the committed docs. If a local note conflicts with a hard
-guardrail in this `AGENTS.md`, the guardrail wins.
+**When `localdocs/` is present, read `localdocs/INDEX.md` first** — it is the catalog of available
+local-only context (course handouts, submission drafts, demo scripts, audits, personal context), one
+line per file describing what it is and when to read it. Keep that index updated when you add a local
+doc.
+
+`localdocs/` and its `INDEX.md` are gitignored and **will not exist in fresh clones, CI, or
+remote/cloud agent environments** — treat their absence as normal, and never let a committed workflow,
+plan, spec, or guardrail depend on them. If local notes are missing, continue with the committed docs.
+If a local note conflicts with a hard guardrail in this `AGENTS.md`, the guardrail wins.
 
 ## 8. Workflow & tool bindings
 
