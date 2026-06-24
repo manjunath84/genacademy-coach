@@ -1,3 +1,5 @@
+import pytest
+
 from genacademy_coach.eval_metrics import (
     PriceTable,
     aggregate,
@@ -51,7 +53,7 @@ def test_refusal_outcome():
 def test_price_table_cost():
     assert PriceTable(prices={"m": (1e-6, 2e-6)}).cost(
         "m", input_tokens=1000, output_tokens=1000
-    ) == 0.003
+    ) == pytest.approx(0.003)
 
 
 def test_aggregate_computes_p95_across_turns():

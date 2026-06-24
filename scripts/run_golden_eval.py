@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 from genacademy_coach.eval_golden import load_golden_cases
@@ -40,6 +41,18 @@ def price_table_for_model(model_id: str) -> PriceTable:
     )
 
 
+def warn_if_zero_prices(price_table: PriceTable) -> None:
+    if all(
+        input_price == 0.0 and output_price == 0.0
+        for input_price, output_price in price_table.prices.values()
+    ):
+        print(
+            "warning: cost_usd will be 0 because GENACADEMY_NEBIUS_INPUT_USD_PER_1M "
+            "and GENACADEMY_NEBIUS_OUTPUT_USD_PER_1M are unset or zero",
+            file=sys.stderr,
+        )
+
+
 def main() -> None:
     load_local_env()
     parser = argparse.ArgumentParser()
@@ -53,12 +66,14 @@ def main() -> None:
     if args.limit is not None:
         cases = cases[: args.limit]
     model_id = foundation.rag_settings.gen_model or DEFAULT_NEBIUS_MODEL
+    price_table = price_table_for_model(model_id)
+    warn_if_zero_prices(price_table)
     result = run_golden_eval(
         settings=settings,
         foundation=foundation,
         cases=cases,
         tag=args.tag,
-        price_table=price_table_for_model(model_id),
+        price_table=price_table,
     )
     print(
         json.dumps(
