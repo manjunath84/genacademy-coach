@@ -16,11 +16,12 @@ from genacademy_coach.eval_metrics import (
 )
 from genacademy_coach.eval_scenarios import load_scenarios
 from genacademy_coach.teach_agent import DEFAULT_NEBIUS_MODEL
-from genacademy_coach.teach_session import CoachSession
+from genacademy_coach.teach_session import STRUCTURED_OUTPUT_FAILURE_REASON, CoachSession
 from genacademy_coach.teach_types import LearnerProfile
 from genacademy_coach.trace import load_trace
 
 DEFAULT_WRONG_ANSWER = "I am not sure; I think it just memorizes previous tokens."
+INFRASTRUCTURE_REFUSAL_OBSERVATIONS = {STRUCTURED_OUTPUT_FAILURE_REASON}
 
 
 def resolve_query(case: GoldenCase, scenario_index: dict[str, str]) -> str:
@@ -60,6 +61,13 @@ def _trace_rows(trace_path: str | Path):
 
 def _ranked_retrieval_ids(foundation: Any, query: str) -> list[str]:
     return [str(row.get("chunk_id", "")) for row in foundation.retrieve(query)]
+
+
+def _is_infrastructure_refusal(response: Any) -> bool:
+    return (
+        response.next_action == "refuse_escalate"
+        and response.observation in INFRASTRUCTURE_REFUSAL_OBSERVATIONS
+    )
 
 
 def score_golden_case(
@@ -112,14 +120,18 @@ def score_golden_case(
     refusal = refusal_outcome(
         refusal_expected=case.refusal_expected,
         actual_next_action=final_action,
+        infrastructure_error=_is_infrastructure_refusal(final.response),
     )
     grade_correct = bool(
         getattr(session.runtime, "last_grade", None)
         and session.runtime.last_grade.correct
     )
-    task_completion_pass = (final_action == case.expected_next_action) and (
-        case.refusal_expected or grade_correct
-    )
+    if refusal == "infra_error":
+        task_completion_pass = None
+    else:
+        task_completion_pass = (final_action == case.expected_next_action) and (
+            case.refusal_expected or grade_correct
+        )
 
     row: dict[str, Any] = {
         "case_id": case.case_id,

@@ -29,6 +29,7 @@ from genacademy_coach.teach_types import (
 from genacademy_coach.trace import TraceWriter
 
 UNFAITHFUL_RESPONSE_REASON = "agent response was not faithful to retrieved citation text"
+STRUCTURED_OUTPUT_FAILURE_REASON = "agent failed to return structured output"
 FALLBACK_STRATEGIES = ("contrastive_example", "step_by_step", "summary")
 PYTHON_SAFETY_GATE_SOURCE: DecisionSource = "python safety gate"
 
@@ -226,7 +227,7 @@ class CoachSession:
                 )
             else:
                 response = self._refusal_response(
-                    "agent failed to return structured output",
+                    STRUCTURED_OUTPUT_FAILURE_REASON,
                     "I could not get a valid structured output from the tutor agent, so I am "
                     "escalating this instead of guessing.",
                 )

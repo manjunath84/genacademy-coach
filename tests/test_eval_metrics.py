@@ -51,6 +51,17 @@ def test_refusal_outcome():
     assert refusal_outcome(refusal_expected=False, actual_next_action="refuse_escalate") == "fp"
 
 
+def test_refusal_outcome_excludes_infrastructure_errors():
+    assert (
+        refusal_outcome(
+            refusal_expected=True,
+            actual_next_action="refuse_escalate",
+            infrastructure_error=True,
+        )
+        == "infra_error"
+    )
+
+
 def test_price_table_cost():
     assert PriceTable(prices={"m": (1e-6, 2e-6)}).cost(
         "m", input_tokens=1000, output_tokens=1000
@@ -134,4 +145,40 @@ def test_aggregate_quality_means_exclude_refusal_controls():
         "pass_rate": 1.0,
         "passed": 1,
         "n": 1,
+    }
+
+
+def test_aggregate_excludes_infra_errors_from_refusal_and_completion():
+    rows = [
+        {
+            "query_type": "adversarial",
+            "refusal_expected": True,
+            "refusal_outcome": "tp",
+            "task_completion_pass": True,
+            "turn_latencies_ms": [],
+            "model_id": "m",
+        },
+        {
+            "query_type": "adversarial",
+            "refusal_expected": True,
+            "refusal_outcome": "infra_error",
+            "task_completion_pass": None,
+            "turn_latencies_ms": [],
+            "model_id": "m",
+        },
+    ]
+
+    out = aggregate(rows, price_table=PriceTable(prices={"m": (0.0, 0.0)}))
+
+    assert out["n"] == 2
+    assert out["class_balance"] == {"adversarial": 2}
+    assert out["refusal"] == {"precision": 1.0, "recall": 1.0, "f1": 1.0}
+    assert out["task_completion"] == {
+        "pass_rate": 1.0,
+        "passed": 1,
+        "n": 1,
+        "by_segment": {
+            "teachable": {"pass_rate": 0.0, "passed": 0, "n": 0},
+            "refusal_expected": {"pass_rate": 1.0, "passed": 1, "n": 1},
+        },
     }

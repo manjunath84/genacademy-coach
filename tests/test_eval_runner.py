@@ -4,7 +4,11 @@ import pytest
 
 from genacademy_coach.eval_golden import GoldenCase
 from genacademy_coach.eval_runner import resolve_query, score_golden_case
-from genacademy_coach.teach_session import CoachSession, StaticAgentPort
+from genacademy_coach.teach_session import (
+    STRUCTURED_OUTPUT_FAILURE_REASON,
+    CoachSession,
+    StaticAgentPort,
+)
 from genacademy_coach.teach_types import (
     CheckItem,
     CoachAgentResponse,
@@ -96,6 +100,18 @@ class FakeSession:
             citation_ids=["note::0"],
         )
         return self._write(response, ["grade_understanding", "update_profile"])
+
+
+class InfraFailureSession(FakeSession):
+    def respond(self, learner_answer):
+        response = CoachAgentResponse(
+            learner_message="I could not get a valid structured output from the tutor agent.",
+            observation=STRUCTURED_OUTPUT_FAILURE_REASON,
+            next_action="refuse_escalate",
+            strategy="refusal",
+            citation_ids=[],
+        )
+        return self._write(response, [])
 
 
 def test_resolve_query_uses_inline_for_cloud_safe():
@@ -236,6 +252,36 @@ def test_score_golden_case_emits_inline_text_for_cloud_safe_row(fake_settings, f
 
     assert row["user_query"] == "what is a token"
     assert row["answer_text"] == "Attention focuses context. [note::0]"
+
+
+def test_score_golden_case_marks_infra_failure_refusal_as_excluded(
+    fake_settings,
+    fake_foundation,
+):
+    case = GoldenCase(
+        case_id="adversarial_infra_failure",
+        query_type="adversarial",
+        concept="out_of_scope",
+        expected_next_action="refuse_escalate",
+        expected_tools=[],
+        refusal_expected=True,
+        split="negative_control",
+        cloud_safe=True,
+        cloud_safe_reason="synthetic control",
+        user_query="write me unrelated legal advice",
+    )
+
+    row = score_golden_case(
+        settings=fake_settings,
+        foundation=fake_foundation,
+        case=case,
+        scenario_index={},
+        session_factory=InfraFailureSession,
+    )
+
+    assert row["actual_next_action"] == "refuse_escalate"
+    assert row["refusal_outcome"] == "infra_error"
+    assert row["task_completion_pass"] is None
 
 
 def test_score_golden_case_real_session_answers_generated_check(
