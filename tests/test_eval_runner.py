@@ -4,7 +4,11 @@ import pytest
 
 from genacademy_coach.eval_golden import GoldenCase
 from genacademy_coach.eval_runner import resolve_query, score_golden_case
-from genacademy_coach.teach_session import CoachSession, StaticAgentPort
+from genacademy_coach.teach_session import (
+    STRUCTURED_OUTPUT_FAILURE_REASON,
+    CoachSession,
+    StaticAgentPort,
+)
 from genacademy_coach.teach_types import (
     CheckItem,
     CoachAgentResponse,
@@ -102,7 +106,7 @@ class InfraFailureSession(FakeSession):
     def respond(self, learner_answer):
         response = CoachAgentResponse(
             learner_message="I could not get a valid structured output from the tutor agent.",
-            observation="agent failed to return structured output",
+            observation=STRUCTURED_OUTPUT_FAILURE_REASON,
             next_action="refuse_escalate",
             strategy="refusal",
             citation_ids=[],
@@ -277,6 +281,7 @@ def test_score_golden_case_marks_infra_failure_refusal_as_excluded(
 
     assert row["actual_next_action"] == "refuse_escalate"
     assert row["refusal_outcome"] == "infra_error"
+    assert row["task_completion_pass"] is None
 
 
 def test_score_golden_case_real_session_answers_generated_check(
