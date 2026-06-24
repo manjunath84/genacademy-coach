@@ -37,6 +37,10 @@ class GoldenCase(BaseModel):
         if self.cloud_safe:
             if not (self.cloud_safe_reason and self.cloud_safe_reason.strip()):
                 raise ValueError(f"{self.case_id}: cloud_safe=true requires cloud_safe_reason")
+            if not self.user_query and not self.source_ref:
+                raise ValueError(
+                    f"{self.case_id}: cloud_safe=true requires user_query or source_ref"
+                )
         else:
             if any([self.user_query, self.initial_wrong_answer, self.expected_answer]):
                 raise ValueError(f"{self.case_id}: cloud_safe=false must not carry inline text")

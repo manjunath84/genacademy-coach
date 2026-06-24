@@ -34,6 +34,11 @@ def test_cloud_safe_requires_reason():
         GoldenCase(**_row(cloud_safe=True, cloud_safe_reason=""))
 
 
+def test_cloud_safe_requires_runnable_query_reference():
+    with pytest.raises(ValueError, match="requires user_query or source_ref"):
+        GoldenCase(**_row(user_query=None, source_ref=None))
+
+
 def test_test_split_rejected():
     with pytest.raises(ValueError):
         GoldenCase(**_row(split="test"))

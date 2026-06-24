@@ -51,6 +51,69 @@ def test_flags_test_needle_in_inline_text(tmp_path):
     )
 
 
+def test_flags_non_cloud_safe_inline_text(tmp_path):
+    p = _write(
+        tmp_path,
+        [
+            {
+                "case_id": "x",
+                "split": "seed",
+                "cloud_safe": False,
+                "source_ref": "scenario:i:000",
+                "user_query": "private learner wording",
+            }
+        ],
+    )
+    module = load_leak_module()
+
+    assert any(
+        "cloud_safe=false carries inline text" in o
+        for o in module.scan_golden_cases(p, test_needles=set(), test_phrases={})
+    )
+
+
+def test_flags_test_phrase_in_inline_text(tmp_path):
+    phrase = "alpha beta gamma delta epsilon zeta eta theta"
+    p = _write(
+        tmp_path,
+        [
+            {
+                "case_id": "x",
+                "split": "synthetic",
+                "cloud_safe": True,
+                "cloud_safe_reason": "synthetic",
+                "user_query": f"Please explain {phrase}.",
+            }
+        ],
+    )
+    module = load_leak_module()
+
+    offenders = module.scan_golden_cases(
+        p,
+        test_needles=set(),
+        test_phrases={
+            phrase: [{"source_file": "private.txt", "phrase_hash": "abc123"}],
+        },
+    )
+
+    assert any("matched eval phrase private.txt:abc123" in o for o in offenders)
+
+
+def test_empty_eval_text_is_reported_as_unscanned(tmp_path, monkeypatch):
+    module = load_leak_module()
+    eval_path = tmp_path / "private.pdf"
+    eval_path.write_bytes(b"%PDF-empty")
+    monkeypatch.setattr(module, "read_eval_text", lambda path: "")
+
+    sources, unscanned = module.collect_eval_phrase_sources(
+        tmp_path,
+        [{"source_file": "private.pdf"}],
+    )
+
+    assert sources == []
+    assert unscanned == ["private.pdf (no extractable text)"]
+
+
 def test_clean_golden_passes(tmp_path):
     p = _write(
         tmp_path,

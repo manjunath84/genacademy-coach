@@ -83,6 +83,26 @@ def iter_local_corpus_scan_texts(settings: CoachSettings) -> Iterator[tuple[Path
         yield path, load_corpus_document(path).text
 
 
+def collect_eval_phrase_sources(
+    eval_questions_dir: Path,
+    test_items: list[dict[str, object]],
+) -> tuple[list[tuple[str, str]], list[str]]:
+    phrase_sources: list[tuple[str, str]] = []
+    unscanned_sources: list[str] = []
+    for item in test_items:
+        source_file = str(item["source_file"])
+        eval_path = eval_questions_dir / source_file
+        if not eval_path.exists():
+            unscanned_sources.append(source_file)
+            continue
+        text = read_eval_text(eval_path)
+        if not text.strip():
+            unscanned_sources.append(f"{source_file} (no extractable text)")
+            continue
+        phrase_sources.append((source_file, text))
+    return phrase_sources, unscanned_sources
+
+
 def main() -> None:
     settings = CoachSettings.from_env()
     if not settings.eval_manifest_path.exists():
@@ -91,14 +111,10 @@ def main() -> None:
     test_items = [item for item in manifest["items"] if item["split"] == "test"]
     needles = {item["id"] for item in test_items} | {item["source_sha256"] for item in test_items}
     offenders: list[str] = []
-    eval_phrase_sources: list[tuple[str, str]] = []
-    missing_eval_sources: list[str] = []
-    for item in test_items:
-        eval_path = settings.eval_questions_dir / item["source_file"]
-        if not eval_path.exists():
-            missing_eval_sources.append(item["source_file"])
-            continue
-        eval_phrase_sources.append((item["source_file"], read_eval_text(eval_path)))
+    eval_phrase_sources, unscanned_eval_sources = collect_eval_phrase_sources(
+        settings.eval_questions_dir,
+        test_items,
+    )
     test_phrase_hashes = phrase_hashes(eval_phrase_sources)
     scan_texts = list(iter_committed_scan_texts(settings))
     offenders.extend(
@@ -126,10 +142,10 @@ def main() -> None:
                 offenders.append(f"{path} matched eval phrase {phrase_refs}")
     if offenders:
         raise SystemExit("eval test leak detected in: " + ", ".join(sorted(set(offenders))))
-    if missing_eval_sources:
+    if unscanned_eval_sources:
         print(
-            "private eval sources missing; skipped local n-gram leak scan for: "
-            + ", ".join(sorted(missing_eval_sources))
+            "private eval sources unavailable; skipped local n-gram leak scan for: "
+            + ", ".join(sorted(unscanned_eval_sources))
         )
     print(
         "no eval test IDs/checksums found in code/docs; no eval n-grams found where "

@@ -142,6 +142,7 @@ def test_resolve_query_raises_clear_error_without_parseable_source_ref():
         split="synthetic",
         cloud_safe=True,
         cloud_safe_reason="syn",
+        source_ref="not-a-scenario-ref",
         expected_check_keywords=["token"],
     )
     with pytest.raises(ValueError, match="no inline user_query and no parseable source_ref"):
@@ -203,6 +204,38 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
         assert k in row
     assert row["task_completion_pass"] is True
     assert "user_query" not in row and "answer_text" not in row
+
+
+def test_score_golden_case_emits_inline_text_for_cloud_safe_row(fake_settings, fake_foundation):
+    case = GoldenCase(
+        case_id="synthetic_001",
+        query_type="happy",
+        concept="tokenization",
+        expected_citation_span_id="note::0",
+        expected_next_action="advance",
+        expected_tools=[
+            "retrieve_course_corpus",
+            "generate_check_item",
+            "grade_understanding",
+        ],
+        refusal_expected=False,
+        split="synthetic",
+        cloud_safe=True,
+        cloud_safe_reason="synthetic, no private text",
+        user_query="what is a token",
+        expected_check_keywords=["token"],
+    )
+
+    row = score_golden_case(
+        settings=fake_settings,
+        foundation=fake_foundation,
+        case=case,
+        scenario_index={},
+        session_factory=FakeSession,
+    )
+
+    assert row["user_query"] == "what is a token"
+    assert row["answer_text"] == "Attention focuses context. [note::0]"
 
 
 def test_score_golden_case_real_session_answers_generated_check(
