@@ -6,7 +6,7 @@
 
 **Architecture:** Three slices over the existing core. (1) Golden dataset = a JSONL of hand-labeled cases + a separate manifest, validated by a pydantic loader and the extended leak guard. (2) Instrumentation = capture tokens at the `AgentPort` boundary and wall-clock latency in `CoachSession`, written into new optional `TraceTurn` fields. (3) Scoring = a pure `eval_metrics` module + a **core** `eval_runner` (importable/testable) reused by a thin `scripts/run_golden_eval.py` CLI; the deterministic grounded grader stays the per-turn correctness signal and `expected_next_action` is the per-case golden gate. No web imports, no `langgraph.*`, frozen `test` untouched, cloud-safe rule machine-checked.
 
-**Tech Stack:** Python 3.12 (pyproject `requires-python >=3.12`, ruff `target-version = py312`), pydantic v2, pytest, `langchain` 1.3.7 / `langchain_core` 1.4.2 (`usage_metadata` verified: dict with `input_tokens`/`output_tokens`/`total_tokens`), the Week-2 `genacademy_rag` foundation, existing `genacademy_coach` core.
+**Tech Stack:** Python 3.12 (pyproject `requires-python >=3.12`, ruff `target-version = py312`), pydantic v2, pytest, `langchain` (repo floor `>=1.1`; verified against installed 1.3.7) / `langchain_core` (installed 1.4.2) — `usage_metadata` is a stable `langchain_core` interface (dict with `input_tokens`/`output_tokens`/`total_tokens`), the Week-2 `genacademy_rag` foundation, existing `genacademy_coach` core.
 
 ## Global Constraints
 
@@ -414,20 +414,21 @@ from genacademy_coach.eval_runner import score_golden_case, resolve_query
 def test_resolve_query_uses_inline_for_cloud_safe():
     c = GoldenCase(case_id="c", query_type="happy", concept="t", expected_next_action="advance",
                    expected_tools=["retrieve_course_corpus"], split="synthetic", cloud_safe=True,
-                   cloud_safe_reason="syn", user_query="what is a token")
+                   cloud_safe_reason="syn", user_query="what is a token", expected_check_keywords=["token"])
     assert resolve_query(c, scenario_index={}) == "what is a token"
 
 def test_resolve_query_resolves_source_ref_for_non_cloud_safe():
     c = GoldenCase(case_id="c", query_type="happy", concept="t", expected_next_action="advance",
                    expected_tools=["retrieve_course_corpus"], split="seed", cloud_safe=False,
-                   source_ref="scenario:i:000")
+                   source_ref="scenario:i:000", expected_check_keywords=["token"])
     assert resolve_query(c, scenario_index={"i:000": "real private question"}) == "real private question"
 
 def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundation):
     case = GoldenCase(case_id="happy_001", query_type="happy", concept="tokenization",
         expected_citation_span_id="note::0", expected_next_action="advance",
         expected_tools=["retrieve_course_corpus","generate_check_item","grade_understanding"],
-        refusal_expected=False, split="seed", cloud_safe=False, source_ref="scenario:i:000")
+        refusal_expected=False, split="seed", cloud_safe=False, source_ref="scenario:i:000",
+        expected_check_keywords=["token"])
     row = score_golden_case(settings=fake_settings, foundation=fake_foundation, case=case,
                             scenario_index={"i:000":"what is a token"}, session_factory=FakeSession)
     for k in ("task_completion_pass","citation_f1","tool_f1","retrieval_recall_at_5",
@@ -443,7 +444,7 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
   - `resolve_query(case, scenario_index)`: `case.user_query` if `case.cloud_safe` else `scenario_index[case.source_ref.split(":",1)[1]]`.
   - `score_golden_case(*, settings, foundation, case, scenario_index, session_factory=CoachSession)`: drive the 3-turn pattern using `resolve_query(case, scenario_index)` as the topic and, for the "correct" turn, **`case.expected_answer` (cloud-safe) else `" ".join(case.expected_check_keywords)`** (golden labels — committable, works for non-cloud-safe; the runtime-generated check is NOT the golden answer source). Read the trace (`load_trace`) for `actual_tools`, `turn_latencies_ms`, summed tokens; set `model_id = (getattr(foundation, "rag_settings", None) and foundation.rag_settings.gen_model) or DEFAULT_NEBIUS_MODEL` (import `DEFAULT_NEBIUS_MODEL` from `teach_agent`); compute `citation_f1=citation_prf(predicted, {case.expected_citation_span_id})`, `tool_f1=tool_match(actual, case.expected_tools)["f1"]`, `retrieval_recall_at_5=recall_at_k([r["chunk_id"] for r in foundation.retrieve(query)][:5], case.expected_citation_span_id)`, `refusal_outcome=refusal_outcome(refusal_expected=case.refusal_expected, actual_next_action=final_action)`, and **`task_completion_pass = (final_action == case.expected_next_action) and (case.refusal_expected or grade_correct)`** (grounded grader's `grade_correct` for teachable cases). Emit redacted fields incl. `model_id`, `input_tokens`, `output_tokens` (ids/scores/metrics only); include `answer_text`/`user_query` **only** when `case.cloud_safe`.
   - `run_golden_eval(*, settings, foundation, cases, tag, price_table)`: build `scenario_index` once via `eval_scenarios.load_scenarios(settings, split="seed"/"dev")`; map `score_golden_case`; `aggregate(rows, price_table=...)`; write `eval/runs/golden-<tag>-<YYYYMMDD>.json` (`sort_keys=True`).
-  - `scripts/run_golden_eval.py`: `load_local_env`-style dotenv, argparse `--tag`/`--limit`, build `CoachSettings`/`Foundation`; build `PriceTable` keyed by the gen `model_id` (`foundation.rag_settings.gen_model`) using the **verified Nebius per-token price** for that model (AGENTS.md §4 — confirm the number at build); call `run_golden_eval`, print summary.
+  - `scripts/run_golden_eval.py`: `load_local_env`-style dotenv, argparse `--tag`/`--limit`, build `CoachSettings`/`Foundation`; build `PriceTable` keyed by the **same** `model_id` the runner emits (`foundation.rag_settings.gen_model or DEFAULT_NEBIUS_MODEL` — mirror the fallback so keys match) using the **verified Nebius per-token price** for that model (AGENTS.md §4 — confirm the number at build); call `run_golden_eval`, print summary.
 
 - [ ] **Step 4: Run + real dry-run** — `pytest tests/test_eval_runner.py -q` → PASS; then `python scripts/run_golden_eval.py --tag baseline --limit 3` → writes `eval/runs/golden-baseline-<date>.json` with per-metric P/R/F1 + p95 + cost.
 - [ ] **Step 5: Commit** — `git add src/genacademy_coach/eval_runner.py scripts/run_golden_eval.py tests/test_eval_runner.py && git commit -m "feat(eval): golden-set runner (core) emitting per-metric P/R/F1 + cost/latency"`
