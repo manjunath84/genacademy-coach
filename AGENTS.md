@@ -139,6 +139,16 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   `docs/decisions.md`. Historical `D##` labels live only in that archive; settled decisions in this
   repo are `AD-1` through `AD-11`.
 
+### Optional local-only context
+
+Optional local-only context may exist under ignored `localdocs/`. These files are **not** part of the
+public repo and must not be committed, copied into public docs, or quoted into public output unless the
+user explicitly asks. Use them only when the task clearly involves local demo prep, private handoff
+context, or continuity from prior local work.
+
+If local notes are missing, continue with the committed docs. If a local note conflicts with a hard
+guardrail in this `AGENTS.md`, the guardrail wins.
+
 ## 8. Workflow & tool bindings
 
 This project runs on the **`ai-dev-workflow`** skill — the tool-neutral umbrella that binds the gates
