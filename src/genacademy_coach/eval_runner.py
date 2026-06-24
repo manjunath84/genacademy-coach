@@ -27,7 +27,16 @@ def resolve_query(case: GoldenCase, scenario_index: dict[str, str]) -> str:
     if case.cloud_safe and case.user_query:
         return case.user_query
     source_ref = case.source_ref or ""
+    if ":" not in source_ref:
+        raise ValueError(
+            f"{case.case_id}: cannot resolve query "
+            "(no inline user_query and no parseable source_ref)"
+        )
     scenario_id = source_ref.split(":", 1)[1]
+    if scenario_id not in scenario_index:
+        raise ValueError(
+            f"{case.case_id}: source_ref scenario {scenario_id} not found in seed/dev scenarios"
+        )
     return scenario_index[scenario_id]
 
 

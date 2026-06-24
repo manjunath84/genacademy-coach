@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from genacademy_coach.eval_golden import GoldenCase
 from genacademy_coach.eval_runner import resolve_query, score_golden_case
 from genacademy_coach.teach_types import (
@@ -126,6 +128,38 @@ def test_resolve_query_resolves_source_ref_for_non_cloud_safe():
         resolve_query(c, scenario_index={"i:000": "real private question"})
         == "real private question"
     )
+
+
+def test_resolve_query_raises_clear_error_without_parseable_source_ref():
+    c = GoldenCase(
+        case_id="c",
+        query_type="happy",
+        concept="t",
+        expected_next_action="advance",
+        expected_tools=["retrieve_course_corpus"],
+        split="synthetic",
+        cloud_safe=True,
+        cloud_safe_reason="syn",
+        expected_check_keywords=["token"],
+    )
+    with pytest.raises(ValueError, match="no inline user_query and no parseable source_ref"):
+        resolve_query(c, scenario_index={})
+
+
+def test_resolve_query_raises_clear_error_for_unknown_source_ref():
+    c = GoldenCase(
+        case_id="c",
+        query_type="happy",
+        concept="t",
+        expected_next_action="advance",
+        expected_tools=["retrieve_course_corpus"],
+        split="seed",
+        cloud_safe=False,
+        source_ref="scenario:i:000",
+        expected_check_keywords=["token"],
+    )
+    with pytest.raises(ValueError, match="source_ref scenario i:000 not found"):
+        resolve_query(c, scenario_index={})
 
 
 def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundation):
