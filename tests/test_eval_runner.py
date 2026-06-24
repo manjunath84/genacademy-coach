@@ -4,10 +4,12 @@ import pytest
 
 from genacademy_coach.eval_golden import GoldenCase
 from genacademy_coach.eval_runner import resolve_query, score_golden_case
+from genacademy_coach.teach_session import CoachSession, StaticAgentPort
 from genacademy_coach.teach_types import (
     CheckItem,
     CoachAgentResponse,
     RetrievedSpan,
+    TokenUsage,
     TraceTurn,
     UnderstandingGrade,
 )
@@ -201,3 +203,86 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
         assert k in row
     assert row["task_completion_pass"] is True
     assert "user_query" not in row and "answer_text" not in row
+
+
+def test_score_golden_case_real_session_answers_generated_check(
+    fake_settings,
+    fake_foundation,
+):
+    span = RetrievedSpan(
+        chunk_id="note::0",
+        doc_id="note",
+        text="The generated keyword explains attention.",
+        score=0.91,
+        title="a.md",
+        source_type="note",
+    )
+    check = CheckItem(
+        question="What keyword explains attention?",
+        expected_answer="generated keyword",
+        expected_keywords=["generated keyword"],
+        citation_id="note::0",
+    )
+    sessions = []
+
+    def session_factory(**kwargs):
+        port = StaticAgentPort(
+            CoachAgentResponse(
+                learner_message="The generated keyword explains attention. [note::0]",
+                observation="retrieved span",
+                next_action="drill",
+                strategy="analogy",
+                citation_ids=["note::0"],
+                check_question=check.question,
+            ),
+            CoachAgentResponse(
+                learner_message="The generated keyword explains attention. [note::0]",
+                observation="learner missed the generated keyword",
+                next_action="re_explain_differently",
+                strategy="contrastive_example",
+                citation_ids=["note::0"],
+            ),
+            CoachAgentResponse(
+                learner_message="The generated keyword explains attention. [note::0]",
+                observation="learner matched the generated keyword",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=["note::0"],
+            ),
+        )
+        port.last_usage = TokenUsage(input_tokens=4, output_tokens=2, total_tokens=6)
+        session = CoachSession(**kwargs, agent_port=port)
+        session.runtime.last_spans = [span]
+        session.runtime.current_check = check
+        sessions.append(session)
+        return session
+
+    case = GoldenCase(
+        case_id="happy_real_session",
+        query_type="happy",
+        concept="attention",
+        expected_citation_span_id="note::0",
+        expected_next_action="advance",
+        expected_tools=[],
+        refusal_expected=False,
+        split="seed",
+        cloud_safe=False,
+        source_ref="scenario:i:000",
+        expected_check_keywords=["golden label only"],
+    )
+
+    row = score_golden_case(
+        settings=fake_settings,
+        foundation=fake_foundation,
+        case=case,
+        scenario_index={"i:000": "what is attention"},
+        session_factory=session_factory,
+    )
+
+    assert sessions[0].runtime.last_grade is not None
+    assert sessions[0].runtime.last_grade.correct is True
+    assert row["actual_next_action"] == "advance"
+    assert row["task_completion_pass"] is True
+    assert row["input_tokens"] == 12
+    assert row["total_tokens"] == 18
+    assert all(latency > 0.0 for latency in row["turn_latencies_ms"])
