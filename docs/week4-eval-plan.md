@@ -104,17 +104,23 @@ plus a human verdict:
 10 entries in `eval/non_private_negative_controls.json` (out-of-domain → adversarial/refusal cases).
 **The frozen private `test` split stays in the existing manifest + private-files form** (`eval/split_manifest.json`,
 no inline question text) and is **excluded from LangSmith and RAGAS**. Only rows that pass the
-**cloud-safe rule** (defined below) carry inline text and upload to a LangSmith dataset. Everything is versioned (bump `split_manifest.json` `version`) and
-tagged for baseline vs re-eval. Expansion touches **seed/dev only** — the `test` split is never grown or
-edited here.
+**cloud-safe rule** (defined below) carry inline text and upload to a LangSmith dataset. Everything is
+versioned and tagged for baseline vs re-eval — but the version bump records **seed/dev or golden-row
+growth only**. Expansion touches **seed/dev only**: the frozen `test` entries and their checksums in
+`eval/split_manifest.json` stay **byte-stable**, so a `version` bump never means a `test`-split edit. If
+golden/dev versioning ever needs to move independently, split it into a separate golden manifest rather
+than rewriting the `test` rows.
 
 ## LangSmith + RAGAS playbook (scoped)
 
 - **Project:** `genacademy-coach-week4-eval`, default-private LangSmith workspace.
 - **Env vars:** `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT` (the same trio already
   documented in `specs/tech-stack.md`).
-- **Masking on:** enable input/output masking (`hide_inputs` / `hide_outputs` / anonymizer) and a short
-  **retention TTL** for any run that could brush real text.
+- **Masking on (defense-in-depth):** enable input/output masking (`hide_inputs` / `hide_outputs` /
+  anonymizer) and a short **retention TTL** on the cloud-safe rows that do get traced. This is
+  belt-and-suspenders, **not** permission to trace borderline rows: any run that could include real
+  learner text or private-corpus spans is **never traced at all** — it runs local-only per the
+  cloud-safe rule and AD-12. Masking protects against mislabeling, it does not widen what may be sent.
 - **Cloud-safe rule (what `cloud_safe=true` is allowed to mean).** A row is cloud-safe **only if** it
   contains **none** of: verbatim private course-corpus spans, real learner questions, raw generated tutor
   prose, or close paraphrases of any private material. "Corpus-derived" alone is **not** sufficient — a

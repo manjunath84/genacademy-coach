@@ -90,7 +90,7 @@ coverage cell points at a real test or eval.
 
 | Failure | Detection signal | Diagnostic fields | Fallback / user state | Coverage |
 |---|---|---|---|---|
-| Structured-output / schema violation | Pydantic parse/validation error on decision payload | `reason_code=schema_invalid`, raw model output, schema version | `refuse_escalate`; user sees "Coach hit an internal snag, escalating" | fake-agent schema-violation test |
+| Structured-output / schema violation | Pydantic parse/validation error on decision payload | `reason_code=schema_invalid`, redacted model-output excerpt (local-only), schema version | `refuse_escalate`; user sees "Coach hit an internal snag, escalating" | fake-agent schema-violation test |
 | Malformed or invalid agent action | Action not in allowed enum / missing required args | `reason_code=invalid_action`, attempted action, allowed set | `stop`; user sees invalid-agent-decision state | fake-agent invalid-action test |
 | Tool retry failure | Retries exhausted (count == max) | `reason_code=tool_retry_exhausted`, tool name, attempts, last error | `refuse_escalate`; transient-error state | tool-retry test (forced failures) |
 | Tool timeout | Tool call exceeds per-tool deadline | `reason_code=tool_timeout`, tool name, elapsed ms, budget | `refuse_escalate`; transient-error state | tool-timeout test |
@@ -105,6 +105,11 @@ coverage cell points at a real test or eval.
 | Non-deterministic decision behavior | Same input yields differing decisions at temp 0 | `reason_code=nondeterministic`, input hash, decisions seen | `stop`; treat as bug, not learner-facing | decision-determinism test (temp 0 invariant) |
 | Rate / cost limit reached | Per-user request/token/cost cap exceeded | `reason_code=rate_or_cost_limit`, limit type, usage, cap | refuse new work; user sees rate/cost-limit state | rate/cost-cap test |
 | Expired session | Session TTL elapsed on request | `reason_code=session_expired`, session ID, TTL | re-auth/resume prompt; user sees expired-session state | session-TTL test |
+
+**Diagnostic fields obey the privacy boundary.** Any field that could carry raw learner text, a raw
+query/claim, or generated tutor prose (e.g. the model-output excerpt, `query`, `claim`, `grader input`)
+is stored redacted or as a hash, kept local-only, TTL-bound, and is never committed or uploaded. The
+taxonomy describes what a diagnostic record captures on the local harness, not what leaves the machine.
 
 User-facing states must distinguish provider timeout, empty retrieval, low confidence, expired session,
 invalid agent decision, and rate/cost limit reached.

@@ -20,8 +20,8 @@ class-balanced golden set, score every quality metric as precision/recall/F1 **p
 cost/latency, cross-check on the cloud-safe subset with pinned RAGAS + a calibrated LLM-judge, then
 baseline → error-analysis loop → 3–4 improvements → measured delta. LangSmith is adopted **scoped**
 (cloud-safe rows + masking; the frozen `test` split stays local) per `docs/decisions.md` AD-12. The
-existing local harness (`scripts/eval_teach_loop.py`, `split_eval.py`, negative controls) is reused, not
-rebuilt.
+existing local harness (`scripts/eval_teach_loop.py`, `scripts/split_eval.py`, negative controls) is
+reused, not rebuilt.
 
 **Deferred until Week 4 ships (not dropped):** the production-hardening track beyond the in-flight doc
 fixes (`docs/production-roadmap.md`), the public-safe deployment decision (below), and the Future

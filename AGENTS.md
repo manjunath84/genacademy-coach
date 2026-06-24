@@ -137,7 +137,7 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
   board, the option scorecards, and the improvements ledger — the long-form trail behind
   `docs/decisions.md`. Historical `D##` labels live only in that archive; settled decisions in this
-  repo are `AD-1` through `AD-11`.
+  repo are `AD-1` through `AD-12`.
 
 ### Optional local-only context
 
