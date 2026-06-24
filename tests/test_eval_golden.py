@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -79,3 +80,20 @@ def test_loader_reads_jsonl(tmp_path):
     p = tmp_path / "g.jsonl"
     p.write_text(json.dumps(_row()) + "\n" + json.dumps(_row(case_id="happy_002")) + "\n")
     assert [c.case_id for c in load_golden_cases(p)] == ["happy_001", "happy_002"]
+
+
+def test_negative_controls_match_golden_negative_control_rows():
+    repo_root = Path(__file__).resolve().parents[1]
+    controls = json.loads(
+        (repo_root / "eval" / "non_private_negative_controls.json").read_text(encoding="utf-8")
+    )
+    golden = load_golden_cases(repo_root / "eval" / "golden" / "golden_cases.jsonl")
+
+    control_queries = {row["query"] for row in controls}
+    golden_queries = {
+        case.user_query
+        for case in golden
+        if case.split == "negative_control" and case.user_query is not None
+    }
+
+    assert golden_queries == control_queries
