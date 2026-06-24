@@ -16,8 +16,59 @@ SCAN_GLOBS = [
     "scripts/**/*.py",
 ]
 
+GOLDEN_INLINE_FIELDS = ("user_query", "initial_wrong_answer", "expected_answer", "answer_text")
+
+
 def normalized_text(text: str) -> str:
     return " ".join(normalized_words(text))
+
+
+def scan_golden_cases(
+    path: Path,
+    *,
+    test_needles: set[str],
+    test_phrases: dict[str, list[dict[str, str]]],
+) -> list[str]:
+    if not path.exists():
+        return []
+
+    offenders: list[str] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        case_id = str(row.get("case_id") or f"line {line_number}")
+        prefix = f"{path}:{line_number} {case_id}"
+
+        if row.get("split") == "test":
+            offenders.append(f"{prefix} uses forbidden test split")
+
+        cloud_safe = bool(row.get("cloud_safe"))
+        inline_values = [
+            str(row.get(field) or "")
+            for field in GOLDEN_INLINE_FIELDS
+            if row.get(field)
+        ]
+        inline_text = "\n".join(inline_values)
+
+        if cloud_safe and not str(row.get("cloud_safe_reason") or "").strip():
+            offenders.append(f"{prefix} cloud_safe=true requires cloud_safe_reason")
+        if not cloud_safe and inline_text:
+            offenders.append(f"{prefix} cloud_safe=false carries inline text")
+
+        for needle in test_needles:
+            if needle and needle in inline_text:
+                offenders.append(f"{prefix} inline text contains test needle {needle}")
+
+        normalized = normalized_text(inline_text)
+        for phrase, matches in test_phrases.items():
+            if phrase and phrase in normalized:
+                phrase_refs = ", ".join(
+                    f"{match['source_file']}:{match['phrase_hash']}" for match in matches
+                )
+                offenders.append(f"{prefix} matched eval phrase {phrase_refs}")
+
+    return offenders
 
 
 def iter_committed_scan_texts(settings: CoachSettings) -> Iterator[tuple[Path, str]]:
@@ -50,6 +101,13 @@ def main() -> None:
         eval_phrase_sources.append((item["source_file"], read_eval_text(eval_path)))
     test_phrase_hashes = phrase_hashes(eval_phrase_sources)
     scan_texts = list(iter_committed_scan_texts(settings))
+    offenders.extend(
+        scan_golden_cases(
+            settings.eval_dir / "golden" / "golden_cases.jsonl",
+            test_needles=needles,
+            test_phrases=test_phrase_hashes,
+        )
+    )
 
     # This direct scan is deliberately simple and adequate for current corpus size. If the corpus
     # grows to thousands of files, replace it with trie/Aho-Corasick matching before making
