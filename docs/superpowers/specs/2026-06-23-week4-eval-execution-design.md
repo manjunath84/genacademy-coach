@@ -94,13 +94,21 @@ harness alone.
   citation-resolution check in `grounding.py`), `tool_match(actual, expected)` (trajectory
   correctness), `recall_at_k(ranked_ids, expected_id, k=5)`, `refusal_correct(...)` confusion
   contributors, `aggregate(rows)` (per-metric P/R/F1 + latency p50/p95 + cost via `PriceTable`).
-- `scripts/run_golden_eval.py` (thin orchestration): loads `golden_cases.jsonl`, runs each case
-  through `CoachSession` (reusing the `scripts/eval_teach_loop.py` scenario-running pattern), applies
-  the deterministic grounded grader from `grounding.py` (the **gate**) + `eval_metrics.py`, writes
+- `src/genacademy_coach/eval_runner.py` (**core**, importable/testable — `scripts/` is not on the
+  import path) holds `score_golden_case` / `run_golden_eval`; `scripts/run_golden_eval.py` is a thin
+  CLI over it. The runner reuses the `eval_teach_loop` 3-turn pattern, applies the grounded grader from
+  `grounding.py` as the per-turn correctness signal + `eval_metrics.py`, and writes
   `eval/runs/golden-<tag>-<date>.json` (redacted per `cloud_safe`).
-- **Do not bloat `scripts/eval_teach_loop.py`** (keep it for legacy dev pass/fail diagnostics); import
-  its helpers where useful. recall@5 is measured on the raw `foundation.retrieve()` ranking **before**
-  the `require_citeable_spans` threshold filter, so it reflects true top-5 recall.
+- **Per-case golden gate = `task_completion_pass = (final_next_action == expected_next_action) and
+  (refusal_expected or grade_correct)`** — anchored on the golden `expected_next_action`, with the
+  grounded grader's `grade_correct` for teachable cases (not a runtime-generated check).
+- **Real seed/dev rows are `cloud_safe=false`** (real learner questions): their query text is resolved
+  locally at run time via `resolve_query` over the scenario loaders, and redacted from artifacts. The
+  scenario loaders (`load_scenarios` etc.) move from `scripts/eval_teach_loop.py` into a core
+  `eval_scenarios.py` so both the legacy script and the runner import them.
+- **Do not bloat `scripts/eval_teach_loop.py`** (keep it for legacy dev pass/fail diagnostics).
+  recall@5 is measured on the raw `foundation.retrieve()` ranking **before** the
+  `require_citeable_spans` threshold filter, so it reflects true top-5 recall.
 
 **Guardrail check:** metrics in core (pure, testable, no web imports); pricing centralized; the
 deterministic grader stays the gate; reuses `grounding.py` + the existing scenario pattern (no new
