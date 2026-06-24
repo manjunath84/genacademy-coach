@@ -27,21 +27,19 @@ def citation_prf(
     return precision_recall_f1(tp=tp, fp=fp, fn=fn)
 
 
-def tool_match(actual: list[str], expected: list[str]) -> dict[str, float | bool]:
+def tool_match(actual: list[str], expected: list[str]) -> dict[str, float]:
+    # Tool coverage is scored over the *set* of unique tools, not the per-call multiset:
+    # the runner flattens tool calls across all turns, so repeated/retried calls would
+    # otherwise read as false positives. Sequence order is not scored.
     actual_set = set(actual)
     expected_set = set(expected)
     if not actual_set and not expected_set:
-        return {"precision": 1.0, "recall": 1.0, "f1": 1.0, "ordered_ok": True}
+        return {"precision": 1.0, "recall": 1.0, "f1": 1.0}
     tp = len(actual_set & expected_set)
     fp = len(actual_set - expected_set)
     fn = len(expected_set - actual_set)
     precision, recall, f1 = precision_recall_f1(tp=tp, fp=fp, fn=fn)
-    return {
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "ordered_ok": actual == expected,
-    }
+    return {"precision": precision, "recall": recall, "f1": f1}
 
 
 def recall_at_k(ranked_ids: list[str], expected_id: str | None, *, k: int = 5) -> bool:
@@ -86,10 +84,16 @@ def _prf_dict(tp: int, fp: int, fn: int) -> dict[str, float]:
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
+def _pass_rate(rows: list[dict[str, Any]]) -> dict[str, float | int]:
+    passed = sum(1 for row in rows if row.get("task_completion_pass") is True)
+    failed = sum(1 for row in rows if row.get("task_completion_pass") is False)
+    total = passed + failed
+    return {"pass_rate": passed / total if total else 0.0, "passed": passed, "n": total}
+
+
 def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[str, Any]:
-    task_tp = sum(1 for row in rows if row.get("task_completion_pass") is True)
-    task_fn = sum(1 for row in rows if row.get("task_completion_pass") is False)
     teachable = [row for row in rows if not row.get("refusal_expected")]
+    refusal_rows = [row for row in rows if row.get("refusal_expected")]
 
     refusal_counts = Counter(str(row.get("refusal_outcome", "tn")) for row in rows)
     latencies = sorted(
@@ -129,7 +133,6 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         if "retrieval_recall_at_5" in row
     ]
 
-    task_total = task_tp + task_fn
     return {
         "n": len(rows),
         "class_balance": dict(
@@ -137,12 +140,14 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         ),
         "segment_counts": {
             "teachable": len(teachable),
-            "refusal_expected": len(rows) - len(teachable),
+            "refusal_expected": len(refusal_rows),
         },
         "task_completion": {
-            "pass_rate": task_tp / task_total if task_total else 0.0,
-            "passed": task_tp,
-            "n": task_total,
+            **_pass_rate(rows),
+            "by_segment": {
+                "teachable": _pass_rate(teachable),
+                "refusal_expected": _pass_rate(refusal_rows),
+            },
         },
         "citation": {
             "precision": _mean(citation_precision or citation_f1),

@@ -21,12 +21,13 @@ def test_citation_prf_sets():
     assert round(p, 2) == 0.5 and r == 1.0
 
 
-def test_tool_match_ordered():
+def test_tool_match_exact_set():
     m = tool_match(
         actual=["retrieve_course_corpus", "grade_understanding"],
         expected=["retrieve_course_corpus", "grade_understanding"],
     )
-    assert m["f1"] == 1.0 and m["ordered_ok"] is True
+    assert m["precision"] == 1.0 and m["recall"] == 1.0 and m["f1"] == 1.0
+    assert "ordered_ok" not in m
 
 
 def test_tool_match_ignores_repeated_actual_calls_for_f1():
@@ -76,7 +77,18 @@ def test_aggregate_computes_p95_across_turns():
         },
     ]
     out = aggregate(rows, price_table=PriceTable(prices={"m": (1e-6, 2e-6)}))
-    assert out["task_completion"] == {"pass_rate": 0.5, "passed": 1, "n": 2}
+    assert out["task_completion"]["pass_rate"] == 0.5
+    assert out["task_completion"]["passed"] == 1 and out["task_completion"]["n"] == 2
+    assert out["task_completion"]["by_segment"]["teachable"] == {
+        "pass_rate": 0.5,
+        "passed": 1,
+        "n": 2,
+    }
+    assert out["task_completion"]["by_segment"]["refusal_expected"] == {
+        "pass_rate": 0.0,
+        "passed": 0,
+        "n": 0,
+    }
     assert "task_completion_f1" not in out
     assert "latency_p95_ms" in out and out["cost_usd"] >= 0.0
 
@@ -112,3 +124,14 @@ def test_aggregate_quality_means_exclude_refusal_controls():
     assert out["citation_f1"] == 0.5
     assert out["tool_f1"] == 0.5
     assert out["retrieval_recall_at_5"] == 1.0
+    assert out["task_completion"]["pass_rate"] == 1.0
+    assert out["task_completion"]["by_segment"]["teachable"] == {
+        "pass_rate": 1.0,
+        "passed": 1,
+        "n": 1,
+    }
+    assert out["task_completion"]["by_segment"]["refusal_expected"] == {
+        "pass_rate": 1.0,
+        "passed": 1,
+        "n": 1,
+    }

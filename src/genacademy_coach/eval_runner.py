@@ -152,7 +152,6 @@ def score_golden_case(
         "tool_precision": float(tool_scores["precision"]),
         "tool_recall": float(tool_scores["recall"]),
         "tool_f1": float(tool_scores["f1"]),
-        "tool_ordered_ok": bool(tool_scores["ordered_ok"]),
         "retrieval_recall_at_5": recall_at_k(
             ranked_ids,
             case.expected_citation_span_id,
