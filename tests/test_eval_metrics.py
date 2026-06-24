@@ -27,6 +27,18 @@ def test_tool_match_ordered():
     assert m["f1"] == 1.0 and m["ordered_ok"] is True
 
 
+def test_tool_match_ignores_repeated_actual_calls_for_f1():
+    m = tool_match(
+        actual=[
+            "retrieve_course_corpus",
+            "retrieve_course_corpus",
+            "grade_understanding",
+        ],
+        expected=["retrieve_course_corpus", "grade_understanding"],
+    )
+    assert m["f1"] == 1.0
+
+
 def test_recall_at_k():
     assert recall_at_k(["x", "y", "z"], "y", k=5) and not recall_at_k(["x", "y", "z"], "q", k=2)
 

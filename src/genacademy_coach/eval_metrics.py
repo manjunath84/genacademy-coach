@@ -28,14 +28,13 @@ def citation_prf(
 
 
 def tool_match(actual: list[str], expected: list[str]) -> dict[str, float | bool]:
-    if not actual and not expected:
+    actual_set = set(actual)
+    expected_set = set(expected)
+    if not actual_set and not expected_set:
         return {"precision": 1.0, "recall": 1.0, "f1": 1.0, "ordered_ok": True}
-    actual_counts = Counter(actual)
-    expected_counts = Counter(expected)
-    overlap = actual_counts & expected_counts
-    tp = sum(overlap.values())
-    fp = sum((actual_counts - expected_counts).values())
-    fn = sum((expected_counts - actual_counts).values())
+    tp = len(actual_set & expected_set)
+    fp = len(actual_set - expected_set)
+    fn = len(expected_set - actual_set)
     precision, recall, f1 = precision_recall_f1(tp=tp, fp=fp, fn=fn)
     return {
         "precision": precision,
