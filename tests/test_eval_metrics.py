@@ -73,7 +73,17 @@ def test_aggregate_computes_p95_across_turns():
         {
             "task_completion_pass": True,
             "refusal_expected": False,
+            "case_id": "case-1",
             "turn_latencies_ms": [10.0, 20.0],
+            "case_latency_ms": 35.0,
+            "tool_call_counts": {
+                "retrieve_course_corpus": 1,
+                "generate_check_item": 1,
+            },
+            "tool_latencies_ms": {
+                "retrieve_course_corpus": 2.0,
+                "generate_check_item": 20.0,
+            },
             "input_tokens": 100,
             "output_tokens": 50,
             "model_id": "m",
@@ -81,7 +91,10 @@ def test_aggregate_computes_p95_across_turns():
         {
             "task_completion_pass": False,
             "refusal_expected": False,
+            "case_id": "case-2",
             "turn_latencies_ms": [30.0],
+            "tool_call_counts": {"retrieve_course_corpus": 2},
+            "tool_latencies_ms": {"retrieve_course_corpus": 5.0},
             "input_tokens": 0,
             "output_tokens": 0,
             "model_id": "m",
@@ -102,6 +115,24 @@ def test_aggregate_computes_p95_across_turns():
     }
     assert "task_completion_f1" not in out
     assert "latency_p95_ms" in out and out["cost_usd"] >= 0.0
+    assert out["latency_p95_ms"] == 30.0
+    assert out["turn_latency_p95_ms"] == 30.0
+    assert out["case_latency_p50_ms"] == 30.0
+    assert out["case_latency_p95_ms"] == 35.0
+    assert out["avg_tool_calls_per_case"] == 2.0
+    assert out["tool_call_counts"] == {
+        "generate_check_item": 1,
+        "retrieve_course_corpus": 3,
+    }
+    assert out["total_tool_latencies_ms"] == {
+        "generate_check_item": 20.0,
+        "retrieve_course_corpus": 7.0,
+    }
+    assert out["max_repeated_tool_count"] == 2
+    assert out["max_repeated_tool_count_by_case"] == {
+        "case-1": 1,
+        "case-2": 2,
+    }
 
 
 def test_aggregate_quality_means_exclude_refusal_controls():

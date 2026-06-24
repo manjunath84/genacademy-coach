@@ -111,3 +111,6 @@ def test_trace_turn_token_latency_defaults():
         tool_calls=[],
     )
     assert (t.input_tokens, t.output_tokens, t.total_tokens, t.latency_ms) == (0, 0, 0, 0.0)
+    assert t.agent_latency_ms == 0.0
+    assert t.tool_latencies_ms == {}
+    assert t.tool_call_counts == {}

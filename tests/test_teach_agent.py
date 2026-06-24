@@ -1,5 +1,6 @@
 from genacademy_coach.teach_agent import (
     DEFAULT_NEBIUS_MODEL,
+    PER_TOOL_CALL_RUN_LIMITS,
     SYSTEM_PROMPT,
     build_coach_agent,
     build_langchain_model,
@@ -24,6 +25,11 @@ def test_system_prompt_requires_grounding_and_trace_action():
     assert "do not return confidence" in SYSTEM_PROMPT.lower()
     assert "correct=false" in SYSTEM_PROMPT
     assert "[citation_id]" in SYSTEM_PROMPT
+    assert "preferred_for_check=true" in SYSTEM_PROMPT
+    assert "prefer slide or handout" in SYSTEM_PROMPT.lower()
+    assert "retrieve_course_corpus at most once" in SYSTEM_PROMPT
+    assert "generate_check_item_for_span at most once" in SYSTEM_PROMPT
+    assert "escalate_to_mentor at most once" in SYSTEM_PROMPT
 
 
 def test_build_langchain_model_uses_week2_generation_settings():
@@ -61,4 +67,16 @@ def test_build_coach_agent_bounds_model_and_tool_calls(monkeypatch):
     build_coach_agent(object(), model=object())
 
     middleware_names = [type(item).__name__ for item in captured["middleware"]]
-    assert middleware_names == ["ModelCallLimitMiddleware", "ToolCallLimitMiddleware"]
+    assert middleware_names == [
+        "ModelCallLimitMiddleware",
+        "ToolCallLimitMiddleware",
+        "ToolCallLimitMiddleware",
+        "ToolCallLimitMiddleware",
+        "ToolCallLimitMiddleware",
+    ]
+    per_tool_middlewares = captured["middleware"][1:-1]
+    assert {
+        item.tool_name: item.run_limit
+        for item in per_tool_middlewares
+    } == PER_TOOL_CALL_RUN_LIMITS
+    assert captured["middleware"][-1].tool_name is None

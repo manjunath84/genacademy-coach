@@ -108,6 +108,31 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         for row in rows
         for value in row.get("turn_latencies_ms", [])
     )
+    case_latencies = sorted(
+        float(row.get("case_latency_ms") or sum(row.get("turn_latencies_ms", [])))
+        for row in rows
+    )
+    tool_call_counts: Counter[str] = Counter()
+    tool_latencies_ms: dict[str, float] = {}
+    tool_calls_per_case: list[int] = []
+    max_repeated_tool_count_by_case: dict[str, int] = {}
+    for index, row in enumerate(rows):
+        counts = {
+            str(key): int(value)
+            for key, value in (row.get("tool_call_counts") or {}).items()
+        }
+        if not counts:
+            counts = dict(Counter(str(tool) for tool in row.get("actual_tools", [])))
+        latencies_by_tool = {
+            str(key): float(value)
+            for key, value in (row.get("tool_latencies_ms") or {}).items()
+        }
+        case_id = str(row.get("case_id") or f"row-{index}")
+        tool_call_counts.update(counts)
+        for key, value in latencies_by_tool.items():
+            tool_latencies_ms[key] = tool_latencies_ms.get(key, 0.0) + value
+        tool_calls_per_case.append(sum(counts.values()))
+        max_repeated_tool_count_by_case[case_id] = max(counts.values(), default=0)
     input_tokens = sum(int(row.get("input_tokens") or 0) for row in rows)
     output_tokens = sum(int(row.get("output_tokens") or 0) for row in rows)
     total_tokens = sum(
@@ -172,6 +197,20 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         ),
         "latency_p50_ms": _pct(latencies, 0.50),
         "latency_p95_ms": _pct(latencies, 0.95),
+        "turn_latency_p50_ms": _pct(latencies, 0.50),
+        "turn_latency_p95_ms": _pct(latencies, 0.95),
+        "case_latency_p50_ms": _pct(case_latencies, 0.50),
+        "case_latency_p95_ms": _pct(case_latencies, 0.95),
+        "avg_tool_calls_per_case": _mean([float(value) for value in tool_calls_per_case]),
+        "tool_call_counts": dict(sorted(tool_call_counts.items())),
+        "total_tool_latencies_ms": dict(sorted(tool_latencies_ms.items())),
+        "max_repeated_tool_count": max(
+            max_repeated_tool_count_by_case.values(),
+            default=0,
+        ),
+        "max_repeated_tool_count_by_case": dict(
+            sorted(max_repeated_tool_count_by_case.items())
+        ),
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,

@@ -13,6 +13,11 @@ from genacademy_coach.teach_types import CoachAgentResponse
 DEFAULT_NEBIUS_MODEL = "Qwen/Qwen3-30B-A3B-Instruct-2507-fast"
 MODEL_CALL_RUN_LIMIT = 8
 TOOL_CALL_RUN_LIMIT = 12
+PER_TOOL_CALL_RUN_LIMITS = {
+    "retrieve_course_corpus": 2,
+    "generate_check_item_for_span": 2,
+    "escalate_to_mentor": 1,
+}
 
 SYSTEM_PROMPT = """You are GenAcademy Coach, an adaptive grounded course tutor.
 
@@ -27,6 +32,12 @@ Rules:
 - If no retrieved citation supports the topic, call escalate_to_mentor and refuse.
 - Do not answer from model priors.
 - Generate or use one grounded check question before grading understanding.
+- Call retrieve_course_corpus at most once per turn unless the first result has no citeable spans.
+- Call generate_check_item_for_span at most once per turn unless the tool returns an explicit error.
+- Call escalate_to_mentor at most once per turn, then return refuse_escalate immediately.
+- When choosing a span for generate_check_item_for_span, prefer a retrieved row with
+  preferred_for_check=true. If several spans seem relevant, prefer slide or handout rows over
+  glossary, note, or transcript fallback rows.
 - Treat tool-returned retrieval scores as the only evidence score. Do not return confidence.
 - Choose next_action at runtime from: advance, re_explain_differently, drill, refuse_escalate, stop.
 - When grade_understanding returns correct=false, choose re_explain_differently with a strategy that
@@ -55,16 +66,24 @@ def build_langchain_model(foundation: Any) -> ChatOpenAI:
 
 def build_coach_agent(runtime: TeachRuntime, *, model: Any | None = None):
     active_model = model or build_langchain_model(runtime.foundation)
+    middleware: list[Any] = [
+        ModelCallLimitMiddleware(
+            run_limit=MODEL_CALL_RUN_LIMIT,
+            exit_behavior="end",
+        )
+    ]
+    middleware.extend(
+        ToolCallLimitMiddleware(
+            tool_name=tool_name,
+            run_limit=run_limit,
+        )
+        for tool_name, run_limit in PER_TOOL_CALL_RUN_LIMITS.items()
+    )
+    middleware.append(ToolCallLimitMiddleware(run_limit=TOOL_CALL_RUN_LIMIT))
     return create_agent(
         model=active_model,
         tools=build_teach_tools(runtime),
-        middleware=[
-            ModelCallLimitMiddleware(
-                run_limit=MODEL_CALL_RUN_LIMIT,
-                exit_behavior="end",
-            ),
-            ToolCallLimitMiddleware(run_limit=TOOL_CALL_RUN_LIMIT),
-        ],
+        middleware=middleware,
         system_prompt=SYSTEM_PROMPT,
         response_format=ToolStrategy(CoachAgentResponse),
     )

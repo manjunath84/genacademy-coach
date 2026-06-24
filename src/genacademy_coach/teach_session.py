@@ -60,6 +60,14 @@ def _sum_usage(messages: list[Any]) -> TokenUsage:
     return usage
 
 
+def _add_usage(left: TokenUsage, right: TokenUsage) -> TokenUsage:
+    return TokenUsage(
+        input_tokens=left.input_tokens + right.input_tokens,
+        output_tokens=left.output_tokens + right.output_tokens,
+        total_tokens=left.total_tokens + right.total_tokens,
+    )
+
+
 class AgentPort(Protocol):
     last_usage: TokenUsage
 
@@ -87,15 +95,25 @@ class LangChainAgentPort:
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
         self.last_usage = TokenUsage()
-        result = self._agent.invoke({"messages": messages})
-        self.last_usage = _sum_usage(result.get("messages", []))
-        structured = result.get("structured_response")
-        if structured is None:
-            raise AgentResponseError("missing structured_response")
-        try:
-            return CoachAgentResponse.model_validate(structured)
-        except ValidationError as exc:
-            raise AgentResponseError("invalid structured_response") from exc
+        last_error: AgentResponseError | None = None
+        for _attempt in range(2):
+            result = self._agent.invoke({"messages": messages})
+            self.last_usage = _add_usage(
+                self.last_usage,
+                _sum_usage(result.get("messages", [])),
+            )
+            structured = result.get("structured_response")
+            if structured is None:
+                last_error = AgentResponseError("missing structured_response")
+                continue
+            try:
+                return CoachAgentResponse.model_validate(structured)
+            except ValidationError as exc:
+                last_error = AgentResponseError("invalid structured_response")
+                last_error.__cause__ = exc
+        if last_error is None:
+            last_error = AgentResponseError("missing structured_response")
+        raise last_error
 
 
 class CoachSession:
@@ -218,6 +236,7 @@ class CoachSession:
                 )
             finally:
                 latency_ms = (time.perf_counter() - start) * 1000.0
+                self.runtime.agent_latency_ms = latency_ms
         except AgentResponseError:
             if "retrieve_course_corpus" in self.runtime.tool_calls and not self.runtime.last_spans:
                 response = self._refusal_response(
@@ -284,15 +303,18 @@ class CoachSession:
                 retrieved_citation_ids=[span.citation_id for span in self.runtime.last_spans],
                 retrieved_citation_labels=[span.source_label for span in self.runtime.last_spans],
                 tool_calls=list(self.runtime.tool_calls),
+                tool_latencies_ms=dict(self.runtime.tool_latencies_ms),
+                tool_call_counts=dict(self.runtime.tool_call_counts),
                 input_tokens=usage.input_tokens,
                 output_tokens=usage.output_tokens,
                 total_tokens=usage.total_tokens,
                 latency_ms=latency_ms,
+                agent_latency_ms=self.runtime.agent_latency_ms,
             )
         )
         self._last_response = response
         self._last_faithfulness_ok = faithfulness_ok
-        self.runtime.tool_calls.clear()
+        self.runtime.reset_turn_observability()
         self.runtime.escalation_queued = False
         self.runtime.grade_locked = False
         return TeachSessionResult(
@@ -388,12 +410,21 @@ class CoachSession:
                     previous_strategy=previous_strategy,
                     cited_spans=self.runtime.last_spans,
                 )
+        retrieved_by_id = {span.citation_id: span for span in self.runtime.last_spans}
         if (
             self._last_grade_is_correct(answer_grade)
             and self.runtime.last_spans
             and response.next_action in {"refuse_escalate", "stop"}
-            and not self._citations_resolve(response)
         ):
+            if response.citation_ids and set(response.citation_ids).issubset(
+                retrieved_by_id
+            ):
+                return self._grounded_advance_response(
+                    cited_spans=[
+                        retrieved_by_id[citation_id]
+                        for citation_id in response.citation_ids
+                    ]
+                )
             return self._grounded_advance_response(cited_spans=self.runtime.last_spans)
         if response.next_action in {"refuse_escalate", "stop"}:
             return response
@@ -401,6 +432,7 @@ class CoachSession:
             response.next_action == "re_explain_differently"
             and previous_strategy is not None
             and response.strategy == previous_strategy
+            and not self._last_grade_is_correct(answer_grade)
         ):
             return self._refusal_response(
                 "agent chose re_explain_differently without changing strategy",
@@ -417,11 +449,15 @@ class CoachSession:
                 "I could not verify the check question against a retrieved course span, so I am "
                 "escalating this instead of asking it.",
             )
-        retrieved_by_id = {span.citation_id: span for span in self.runtime.last_spans}
         retrieved_ids = set(retrieved_by_id)
         if response.citation_ids and set(response.citation_ids).issubset(retrieved_ids):
             response = self._ensure_visible_citations(response)
             cited_spans = [retrieved_by_id[citation_id] for citation_id in response.citation_ids]
+            if (
+                self._last_grade_is_correct(answer_grade)
+                and response.next_action in {"drill", "re_explain_differently"}
+            ):
+                return self._grounded_advance_response(cited_spans=cited_spans)
             if answer_grounded_in_spans(response.learner_message, cited_spans):
                 return response
             if self._last_grade_is_incorrect(answer_grade):

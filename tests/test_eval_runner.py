@@ -1,9 +1,16 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from genacademy_coach.eval_golden import GoldenCase
-from genacademy_coach.eval_runner import resolve_query, score_golden_case
+from genacademy_coach.eval_metrics import PriceTable
+from genacademy_coach.eval_runner import (
+    anchor_counterfactual,
+    resolve_query,
+    run_golden_eval,
+    score_golden_case,
+)
 from genacademy_coach.teach_session import (
     STRUCTURED_OUTPUT_FAILURE_REASON,
     CoachSession,
@@ -53,6 +60,7 @@ class FakeSession:
 
     def _write(self, response: CoachAgentResponse, tool_calls: list[str]):
         self._turn += 1
+        tool_call_counts = {tool: tool_calls.count(tool) for tool in set(tool_calls)}
         path = TraceWriter(self.settings.trace_dir).append(
             TraceTurn(
                 session_id=self.session_id,
@@ -65,10 +73,13 @@ class FakeSession:
                 evidence_band="proceed",
                 retrieved_citation_ids=["note::0"],
                 tool_calls=tool_calls,
+                tool_call_counts=tool_call_counts,
+                tool_latencies_ms={tool: float(count) for tool, count in tool_call_counts.items()},
                 input_tokens=10,
                 output_tokens=5,
                 total_tokens=15,
                 latency_ms=25.0,
+                agent_latency_ms=25.0,
             )
         )
         return SimpleNamespace(response=response, trace_path=str(path))
@@ -213,6 +224,11 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
         "retrieval_recall_at_5",
         "refusal_outcome",
         "turn_latencies_ms",
+        "case_latency_ms",
+        "turn_tool_latencies_ms",
+        "turn_tool_call_counts",
+        "tool_latencies_ms",
+        "tool_call_counts",
         "input_tokens",
         "output_tokens",
         "model_id",
@@ -220,6 +236,63 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
         assert k in row
     assert row["task_completion_pass"] is True
     assert "user_query" not in row and "answer_text" not in row
+    assert row["predicted_citation_ids"] == ["note::0"]
+    assert row["answered_check_id"] == "note::0"
+    assert row["post_final_check_id"] == "note::0"
+    assert row["boundary_grade_citation_id"] == "note::0"
+    assert row["anchor_present_in_final_retrieved"] is True
+    assert row["decision_source"] == "agent"
+    assert row["refusal_reason_code"] is None
+    assert "golden-happy_001" in row["final_trace_path"]
+    assert row["case_latency_ms"] == 75.0
+    assert row["tool_call_counts"] == {
+        "generate_check_item": 1,
+        "grade_understanding": 2,
+        "retrieve_course_corpus": 1,
+        "update_profile": 2,
+    }
+    assert row["tool_latencies_ms"] == {
+        "generate_check_item": 1.0,
+        "grade_understanding": 2.0,
+        "retrieve_course_corpus": 1.0,
+        "update_profile": 2.0,
+    }
+
+
+def test_score_golden_case_observability_fields_do_not_leak_non_cloud_safe_text(
+    fake_settings,
+    fake_foundation,
+):
+    private_query = "PRIVATE RAW LEARNER QUESTION"
+    case = GoldenCase(
+        case_id="happy_private",
+        query_type="happy",
+        concept="tokenization",
+        expected_citation_span_id="note::0",
+        expected_next_action="advance",
+        expected_tools=[],
+        refusal_expected=False,
+        split="seed",
+        cloud_safe=False,
+        source_ref="scenario:i:000",
+        expected_check_keywords=["token"],
+    )
+
+    row = score_golden_case(
+        settings=fake_settings,
+        foundation=fake_foundation,
+        case=case,
+        scenario_index={"i:000": private_query},
+        session_factory=FakeSession,
+    )
+
+    serialized = str(row)
+    assert private_query not in serialized
+    assert "user_query" not in row
+    assert "answer_text" not in row
+    assert isinstance(row["case_latency_ms"], float)
+    assert all(isinstance(value, float) for value in row["tool_latencies_ms"].values())
+    assert all(isinstance(value, int) for value in row["tool_call_counts"].values())
 
 
 def test_score_golden_case_emits_inline_text_for_cloud_safe_row(fake_settings, fake_foundation):
@@ -281,6 +354,7 @@ def test_score_golden_case_marks_infra_failure_refusal_as_excluded(
 
     assert row["actual_next_action"] == "refuse_escalate"
     assert row["refusal_outcome"] == "infra_error"
+    assert row["refusal_reason_code"] == "structured_output_failure"
     assert row["task_completion_pass"] is None
 
 
@@ -365,3 +439,135 @@ def test_score_golden_case_real_session_answers_generated_check(
     assert row["input_tokens"] == 12
     assert row["total_tokens"] == 18
     assert all(latency > 0.0 for latency in row["turn_latencies_ms"])
+
+
+def test_score_golden_case_uses_run_id_in_trace_path(fake_settings, fake_foundation):
+    case = GoldenCase(
+        case_id="happy_001",
+        query_type="happy",
+        concept="tokenization",
+        expected_citation_span_id="note::0",
+        expected_next_action="advance",
+        expected_tools=[],
+        refusal_expected=False,
+        split="seed",
+        cloud_safe=False,
+        source_ref="scenario:i:000",
+        expected_check_keywords=["token"],
+    )
+
+    row = score_golden_case(
+        settings=fake_settings,
+        foundation=fake_foundation,
+        case=case,
+        scenario_index={"i:000": "what is a token"},
+        run_id="baseline-r1",
+        session_factory=FakeSession,
+    )
+
+    assert "golden-baseline-r1-happy_001" in row["final_trace_path"]
+
+
+def test_anchor_counterfactual_reports_lifts_regressions_and_blind_spots():
+    rows = [
+        {
+            "case_id": "lift",
+            "refusal_expected": False,
+            "expected_citation_span_id": "gold",
+            "predicted_citation_ids": ["other"],
+            "answered_check_id": "gold",
+            "anchor_present_in_final_retrieved": True,
+            "decision_source": "python safety gate",
+        },
+        {
+            "case_id": "regress",
+            "refusal_expected": False,
+            "expected_citation_span_id": "gold",
+            "predicted_citation_ids": ["gold"],
+            "answered_check_id": "other",
+            "anchor_present_in_final_retrieved": True,
+            "decision_source": "agent",
+        },
+        {
+            "case_id": "blind",
+            "refusal_expected": False,
+            "expected_citation_span_id": "gold",
+            "predicted_citation_ids": ["other"],
+            "answered_check_id": "gold",
+            "anchor_present_in_final_retrieved": False,
+            "decision_source": "python safety gate",
+        },
+        {
+            "case_id": "refusal",
+            "refusal_expected": True,
+            "expected_citation_span_id": None,
+            "predicted_citation_ids": [],
+        },
+    ]
+
+    report = anchor_counterfactual(rows)
+
+    assert report["teachable_n"] == 3
+    assert report["fallback_eligible_n"] == 1
+    assert report["lift_case_ids"] == ["lift"]
+    assert report["fallback_lift_case_ids"] == ["lift"]
+    assert report["regression_case_ids"] == ["regress"]
+    assert report["blind_spot_case_ids"] == ["blind"]
+
+
+def test_run_golden_eval_uses_run_id_and_records_dataset_metadata(
+    tmp_path,
+    fake_foundation,
+    monkeypatch,
+):
+    from genacademy_coach import eval_runner
+
+    settings = SimpleNamespace(
+        eval_dir=tmp_path / "eval",
+        trace_dir=tmp_path / "traces",
+        review_queue_path=tmp_path / "review_queue.jsonl",
+        stop_threshold=0.40,
+        confirm_threshold=0.85,
+        max_teach_turns=4,
+    )
+    (settings.eval_dir / "golden").mkdir(parents=True)
+    manifest_path = settings.eval_dir / "golden" / "golden_manifest.json"
+    manifest_path.write_text('{"version":"v1"}\n', encoding="utf-8")
+    cases_path = settings.eval_dir / "golden" / "golden_cases.jsonl"
+    cases_path.write_text('{"case_id":"placeholder"}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        eval_runner,
+        "_scenario_index",
+        lambda _settings: {"i:000": "what is a token"},
+    )
+    case = GoldenCase(
+        case_id="happy_001",
+        query_type="happy",
+        concept="tokenization",
+        expected_citation_span_id="note::0",
+        expected_next_action="advance",
+        expected_tools=[],
+        refusal_expected=False,
+        split="seed",
+        cloud_safe=False,
+        source_ref="scenario:i:000",
+        expected_check_keywords=["token"],
+    )
+
+    result = run_golden_eval(
+        settings=settings,
+        foundation=fake_foundation,
+        cases=[case],
+        tag="baseline",
+        run_id="baseline-r1",
+        price_table=PriceTable(prices={}),
+        golden_cases_path=cases_path,
+        session_factory=FakeSession,
+    )
+
+    assert "baseline-r1" in result["output_path"]
+    assert result["run_id"] == "baseline-r1"
+    assert result["golden_manifest_version"] == "v1"
+    assert result["golden_cases_sha256"]
+    assert result["rows"][0]["final_trace_path"].endswith("golden-baseline-r1-happy_001.jsonl")
+    assert Path(result["output_path"]).exists()
