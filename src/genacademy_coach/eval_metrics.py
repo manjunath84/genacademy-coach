@@ -98,6 +98,18 @@ def _pass_rate(rows: list[dict[str, Any]]) -> dict[str, float | int]:
     return {"pass_rate": passed / total if total else 0.0, "passed": passed, "n": total}
 
 
+def _max_within_turn_tool_count(row: dict[str, Any], fallback_counts: dict[str, int]) -> int:
+    turn_counts = row.get("turn_tool_call_counts") or []
+    if not turn_counts:
+        return max(fallback_counts.values(), default=0)
+    max_count = 0
+    for counts in turn_counts:
+        if not isinstance(counts, dict):
+            continue
+        max_count = max(max_count, max((int(value) for value in counts.values()), default=0))
+    return max_count
+
+
 def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[str, Any]:
     teachable = [row for row in rows if not row.get("refusal_expected")]
     refusal_rows = [row for row in rows if row.get("refusal_expected")]
@@ -115,6 +127,8 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
     tool_call_counts: Counter[str] = Counter()
     tool_latencies_ms: dict[str, float] = {}
     tool_calls_per_case: list[int] = []
+    agent_attempts = 0
+    retrieval_cache_hits = 0
     max_repeated_tool_count_by_case: dict[str, int] = {}
     for index, row in enumerate(rows):
         counts = {
@@ -132,7 +146,12 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         for key, value in latencies_by_tool.items():
             tool_latencies_ms[key] = tool_latencies_ms.get(key, 0.0) + value
         tool_calls_per_case.append(sum(counts.values()))
-        max_repeated_tool_count_by_case[case_id] = max(counts.values(), default=0)
+        agent_attempts += int(row.get("agent_attempts") or 0)
+        retrieval_cache_hits += int(row.get("retrieval_cache_hits") or 0)
+        max_repeated_tool_count_by_case[case_id] = _max_within_turn_tool_count(
+            row,
+            counts,
+        )
     input_tokens = sum(int(row.get("input_tokens") or 0) for row in rows)
     output_tokens = sum(int(row.get("output_tokens") or 0) for row in rows)
     total_tokens = sum(
@@ -202,6 +221,8 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         "case_latency_p50_ms": _pct(case_latencies, 0.50),
         "case_latency_p95_ms": _pct(case_latencies, 0.95),
         "avg_tool_calls_per_case": _mean([float(value) for value in tool_calls_per_case]),
+        "agent_attempts": agent_attempts,
+        "retrieval_cache_hits": retrieval_cache_hits,
         "tool_call_counts": dict(sorted(tool_call_counts.items())),
         "total_tool_latencies_ms": dict(sorted(tool_latencies_ms.items())),
         "max_repeated_tool_count": max(

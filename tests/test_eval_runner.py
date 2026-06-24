@@ -80,6 +80,8 @@ class FakeSession:
                 total_tokens=15,
                 latency_ms=25.0,
                 agent_latency_ms=25.0,
+                agent_attempts=1,
+                retrieval_cache_hits=0,
             )
         )
         return SimpleNamespace(response=response, trace_path=str(path))
@@ -225,6 +227,10 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
         "refusal_outcome",
         "turn_latencies_ms",
         "case_latency_ms",
+        "turn_agent_attempts",
+        "agent_attempts",
+        "turn_retrieval_cache_hits",
+        "retrieval_cache_hits",
         "turn_tool_latencies_ms",
         "turn_tool_call_counts",
         "tool_latencies_ms",
@@ -245,6 +251,10 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
     assert row["refusal_reason_code"] is None
     assert "golden-happy_001" in row["final_trace_path"]
     assert row["case_latency_ms"] == 75.0
+    assert row["turn_agent_attempts"] == [1, 1, 1]
+    assert row["agent_attempts"] == 3
+    assert row["turn_retrieval_cache_hits"] == [0, 0, 0]
+    assert row["retrieval_cache_hits"] == 0
     assert row["tool_call_counts"] == {
         "generate_check_item": 1,
         "grade_understanding": 2,

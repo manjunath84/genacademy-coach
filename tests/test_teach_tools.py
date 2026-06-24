@@ -192,6 +192,11 @@ def test_retrieve_tool_reuses_current_turn_citeable_spans_without_second_foundat
     assert active_runtime.last_spans[0].citation_id == "note/attention::0"
     assert active_runtime.foundation.calls == 1
     assert active_runtime.tool_call_counts == {"retrieve_course_corpus": 2}
+    assert active_runtime.retrieval_cache_hits == 1
+
+    active_runtime.reset_turn_observability()
+
+    assert active_runtime.retrieval_cache_hits == 0
 
 
 def test_retrieve_tool_allows_second_lookup_when_first_lookup_has_no_citeable_spans(

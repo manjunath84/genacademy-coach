@@ -159,9 +159,13 @@ def test_session_trace_records_redacted_tool_observability_and_resets_turn(tmp_p
     assert rows[0].tool_call_counts == {"retrieve_course_corpus": 1}
     assert rows[0].tool_latencies_ms == {"retrieve_course_corpus": 12.5}
     assert rows[0].agent_latency_ms > 0.0
+    assert rows[0].agent_attempts == 1
+    assert rows[0].retrieval_cache_hits == 0
     assert session.runtime.tool_calls == []
     assert session.runtime.tool_call_counts == {}
     assert session.runtime.tool_latencies_ms == {}
+    assert session.runtime.agent_attempts == 0
+    assert session.runtime.retrieval_cache_hits == 0
 
 
 def test_teach_trace_contains_hashes_and_no_raw_private_text(tmp_path):
@@ -981,6 +985,7 @@ def test_langchain_agent_port_validates_structured_response():
 
     assert response.next_action == "advance"
     assert response.strategy == "summary"
+    assert port.last_attempts == 1
 
 
 def test_langchain_agent_port_retries_missing_structured_response_once():
@@ -1016,6 +1021,7 @@ def test_langchain_agent_port_retries_missing_structured_response_once():
     assert fake_agent.calls == 2
     assert response.next_action == "advance"
     assert port.last_usage == TokenUsage(input_tokens=6, output_tokens=4, total_tokens=10)
+    assert port.last_attempts == 2
 
 
 def test_langchain_agent_port_retries_invalid_structured_response_once():
@@ -1046,6 +1052,7 @@ def test_langchain_agent_port_retries_invalid_structured_response_once():
 
     assert fake_agent.calls == 2
     assert response.next_action == "advance"
+    assert port.last_attempts == 2
 
 
 def test_langchain_agent_port_rejects_missing_structured_response():
@@ -1065,6 +1072,7 @@ def test_langchain_agent_port_rejects_missing_structured_response():
     with pytest.raises(AgentResponseError, match="missing structured_response"):
         port.invoke([{"role": "user", "content": "hello"}])
     assert fake_agent.calls == 2
+    assert port.last_attempts == 2
 
 
 def test_langchain_agent_port_rejects_invalid_structured_response():
@@ -1084,6 +1092,7 @@ def test_langchain_agent_port_rejects_invalid_structured_response():
     with pytest.raises(AgentResponseError, match="invalid structured_response"):
         port.invoke([{"role": "user", "content": "hello"}])
     assert fake_agent.calls == 2
+    assert port.last_attempts == 2
 
 
 def test_session_stops_at_turn_budget_without_agent_call(tmp_path):

@@ -79,8 +79,10 @@ class StaticAgentPort:
         self._responses = list(responses)
         self._initial_count = len(self._responses)
         self.last_usage = TokenUsage()
+        self.last_attempts = 0
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
+        self.last_attempts = 1
         if not self._responses:
             raise AgentResponseError(
                 f"static agent responses exhausted after {self._initial_count} configured turns"
@@ -92,11 +94,14 @@ class LangChainAgentPort:
     def __init__(self, runtime: TeachRuntime, *, model: Any | None = None):
         self._agent = build_coach_agent(runtime, model=model)
         self.last_usage = TokenUsage()
+        self.last_attempts = 0
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
         self.last_usage = TokenUsage()
+        self.last_attempts = 0
         last_error: AgentResponseError | None = None
-        for _attempt in range(2):
+        for attempt_index in range(2):
+            self.last_attempts = attempt_index + 1
             result = self._agent.invoke({"messages": messages})
             self.last_usage = _add_usage(
                 self.last_usage,
@@ -237,6 +242,9 @@ class CoachSession:
             finally:
                 latency_ms = (time.perf_counter() - start) * 1000.0
                 self.runtime.agent_latency_ms = latency_ms
+                self.runtime.agent_attempts = int(
+                    getattr(self.agent_port, "last_attempts", 1)
+                )
         except AgentResponseError:
             if "retrieve_course_corpus" in self.runtime.tool_calls and not self.runtime.last_spans:
                 response = self._refusal_response(
@@ -310,6 +318,8 @@ class CoachSession:
                 total_tokens=usage.total_tokens,
                 latency_ms=latency_ms,
                 agent_latency_ms=self.runtime.agent_latency_ms,
+                agent_attempts=self.runtime.agent_attempts,
+                retrieval_cache_hits=self.runtime.retrieval_cache_hits,
             )
         )
         self._last_response = response

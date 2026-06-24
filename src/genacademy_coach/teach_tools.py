@@ -45,7 +45,9 @@ class TeachRuntime:
     tool_call_counts: dict[str, int] = field(default_factory=dict)
     tool_latencies_ms: dict[str, float] = field(default_factory=dict)
     agent_latency_ms: float = 0.0
+    agent_attempts: int = 0
     turn_retrieval_had_citeable: bool = False
+    retrieval_cache_hits: int = 0
     escalation_queued: bool = False
 
     def record_tool(self, name: str) -> None:
@@ -60,7 +62,9 @@ class TeachRuntime:
         self.tool_call_counts.clear()
         self.tool_latencies_ms.clear()
         self.agent_latency_ms = 0.0
+        self.agent_attempts = 0
         self.turn_retrieval_had_citeable = False
+        self.retrieval_cache_hits = 0
 
     def current_evidence_score(self) -> float:
         return evidence_score(self.last_spans)
@@ -121,6 +125,7 @@ def build_teach_tools(runtime: TeachRuntime):
         started = time.perf_counter()
         try:
             if already_retrieved_this_turn and runtime.turn_retrieval_had_citeable:
+                runtime.retrieval_cache_hits += 1
                 return json.dumps(_retrieval_rows(runtime, runtime.last_spans), sort_keys=True)
             spans = [_span_from_row(row) for row in runtime.foundation.retrieve(query)]
             citeable_spans = require_citeable_spans(
@@ -140,6 +145,8 @@ def build_teach_tools(runtime: TeachRuntime):
     @tool
     def generate_check_item_for_span(citation_id: str) -> str:
         """Generate a short grounded check question for a retrieved citation ID."""
+        # The eval taxonomy records the stable product-level bucket name here;
+        # the registered LangChain tool remains generate_check_item_for_span.
         tool_name = "generate_check_item"
         runtime.record_tool(tool_name)
         started = time.perf_counter()

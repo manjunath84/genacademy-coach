@@ -285,10 +285,13 @@ Submission/package gaps against the handout:
 Implemented on branch `codex/week4-latency-improvements`:
 
 - Redacted latency attribution:
-  - trace rows now carry `agent_latency_ms`, `tool_latencies_ms`, and `tool_call_counts`
+  - trace rows now carry `agent_latency_ms`, `agent_attempts`, `retrieval_cache_hits`,
+    `tool_latencies_ms`, and `tool_call_counts`
   - golden rows now carry `case_latency_ms`, per-turn tool timing/count summaries, and per-case totals
   - aggregate metrics now distinguish legacy turn latency from explicit `turn_latency_*` and
     `case_latency_*`
+  - repeated-tool metrics are computed from within-turn counts, so normal once-per-turn calls across
+    multiple turns do not look like a single-turn loop
 - Loop reduction:
   - LangChain middleware now caps repeated calls for `retrieve_course_corpus`,
     `generate_check_item_for_span`, and `escalate_to_mentor`

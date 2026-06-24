@@ -108,6 +108,8 @@ Implementation requirements:
   - `tool_latencies_ms: dict[str, float]`
   - `tool_call_counts: dict[str, int]`
   - `agent_latency_ms: float`
+  - `agent_attempts: int`
+  - `retrieval_cache_hits: int`
   - `case_latency_ms: float` in eval output/aggregate scope
 - Do not record tool arguments, learner text, retrieved span text, tutor text, or provider payloads.
 - Time these tool buckets:
@@ -121,7 +123,7 @@ Implementation requirements:
   - p50/p95 case latency
   - average tool calls per case
   - total tool time by bucket
-  - max repeated tool count by case
+  - max repeated tool count by case, computed from within-turn counts rather than summed per-case totals
 - Add a submission/reporting note that separates turn latency from full-case latency. The existing
   p50/p95 metric is turn-level, and any submission claim must say that explicitly.
 - Add tests that assert the new eval/trace fields are numeric summaries only, especially for

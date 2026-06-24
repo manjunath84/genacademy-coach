@@ -234,6 +234,8 @@ def score_golden_case(
     rows = _trace_rows(final.trace_path)
     actual_tools = [tool for row in rows for tool in row.tool_calls]
     turn_latencies_ms = [row.latency_ms for row in rows]
+    turn_agent_attempts = [int(row.agent_attempts) for row in rows]
+    turn_retrieval_cache_hits = [int(row.retrieval_cache_hits) for row in rows]
     turn_tool_latencies_ms = [dict(row.tool_latencies_ms) for row in rows]
     turn_tool_call_counts = [dict(row.tool_call_counts) for row in rows]
     tool_latencies_ms = _sum_float_dicts(turn_tool_latencies_ms)
@@ -311,6 +313,10 @@ def score_golden_case(
         "turns_used": len(rows),
         "turn_latencies_ms": turn_latencies_ms,
         "case_latency_ms": sum(turn_latencies_ms),
+        "turn_agent_attempts": turn_agent_attempts,
+        "agent_attempts": sum(turn_agent_attempts),
+        "turn_retrieval_cache_hits": turn_retrieval_cache_hits,
+        "retrieval_cache_hits": sum(turn_retrieval_cache_hits),
         "turn_tool_latencies_ms": turn_tool_latencies_ms,
         "turn_tool_call_counts": turn_tool_call_counts,
         "tool_latencies_ms": tool_latencies_ms,
