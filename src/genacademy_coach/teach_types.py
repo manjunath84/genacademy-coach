@@ -26,6 +26,12 @@ Strategy = Literal[
 ]
 
 
+class TokenUsage(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
 class RetrievedSpan(BaseModel):
     chunk_id: str
     doc_id: str
@@ -109,6 +115,10 @@ class TraceTurn(BaseModel):
     retrieved_citation_ids: list[str]
     retrieved_citation_labels: list[str] = Field(default_factory=list)
     tool_calls: list[str]
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    latency_ms: float = 0.0
 
 
 class TeachSessionResult(BaseModel):

@@ -5,6 +5,8 @@ from genacademy_coach.teach_types import (
     CoachAgentResponse,
     LearnerProfile,
     RetrievedSpan,
+    TokenUsage,
+    TraceTurn,
 )
 
 
@@ -89,3 +91,23 @@ def test_agent_response_rejects_llm_confidence_field():
         assert "confidence" in str(exc)
     else:
         raise AssertionError("agent confidence must not be accepted")
+
+
+def test_token_usage_defaults_zero():
+    assert TokenUsage().input_tokens == 0 and TokenUsage().total_tokens == 0
+
+
+def test_trace_turn_token_latency_defaults():
+    t = TraceTurn(
+        session_id="s",
+        turn=1,
+        topic_hash="h",
+        learner_input_hash="h",
+        next_action="advance",
+        strategy="summary",
+        evidence_score=0.5,
+        evidence_band="confirm",
+        retrieved_citation_ids=[],
+        tool_calls=[],
+    )
+    assert (t.input_tokens, t.output_tokens, t.total_tokens, t.latency_ms) == (0, 0, 0, 0.0)

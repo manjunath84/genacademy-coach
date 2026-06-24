@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any, Protocol
 
 from pydantic import ValidationError
@@ -21,6 +22,7 @@ from genacademy_coach.teach_types import (
     DecisionSource,
     LearnerProfile,
     TeachSessionResult,
+    TokenUsage,
     TraceTurn,
     UnderstandingGrade,
 )
@@ -47,7 +49,19 @@ class AgentResponseError(RuntimeError):
     pass
 
 
+def _sum_usage(messages: list[Any]) -> TokenUsage:
+    usage = TokenUsage()
+    for message in messages:
+        metadata = getattr(message, "usage_metadata", None) or {}
+        usage.input_tokens += int(metadata.get("input_tokens") or 0)
+        usage.output_tokens += int(metadata.get("output_tokens") or 0)
+        usage.total_tokens += int(metadata.get("total_tokens") or 0)
+    return usage
+
+
 class AgentPort(Protocol):
+    last_usage: TokenUsage
+
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse: ...
 
 
@@ -55,6 +69,7 @@ class StaticAgentPort:
     def __init__(self, *responses: CoachAgentResponse):
         self._responses = list(responses)
         self._initial_count = len(self._responses)
+        self.last_usage = TokenUsage()
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
         if not self._responses:
@@ -67,9 +82,12 @@ class StaticAgentPort:
 class LangChainAgentPort:
     def __init__(self, runtime: TeachRuntime, *, model: Any | None = None):
         self._agent = build_coach_agent(runtime, model=model)
+        self.last_usage = TokenUsage()
 
     def invoke(self, messages: list[dict[str, str]]) -> CoachAgentResponse:
+        self.last_usage = TokenUsage()
         result = self._agent.invoke({"messages": messages})
+        self.last_usage = _sum_usage(result.get("messages", []))
         structured = result.get("structured_response")
         if structured is None:
             raise AgentResponseError("missing structured_response")
@@ -178,22 +196,27 @@ class CoachSession:
             if self.runtime.last_grade is not None
             else "none"
         )
+        latency_ms = 0.0
         try:
-            response = self.agent_port.invoke(
-                [
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Session topic: {self.topic}\n"
-                            f"Profile: {self.profile.model_dump_json()}\n"
-                            f"Previous strategy: {previous_strategy}\n"
-                            f"Current check: {current_check}\n"
-                            f"Last grade: {last_grade}\n"
-                            f"Learner input: {learner_input}"
-                        ),
-                    }
-                ]
-            )
+            start = time.perf_counter()
+            try:
+                response = self.agent_port.invoke(
+                    [
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Session topic: {self.topic}\n"
+                                f"Profile: {self.profile.model_dump_json()}\n"
+                                f"Previous strategy: {previous_strategy}\n"
+                                f"Current check: {current_check}\n"
+                                f"Last grade: {last_grade}\n"
+                                f"Learner input: {learner_input}"
+                            ),
+                        }
+                    ]
+                )
+            finally:
+                latency_ms = (time.perf_counter() - start) * 1000.0
         except AgentResponseError:
             if "retrieve_course_corpus" in self.runtime.tool_calls and not self.runtime.last_spans:
                 response = self._refusal_response(
@@ -217,13 +240,23 @@ class CoachSession:
             self.profile.last_grade_correct = answer_grade.correct
         if response.next_action not in {"refuse_escalate", "stop"}:
             self.profile.previous_strategies.append(response.strategy)
-        return self._write_result(learner_input, response)
+        usage = getattr(self.agent_port, "last_usage", None) or TokenUsage()
+        return self._write_result(
+            learner_input,
+            response,
+            latency_ms=latency_ms,
+            usage=usage,
+        )
 
     def _write_result(
         self,
         learner_input: str,
         response: CoachAgentResponse,
+        *,
+        latency_ms: float = 0.0,
+        usage: TokenUsage | None = None,
     ) -> TeachSessionResult:
+        usage = usage or TokenUsage()
         cited_spans = [
             span for span in self.runtime.last_spans if span.citation_id in response.citation_ids
         ]
@@ -250,6 +283,10 @@ class CoachSession:
                 retrieved_citation_ids=[span.citation_id for span in self.runtime.last_spans],
                 retrieved_citation_labels=[span.source_label for span in self.runtime.last_spans],
                 tool_calls=list(self.runtime.tool_calls),
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                total_tokens=usage.total_tokens,
+                latency_ms=latency_ms,
             )
         )
         self._last_response = response
