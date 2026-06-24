@@ -19,6 +19,7 @@ from genacademy_coach.teach_types import (
     LearnerProfile,
     RetrievedSpan,
     Strategy,
+    TokenUsage,
     UnderstandingGrade,
 )
 from genacademy_coach.trace import load_trace
@@ -119,6 +120,52 @@ def test_session_start_writes_trace_with_retrieval_evidence(tmp_path):
     rows = load_trace(Path(result.trace_path))
     assert rows[0].evidence_score == 0.91
     assert rows[0].evidence_band == "proceed"
+    assert rows[0].agent_latency_ms >= 0.0
+
+
+def test_session_trace_records_redacted_tool_observability_and_resets_turn(tmp_path):
+    class InstrumentedAgent:
+        def __init__(self):
+            self.runtime = None
+
+        def invoke(self, messages):
+            assert self.runtime is not None
+            self.runtime.record_tool("retrieve_course_corpus")
+            self.runtime.record_tool_latency("retrieve_course_corpus", 12.5)
+            return CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="retrieved a citeable attention span",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=["note/attention::0"],
+            )
+
+    agent = InstrumentedAgent()
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    agent.runtime = session.runtime
+    session.runtime.last_spans = [cited_span()]
+
+    result = session.start()
+
+    rows = load_trace(Path(result.trace_path))
+    assert rows[0].tool_calls == ["retrieve_course_corpus"]
+    assert rows[0].tool_call_counts == {"retrieve_course_corpus": 1}
+    assert rows[0].tool_latencies_ms == {"retrieve_course_corpus": 12.5}
+    assert rows[0].agent_latency_ms > 0.0
+    assert rows[0].agent_attempts == 1
+    assert rows[0].retrieval_cache_hits == 0
+    assert session.runtime.tool_calls == []
+    assert session.runtime.tool_call_counts == {}
+    assert session.runtime.tool_latencies_ms == {}
+    assert session.runtime.agent_attempts == 0
+    assert session.runtime.retrieval_cache_hits == 0
 
 
 def test_teach_trace_contains_hashes_and_no_raw_private_text(tmp_path):
@@ -716,6 +763,52 @@ def test_session_uses_grounded_advance_after_correct_answer_when_agent_skips_cit
     assert rows[-1].next_action == "advance"
 
 
+@pytest.mark.parametrize(
+    ("agent_action", "agent_strategy"),
+    [
+        ("drill", "analogy"),
+        ("re_explain_differently", "contrastive_example"),
+        ("re_explain_differently", "analogy"),
+    ],
+)
+def test_session_forces_advance_after_correct_answer_when_agent_keeps_teaching(
+    tmp_path,
+    agent_action,
+    agent_strategy,
+):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention highlights relevant context. [note/attention::0]",
+            observation="agent kept teaching after the learner answered correctly",
+            next_action=agent_action,
+            strategy=agent_strategy,
+            citation_ids=["note/attention::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = check_item()
+
+    result = session.respond("It helps focus relevant context.")
+
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.correct is True
+    assert result.response.next_action == "advance"
+    assert result.response._decision_source == "python safety gate"
+    assert result.response.citation_ids == ["note/attention::0"]
+    assert "Attention highlights relevant context" in result.response.learner_message
+    assert not (tmp_path / "review_queue.jsonl").exists()
+    rows = load_trace(Path(result.trace_path))
+    assert rows[-1].next_action == "advance"
+
+
 @pytest.mark.parametrize("agent_action", ["advance", "stop", "refuse_escalate"])
 def test_session_forces_reexplain_after_wrong_answer_when_agent_skips_stumble_action(
     tmp_path,
@@ -798,6 +891,36 @@ def test_session_refuses_when_agent_port_fails_structured_output(tmp_path):
     assert "structured output" in result.response.learner_message.lower()
 
 
+def test_session_records_repeated_tool_loop_before_structured_output_failure(tmp_path):
+    class LoopExhaustedAgent:
+        def __init__(self):
+            self.runtime = None
+
+        def invoke(self, messages):
+            assert self.runtime is not None
+            for _ in range(13):
+                self.runtime.record_tool("generate_check_item")
+            raise AgentResponseError("missing structured_response")
+
+    agent = LoopExhaustedAgent()
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    agent.runtime = session.runtime
+
+    result = session.start()
+
+    assert result.response.next_action == "refuse_escalate"
+    assert result.response.observation == "agent failed to return structured output"
+    rows = load_trace(Path(result.trace_path))
+    assert rows[0].tool_call_counts == {"generate_check_item": 13}
+
+
 def test_session_does_not_duplicate_review_queue_after_tool_escalation(tmp_path):
     class EscalatedThenFailingAgent:
         def __init__(self):
@@ -862,32 +985,114 @@ def test_langchain_agent_port_validates_structured_response():
 
     assert response.next_action == "advance"
     assert response.strategy == "summary"
+    assert port.last_attempts == 1
+
+
+def test_langchain_agent_port_retries_missing_structured_response_once():
+    port = LangChainAgentPort.__new__(LangChainAgentPort)
+
+    class FakeMessage:
+        usage_metadata = {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5}
+
+    class FakeAgent:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, payload):
+            self.calls += 1
+            if self.calls == 1:
+                return {"messages": [FakeMessage()]}
+            return {
+                "messages": [FakeMessage()],
+                "structured_response": {
+                    "learner_message": "Grounded. [note/attention::0]",
+                    "observation": "ok",
+                    "next_action": "advance",
+                    "strategy": "summary",
+                    "citation_ids": ["note/attention::0"],
+                },
+            }
+
+    fake_agent = FakeAgent()
+    port._agent = fake_agent
+
+    response = port.invoke([{"role": "user", "content": "hello"}])
+
+    assert fake_agent.calls == 2
+    assert response.next_action == "advance"
+    assert port.last_usage == TokenUsage(input_tokens=6, output_tokens=4, total_tokens=10)
+    assert port.last_attempts == 2
+
+
+def test_langchain_agent_port_retries_invalid_structured_response_once():
+    port = LangChainAgentPort.__new__(LangChainAgentPort)
+
+    class FakeAgent:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, payload):
+            self.calls += 1
+            if self.calls == 1:
+                return {"structured_response": {"confidence": 0.9}}
+            return {
+                "structured_response": {
+                    "learner_message": "Grounded. [note/attention::0]",
+                    "observation": "ok",
+                    "next_action": "advance",
+                    "strategy": "summary",
+                    "citation_ids": ["note/attention::0"],
+                }
+            }
+
+    fake_agent = FakeAgent()
+    port._agent = fake_agent
+
+    response = port.invoke([{"role": "user", "content": "hello"}])
+
+    assert fake_agent.calls == 2
+    assert response.next_action == "advance"
+    assert port.last_attempts == 2
 
 
 def test_langchain_agent_port_rejects_missing_structured_response():
     port = LangChainAgentPort.__new__(LangChainAgentPort)
 
     class FakeAgent:
+        def __init__(self):
+            self.calls = 0
+
         def invoke(self, payload):
+            self.calls += 1
             return {}
 
-    port._agent = FakeAgent()
+    fake_agent = FakeAgent()
+    port._agent = fake_agent
 
     with pytest.raises(AgentResponseError, match="missing structured_response"):
         port.invoke([{"role": "user", "content": "hello"}])
+    assert fake_agent.calls == 2
+    assert port.last_attempts == 2
 
 
 def test_langchain_agent_port_rejects_invalid_structured_response():
     port = LangChainAgentPort.__new__(LangChainAgentPort)
 
     class FakeAgent:
+        def __init__(self):
+            self.calls = 0
+
         def invoke(self, payload):
+            self.calls += 1
             return {"structured_response": {"confidence": 0.9}}
 
-    port._agent = FakeAgent()
+    fake_agent = FakeAgent()
+    port._agent = fake_agent
 
     with pytest.raises(AgentResponseError, match="invalid structured_response"):
         port.invoke([{"role": "user", "content": "hello"}])
+    assert fake_agent.calls == 2
+    assert port.last_attempts == 2
 
 
 def test_session_stops_at_turn_budget_without_agent_call(tmp_path):

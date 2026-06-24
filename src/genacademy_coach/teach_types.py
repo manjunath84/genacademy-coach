@@ -119,6 +119,11 @@ class TraceTurn(BaseModel):
     output_tokens: int = 0
     total_tokens: int = 0
     latency_ms: float = 0.0
+    agent_latency_ms: float = 0.0
+    agent_attempts: int = 0
+    retrieval_cache_hits: int = 0
+    tool_latencies_ms: dict[str, float] = Field(default_factory=dict)
+    tool_call_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class TeachSessionResult(BaseModel):
