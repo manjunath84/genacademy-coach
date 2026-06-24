@@ -46,7 +46,14 @@ def recall_at_k(ranked_ids: list[str], expected_id: str | None, *, k: int = 5) -
     return bool(expected_id and expected_id in ranked_ids[:k])
 
 
-def refusal_outcome(*, refusal_expected: bool, actual_next_action: str) -> str:
+def refusal_outcome(
+    *,
+    refusal_expected: bool,
+    actual_next_action: str,
+    infrastructure_error: bool = False,
+) -> str:
+    if infrastructure_error:
+        return "infra_error"
     refused = actual_next_action == "refuse_escalate"
     if refusal_expected and refused:
         return "tp"

@@ -51,6 +51,17 @@ def test_refusal_outcome():
     assert refusal_outcome(refusal_expected=False, actual_next_action="refuse_escalate") == "fp"
 
 
+def test_refusal_outcome_excludes_infrastructure_errors():
+    assert (
+        refusal_outcome(
+            refusal_expected=True,
+            actual_next_action="refuse_escalate",
+            infrastructure_error=True,
+        )
+        == "infra_error"
+    )
+
+
 def test_price_table_cost():
     assert PriceTable(prices={"m": (1e-6, 2e-6)}).cost(
         "m", input_tokens=1000, output_tokens=1000
