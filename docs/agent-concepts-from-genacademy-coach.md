@@ -320,7 +320,7 @@ The refusal/escalation path is the review boundary.
 | Annotate | Approve/reject and tag why. | Future eval data can tag "bad citation", "weak retrieval", or "unclear check". |
 | Override | Human chooses a different action. | Future admin can mark a concept as understood despite agent uncertainty. |
 
-A useful review queue for this app would show:
+A future mentor review queue (planned, not shipped) would show:
 
 - task/topic
 - recommended next action
@@ -330,8 +330,9 @@ A useful review queue for this app would show:
 - confidence band
 - learner-safe state summary
 
-This is exactly why the UI trace cards matter. They are not decoration; they are the human-readable
-audit trail.
+The **shipped** piece today is the UI trace cards, not that queue. They are not decoration; they are the
+human-readable audit trail, and they are exactly the allow-listed, learner-safe fields a future review
+queue would build on.
 
 ## Risks We Actually Faced
 

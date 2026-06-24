@@ -10,7 +10,7 @@
 > `specs/*`, and `docs/genacademy-rag-foundation.md`. A ready prompt is at the bottom.
 
 Historical `D##` labels refer to the external brainstorm archive. Canonical settled decisions in this
-repo are tracked as `AD-1` through `AD-11` in `docs/decisions.md`.
+repo are tracked as `AD-1` through `AD-12` in `docs/decisions.md`.
 
 ---
 
