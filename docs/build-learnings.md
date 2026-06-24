@@ -1,8 +1,8 @@
 # Build Learnings — GenAcademy Coach
 
-> A running log of the non-obvious things I learned while building this, **in my own words.**
-> Two jobs: (1) my future reference, (2) raw material for build-in-public posts and the
-> decision-story in the project write-up.
+> A running log of the non-obvious engineering lessons from building this project.
+> Two jobs: (1) preserve the decision trail, (2) turn project-specific surprises into reusable
+> implementation principles.
 >
 > Format per entry: **what I believed → what I found → the reusable principle.** Newest first.
 > These are deliberately written as the messy middle, not a polished after-the-fact summary —
@@ -377,5 +377,5 @@ call can still rest on an assumption that turns out false for your specific data
 
 ---
 
-> *Add new learnings at the top as they happen. Each one is a candidate LinkedIn post and a beat in the
-> "how I made the calls" section of the write-up.*
+> *Add new learnings at the top as they happen. Each one is a candidate public-safe learning note and a
+> beat in the "how I made the calls" section of the write-up.*
