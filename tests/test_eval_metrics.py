@@ -77,3 +77,36 @@ def test_aggregate_computes_p95_across_turns():
     assert out["task_completion"] == {"pass_rate": 0.5, "passed": 1, "n": 2}
     assert "task_completion_f1" not in out
     assert "latency_p95_ms" in out and out["cost_usd"] >= 0.0
+
+
+def test_aggregate_quality_means_exclude_refusal_controls():
+    rows = [
+        {
+            "task_completion_pass": True,
+            "refusal_expected": False,
+            "citation_precision": 0.5,
+            "citation_recall": 0.5,
+            "citation_f1": 0.5,
+            "tool_f1": 0.5,
+            "retrieval_recall_at_5": True,
+            "turn_latencies_ms": [],
+            "model_id": "m",
+        },
+        {
+            "task_completion_pass": True,
+            "refusal_expected": True,
+            "citation_precision": 1.0,
+            "citation_recall": 1.0,
+            "citation_f1": 1.0,
+            "tool_f1": 0.0,
+            "retrieval_recall_at_5": False,
+            "refusal_outcome": "tp",
+            "turn_latencies_ms": [],
+            "model_id": "m",
+        },
+    ]
+    out = aggregate(rows, price_table=PriceTable(prices={"m": (0.0, 0.0)}))
+    assert out["segment_counts"] == {"teachable": 1, "refusal_expected": 1}
+    assert out["citation_f1"] == 0.5
+    assert out["tool_f1"] == 0.5
+    assert out["retrieval_recall_at_5"] == 1.0

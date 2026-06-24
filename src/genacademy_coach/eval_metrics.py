@@ -89,6 +89,7 @@ def _prf_dict(tp: int, fp: int, fn: int) -> dict[str, float]:
 def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[str, Any]:
     task_tp = sum(1 for row in rows if row.get("task_completion_pass") is True)
     task_fn = sum(1 for row in rows if row.get("task_completion_pass") is False)
+    teachable = [row for row in rows if not row.get("refusal_expected")]
 
     refusal_counts = Counter(str(row.get("refusal_outcome", "tn")) for row in rows)
     latencies = sorted(
@@ -113,16 +114,18 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
     )
 
     citation_precision = [
-        float(row["citation_precision"]) for row in rows if "citation_precision" in row
+        float(row["citation_precision"]) for row in teachable if "citation_precision" in row
     ]
     citation_recall = [
-        float(row["citation_recall"]) for row in rows if "citation_recall" in row
+        float(row["citation_recall"]) for row in teachable if "citation_recall" in row
     ]
-    citation_f1 = [float(row["citation_f1"]) for row in rows if "citation_f1" in row]
-    tool_f1 = [float(row["tool_f1"]) for row in rows if "tool_f1" in row]
+    citation_f1 = [
+        float(row["citation_f1"]) for row in teachable if "citation_f1" in row
+    ]
+    tool_f1 = [float(row["tool_f1"]) for row in teachable if "tool_f1" in row]
     retrieval = [
         1.0 if row.get("retrieval_recall_at_5") else 0.0
-        for row in rows
+        for row in teachable
         if "retrieval_recall_at_5" in row
     ]
 
@@ -132,6 +135,10 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         "class_balance": dict(
             sorted(Counter(row.get("query_type", "unknown") for row in rows).items())
         ),
+        "segment_counts": {
+            "teachable": len(teachable),
+            "refusal_expected": len(rows) - len(teachable),
+        },
         "task_completion": {
             "pass_rate": task_tp / task_total if task_total else 0.0,
             "passed": task_tp,
