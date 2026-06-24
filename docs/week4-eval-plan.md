@@ -113,15 +113,18 @@ than rewriting the `test` rows.
 ## LangSmith + RAGAS playbook (owner-approved eval egress)
 
 - **Project:** `genacademy-coach-week4-eval`, default-private LangSmith workspace.
-- **Env vars:** `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT` (the same trio already
-  documented in `specs/tech-stack.md`).
+- **Env vars:** `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`,
+  `LANGSMITH_PROJECT=genacademy-coach-week4-eval`, and
+  `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true`. The CLI preflight requires the named project and explicit
+  egress opt-in before tracing.
 - **Owner-approved LangSmith egress:** seed/dev golden eval runs may be uploaded to the private LangSmith
   project, including raw learner questions, generated tutor prose, retrieved spans/citation IDs, tool
   calls, metric scores, latency, and token counts. Document the upload command, project, and experiment
   URL in the submission notes.
-- **Masking / retention still recommended:** use input/output masking (`hide_inputs` / `hide_outputs` /
-  anonymizer) when practical and delete/retire the eval traces after the submission window if desired.
-  Masking is defense-in-depth; the actual permission comes from explicit owner approval under AD-12.
+- **Masking / retention floor:** mask inputs/outputs that are not needed for the submission or evaluators
+  by default, and delete/retire eval traces after the submission window unless the owner records a
+  retention reason. Masking is defense-in-depth; the actual permission comes from explicit owner approval
+  under AD-12.
 - **Cloud-safe rule (what `cloud_safe=true` is allowed to mean).** A row is cloud-safe **only if** it
   contains **none** of: verbatim private course-corpus spans, real learner questions, raw generated tutor
   prose, or close paraphrases of any private material. "Corpus-derived" alone is **not** sufficient — a
@@ -182,9 +185,11 @@ ground-up; do not blindly trust off-the-shelf evaluators.
 1. Expand the golden set to 30–50 (class-balanced) via `scripts/split_eval.py` seed/dev + synthetic-from-seed;
    hand-label in the schema above (with `expected_tools`).
 2. Add token/latency capture to the trace at the agent boundary (`teach_agent.py` / `teach_session.py`).
-3. Add `citation_f1` + pinned RAGAS evaluators alongside the deterministic grader, reporting precision/recall/F1.
-4. Optionally wire LangSmith (`client.create_dataset` + `client.evaluate`) on the **cloud-safe** subset
-   with masking — the notebook stays the source of truth.
+3. Add `citation_f1` alongside the deterministic grader, reporting precision/recall/F1; add pinned RAGAS
+   only for cloud-safe rows unless a separate judge-egress decision is approved.
+4. Wire LangSmith (`client.create_dataset` + `client.evaluate`) as the owner-approved private eval
+   surface for seed/dev golden rows plus cloud-safe controls, gated by
+   `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true`; the notebook/local JSON stays the source of truth.
 5. Run the baseline, then the error-analysis loop (human-annotate → LLM-cluster → categorize).
 6. Calibrate the single-category LLM-judge to the dominant failure category; compare ≥2 judge models vs human labels.
 7. Implement 3–4 improvements, re-run on the same set, report per-metric + per-category delta.
@@ -195,5 +200,5 @@ ground-up; do not blindly trust off-the-shelf evaluators.
 - Writing eval code, building the dataset, wiring LangSmith/RAGAS, or running evals — those are the next
   task, gated on approval of this doc.
 - Touching, growing, or editing the frozen `test` split.
-- Sending any private corpus span, real learner question, or raw tutor prose through a third-party judge
-  or tracer (AD-12).
+- Sending any private corpus span, real learner question, or raw tutor prose through a third-party judge,
+  RAGAS, or any tracer outside the owner-approved private LangSmith eval project covered by AD-12.

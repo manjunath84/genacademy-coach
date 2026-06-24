@@ -134,8 +134,10 @@ LangSmith is adopted for Week 4 evaluation when `LANGSMITH_TRACING=true`, `LANGS
 `LANGSMITH_PROJECT` are configured. Per AD-12, the project owner may approve seed/dev golden eval uploads
 to a private LangSmith project, including raw learner questions, generated tutor prose, retrieved
 citations, tool calls, scores, latency, and token counts. The frozen `test` split, secrets, public
-screenshots, and committed raw traces remain forbidden. Local JSON artifacts remain the reproducible
-source of truth; LangSmith is the review/observability surface. See `docs/decisions.md` AD-12 and
+screenshots, and committed raw traces remain forbidden. Fields not needed for submission or evaluators
+should be masked by default, and eval traces should be deleted/retired after the submission window unless
+the owner records a retention reason. Local JSON artifacts remain the reproducible source of truth;
+LangSmith is the review/observability surface. See `docs/decisions.md` AD-12 and
 `docs/week4-eval-plan.md`.
 
 The local Gradio view may show an allow-listed trace-card projection for demos: rendered decision basis,

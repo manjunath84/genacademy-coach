@@ -71,7 +71,8 @@ answers producing different model-chosen strategies without changing Python cont
 **Decision.** The primary runtime trace is local JSON plus a CLI pretty print/screenshot. The local
 Gradio demo renders an allow-listed card projection: `Decision basis`, labeled `action ...` and
 `band ...` status chips, score, strategy, citation summaries, and tool-call summaries. LangSmith is an
-optional companion when credentials are configured. A custom HTML viewer is deferred.
+optional companion when credentials are configured. Week-4 eval-time LangSmith usage is governed
+separately by AD-12. A custom HTML viewer is deferred.
 **Why.** The trace is required to prove agenticity, but the proof cannot depend on external auth,
 network, or private-corpus trace exposure. The UI card makes the safe trace readable in a recording
 without publishing raw trace JSON, learner inputs, tutor prose, retrieved spans, or secrets. LangSmith
@@ -111,14 +112,18 @@ egress**: seed/dev golden eval runs may be uploaded to the private LangSmith pro
 learner questions, generated tutor prose, retrieved citation IDs/text, tool calls, scores, latency, and
 token counts, when the upload is intentional and documented. The frozen held-out `test` split still stays
 local-only and never enters LangSmith, prompts, examples, tuning, RAGAS, or an LLM judge. Public/committed
-artifacts remain redacted; secrets are never uploaded. Recorded 2026-06-21; revised 2026-06-24 after
-explicit project-owner approval to use LangSmith as the full Week-4 eval trace workspace.
+artifacts remain redacted; secrets are never uploaded. RAGAS and any LLM-judge evaluation remain
+cloud-safe-only for seed/dev unless a separate judge-egress decision is approved. Recorded 2026-06-21;
+revised 2026-06-24 after explicit project-owner approval to use LangSmith as the full Week-4 eval trace
+workspace.
 **Why.** The course corpus covers a bounded Gen Academy project context, and the owner wants the Week-4
 submission to show the full golden-set evaluation in LangSmith rather than only a cloud-safe subset.
 LangSmith is still data egress, not merely local storage, so uploads must be deliberate: use a private
-project, avoid secrets, keep the frozen `test` split local, and delete/retire traces after the submission
-window if desired. Local JSON artifacts remain the reproducible source of truth, while LangSmith is the
+project, avoid secrets, keep the frozen `test` split local, mask fields not needed for submission or
+evaluators by default, and delete/retire traces after the submission window unless the owner records a
+retention reason. Local JSON artifacts remain the reproducible source of truth, while LangSmith is the
 review and observability surface.
 **Rejected.** Publicly posting raw traces or screenshots that expose raw learner/corpus text; committing
 raw traces or private source files; uploading secrets; sending the frozen `test` split through any
-third-party tracer or judge; accidental auto-tracing outside the named eval project.
+third-party tracer or judge; sending seed/dev raw text to RAGAS or an LLM judge without a separate
+judge-egress decision; accidental auto-tracing outside the named eval project.

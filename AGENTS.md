@@ -72,7 +72,9 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   the project owner may approve private LangSmith upload of seed/dev eval runs, including raw learner
   questions and generated tutor prose, when the workspace/project is private and the upload is documented
   in `docs/decisions.md` AD-12. This exception does **not** allow public posting, commits, screenshots,
-  secrets, or the frozen `test` split.
+  secrets, the frozen `test` split, or sending seed/dev raw text to RAGAS / LLM judges without a separate
+  judge-egress decision. Mask fields not needed for submission/evaluators by default, and delete/retire
+  eval traces after the submission window unless the owner records a retention reason.
 - **MINT restraint — earn each layer.** One LangChain `create_agent` loop on LangGraph's internal
   runtime + a small read-mostly toolset. **No MCP, no A2A, and no _explicit_ LangGraph graph/imports**
   this week — the handout's LangChain + LangGraph track is satisfied through the LangGraph-backed
@@ -110,8 +112,8 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - **Do NOT publish corpus material.** Course PDFs/transcripts, slides, handouts, chat-question files, and
   any third-party or cohort data are `.gitignore`d. Confirm attribution/permission before any data lands
   (see `specs/roadmap.md` risk caps). Owner-approved upload to a private LangSmith evaluation project is
-  data egress for eval/observability, not public publishing; still do not commit or publicly share raw
-  corpus, learner text, or generated tutor traces.
+  data egress for eval/observability, not public publishing; still do not commit, screenshot, or publicly
+  share raw corpus, learner text, or generated tutor traces.
 - **Do NOT add new modes/surfaces ahead of the grounded core.** Quiz, Skill-Gap, cohort auth/admin, and
   privacy-first memory are shipped bounded pull-ins because the teach-loop MVP works. Interview, admin
   upload, ElevenLabs voice, explicit LangGraph, and public corpus hosting still need separate plans and

@@ -157,7 +157,9 @@ Three load-bearing decisions (full rationale in [`docs/decisions.md`](docs/decis
 | Cross-session memory | Scaffolded off by default | Mem0 adapter and local demo are implemented after the privacy slice. It is disabled unless `MEM0_API_KEY` and `GENACADEMY_COACH_MEMORY_USER_SALT` are set, and it never supplies facts, citations, grading, or refusal decisions. |
 | Mock interview / admin upload / voice | Roadmap | Deferred until they earn separate plans and privacy reviews. |
 
-Private course material, traces, review queues, screenshots, and handoff packaging stay local-only.
+Private course material, local traces, review queues, screenshots, and handoff packaging remain local by
+default; the only trace-egress exception is owner-approved private LangSmith eval tracing governed by
+`docs/decisions.md` AD-12.
 Local handoff materials can live under ignored `localdocs/`.
 The repository tracks structure, code, redacted metrics, and safety checks.
 
