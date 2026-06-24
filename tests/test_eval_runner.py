@@ -30,13 +30,13 @@ class FakeSession:
             ],
             current_check=CheckItem(
                 question="What does attention do?",
-                expected_answer="It focuses context.",
-                expected_keywords=["token"],
+                expected_answer="It includes the generated keyword.",
+                expected_keywords=["generated keyword"],
                 citation_id="note::0",
             ),
             last_grade=UnderstandingGrade(
                 correct=True,
-                matched_keywords=["token"],
+                matched_keywords=["generated keyword"],
                 missing_keywords=[],
                 citation_id="note::0",
             ),
@@ -77,11 +77,11 @@ class FakeSession:
         return self._write(response, ["retrieve_course_corpus", "generate_check_item"])
 
     def respond(self, learner_answer):
-        correct = "token" in learner_answer
+        correct = "generated keyword" in learner_answer
         self.runtime.last_grade = UnderstandingGrade(
             correct=correct,
-            matched_keywords=["token"] if correct else [],
-            missing_keywords=[] if correct else ["token"],
+            matched_keywords=["generated keyword"] if correct else [],
+            missing_keywords=[] if correct else ["generated keyword"],
             citation_id="note::0",
         )
         response = CoachAgentResponse(
@@ -165,4 +165,5 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
         "model_id",
     ):
         assert k in row
+    assert row["task_completion_pass"] is True
     assert "user_query" not in row and "answer_text" not in row

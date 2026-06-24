@@ -72,9 +72,14 @@ def score_golden_case(
         profile=LearnerProfile(style="analogy", track_lens="code_heavy"),
     )
     session.start()
-    session.respond(case.initial_wrong_answer or DEFAULT_WRONG_ANSWER)
-    correct_answer = case.expected_answer or " ".join(case.expected_check_keywords)
-    final = session.respond(correct_answer) if correct_answer else session.respond("")
+    second = session.respond(case.initial_wrong_answer or DEFAULT_WRONG_ANSWER)
+    if case.expected_answer:
+        correct_answer = case.expected_answer
+    elif session.runtime.current_check is not None:
+        correct_answer = session.runtime.current_check.expected_answer
+    else:
+        correct_answer = " ".join(case.expected_check_keywords)
+    final = session.respond(correct_answer) if correct_answer else second
 
     rows = _trace_rows(final.trace_path)
     actual_tools = [tool for row in rows for tool in row.tool_calls]
