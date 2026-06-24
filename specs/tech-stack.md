@@ -16,7 +16,7 @@ through clean metadata and adapter seams.
 | Auth | **Gradio `launch(auth=...)` + Week-2 SQLite user store** | Cohort member/admin login is enforced at the web boundary. Admin account creation reuses the Week-2 bcrypt/password table; core tutor logic stays framework-free. |
 | State | **Within-session profile + optional episodic memory** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, and turn budget stay in session. Mem0-backed cross-session memory is off by default and stores only safe learner-state hashes/counts. |
 | Grading | **Deterministic grounded gate** | The MVP pass/fail decision uses normalized answer matching plus citation-resolves checks. The inherited LLM judge is a secondary faithfulness audit, not the gate. |
-| Trace | **Local JSON trace + CLI pretty print + allow-listed UI cards; LangSmith optional** | The local artifact proves agenticity without external auth/network risk. The Gradio demo renders safe decision-basis/status cards from allow-listed metadata while raw trace JSON stays local. LangSmith tracing is useful when configured; custom HTML is deferred. |
+| Trace | **Local JSON trace + CLI pretty print + allow-listed UI cards; LangSmith scoped to cloud-safe rows** | The local artifact proves agenticity without external auth/network risk. The Gradio demo renders safe decision-basis/status cards from allow-listed metadata while raw trace JSON stays local. LangSmith is adopted **scoped** — synthetic/corpus-derived cloud-safe rows only, with masking; the frozen `test` split and raw learner text stay local (see `docs/decisions.md` AD-12 and `docs/week4-eval-plan.md`). Custom HTML is deferred. |
 | Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
 | Build tooling | **Codex / Claude Code with gates** | Builder and reviewer are different models or contexts; no code until the implementation plan is approved. |
 
@@ -130,9 +130,12 @@ Per turn:
 }
 ```
 
-LangSmith is an optional companion when `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, and
-`LANGSMITH_PROJECT` are configured. It is not the only proof artifact because external auth/network and
-private-corpus trace leakage are unacceptable MVP dependencies.
+LangSmith is adopted **scoped** for Week 4 evaluation when `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`,
+and `LANGSMITH_PROJECT` are configured: only synthetic / corpus-derived **cloud-safe** rows are traced,
+input/output masking and a retention TTL are enabled, and the frozen `test` split plus any run over raw
+learner text stay on the local harness. It is not the only proof artifact because external auth/network
+and private-corpus trace leakage are unacceptable; the held-out number always comes from local artifacts.
+See `docs/decisions.md` AD-12 and `docs/week4-eval-plan.md`.
 
 The local Gradio view may show an allow-listed trace-card projection for demos: rendered decision basis,
 labeled action/band/score chips, strategy, faithfulness, citation summaries, and tool-call summaries.

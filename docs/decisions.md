@@ -104,3 +104,19 @@ typed traces, and refusal rather than adding new agent loops. Auth/memory make p
 without letting memory become a knowledge source.
 **Rejected.** Treating Quiz or Skill-Gap as the agenticity proof; starting voice/interview/admin upload
 without a separate plan and privacy review.
+
+### AD-12 - LangSmith Data-Egress Scoping for Evaluation
+**Decision.** Adopt LangSmith for Week 4 evaluation in a default-private workspace, but **scoped**: only
+synthetic / corpus-derived **cloud-safe** golden/dev rows are traced or sent to RAGAS / an LLM-judge, with
+input/output masking and a retention TTL enabled. The frozen held-out `test` split and any run over raw
+learner text stay on the local harness; the held-out number always comes from local artifacts. Recorded
+2026-06-21.
+**Why.** LangSmith workspaces are private-by-default, but that is **access control, not data egress**:
+auto-instrumentation uploads raw LLM inputs/outputs — which include retrieved private-corpus spans and
+real learner questions — to a third party. That collides with the guardrail that private-corpus trace
+leakage is unacceptable. Scoping to cloud-safe rows plus masking lets the project use LangSmith's
+dataset/trace/run-comparison convenience without egressing private content, and keeps the local notebook
+harness as the source of truth. See `docs/week4-eval-plan.md`.
+**Rejected.** Auto-instrumenting raw LLM inputs/outputs to LangChain's cloud; treating workspace privacy
+as sufficient for private content; sending the frozen `test` split or raw learner text through any
+third-party judge or tracer.
