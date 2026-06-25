@@ -116,12 +116,15 @@ Governance status:
   `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true` before tracing.
 - Public/committed artifacts remain redacted. Raw learner text, tutor prose, retrieved span text, and raw
   traces still must not be committed, screenshotted publicly, or posted.
+- A cloud-safe-only LangSmith smoke run completed on June 24, 2026 against the private eval project. This
+  validates the tracing gate and basic trace plumbing for safe adversarial controls only; it does not
+  replace the full seed/dev golden eval.
 
 Remaining handout gap:
 
 - upload/version the golden eval dataset in the private LangSmith project under AD-12
 - include the LangSmith project/experiment link in the final submission
-- confirm end-to-end LangSmith traces show LLM calls, tool calls, latency, and tokens
+- confirm full seed/dev LangSmith traces show LLM calls, tool calls, latency, and tokens
 - record the upload command, experiment URL, and any retention reason in submission notes if traces are
   kept after the submission window
 
@@ -392,7 +395,9 @@ Before PR #46, the managed environment blocked remote egress for non-cloud-safe 
 the documentation now defines the owner-approved private LangSmith eval path, but the actual 40-case run
 still needs to be executed with the explicit eval-egress gate and recorded in the submission notes. Run it
 only from an approved environment/path for that specific eval/provider egress, and keep the frozen `test`
-split out of LangSmith.
+split out of LangSmith. Attempts from this Codex tenant to run the full non-cloud-safe eval through
+Nebius only, and through Nebius plus LangSmith, were rejected by the environment's external-egress policy
+even after owner approval. Treat that as an environment boundary, not a repo limitation.
 
 Cloud-safe remote verification was run on June 24, 2026 using:
 
@@ -416,6 +421,31 @@ Cloud-safe result summary:
 This is a useful refusal-safety and latency smoke signal, but it is not a replacement for the full
 40-case golden eval because it contains no teachable rows and therefore does not test citation quality
 or check-generation behavior.
+
+A second cloud-safe run was completed with LangSmith tracing enabled:
+
+```bash
+LANGSMITH_TRACING=true \
+LANGSMITH_PROJECT=genacademy-coach-week4-eval \
+GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true \
+uv run python scripts/run_golden_eval.py --cloud-safe-only \
+  --tag current-main-cloudsafe-langsmith \
+  --run-id current-main-cloudsafe-langsmith-r1
+```
+
+Cloud-safe LangSmith result summary:
+
+- selected rows: `10`, all `negative_control`, all `cloud_safe=true`
+- task completion: `10/10 = 100%`
+- refusal precision/recall/F1: `1.0 / 1.0 / 1.0`
+- turn latency p50/p95: `2804.8 ms / 4290.4 ms`
+- case latency p50/p95: `6724.0 ms / 8268.8 ms`
+- average tool calls per case: `4.8`
+- max repeated tool count: `2`
+- cost remains `0.0` because pricing env vars were unset
+
+This validates the private LangSmith eval gate on safe rows only. It still does not prove teachable-path
+task completion, citation quality, or full 40-case latency.
 
 ## Verification Commands Already Run
 

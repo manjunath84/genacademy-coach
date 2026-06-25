@@ -19,7 +19,8 @@ retrieval through the Week-2 foundation adapter, existing 40-case golden eval.
 **Current status:** Tasks 1, 3, and 4 are implemented and merged via PR #45. PR #46 merged the AD-12
 governance path for owner-approved private LangSmith seed/dev eval traces. The current missing evidence
 is a governed full 40-case eval on `main`; the cloud-safe smoke run only verifies the adversarial refusal
-path.
+path. A cloud-safe-only LangSmith smoke run has also validated the private eval tracing gate on safe rows;
+the full non-cloud-safe Nebius eval remains blocked from this Codex tenant by external-egress policy.
 
 ---
 
@@ -383,6 +384,10 @@ golden eval.
       Cloud-safe refusal no-regression passed; citation/task teachable no-regression still requires the
       governed full 40-case run.
 - [x] Complete the AD-12 LangSmith eval-egress governance gate for the current seed/dev golden eval path.
+- [x] Run a cloud-safe-only LangSmith smoke eval to validate the private project gate and trace plumbing.
+      This covered only the 10 adversarial controls; it is not teachable-path or citation evidence.
+- [ ] Run the full current-model 40-case Nebius eval from an environment approved for non-cloud-safe
+      provider egress. Attempts from this Codex tenant were blocked even with LangSmith disabled.
 - [ ] Complete the Task 2 governance gate for any new inference provider.
 - [ ] Task 2: run approved model/provider screening evals.
 - [ ] Promote at most 2 finalists, then run 3x finalist golden evals.
