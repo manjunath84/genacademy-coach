@@ -163,7 +163,7 @@ def render_run_rows(data: dict[str, Any]) -> str:
 
 
 def render_tool_latency(data: dict[str, Any]) -> str:
-    max_ms = max(float(tool["mean_ms"]) for tool in data["tool_latency"])
+    max_ms = max(float(tool["total_ms_per_run"]) for tool in data["tool_latency"])
     rows: list[str] = []
     for tool in data["tool_latency"]:
         rows.append(
@@ -171,10 +171,10 @@ def render_tool_latency(data: dict[str, Any]) -> str:
             <div class="tool-row">
               <div>
                 <strong>{esc(tool['tool'])}</strong>
-                <span>{integer(tool['mean_ms'])} ms mean / {float(tool['share']) * 100:.1f}% share</span>
+                <span>{integer(tool['total_ms_per_run'])} ms total per run / {float(tool['share']) * 100:.1f}% share</span>
               </div>
-              <div class="bar-track" aria-label="{esc(tool['tool'])} mean latency">
-                <span class="bar-fill amber" style="width:{bar_width(float(tool['mean_ms']), max_ms)}"></span>
+              <div class="bar-track" aria-label="{esc(tool['tool'])} total tool time per run">
+                <span class="bar-fill amber" style="width:{bar_width(float(tool['total_ms_per_run']), max_ms)}"></span>
               </div>
             </div>
             """
@@ -226,6 +226,118 @@ def render_class_balance(data: dict[str, Any]) -> str:
         + "\n".join(parts)
         + "</div>"
     )
+
+
+def render_improvement_levers(data: dict[str, Any]) -> str:
+    levers = data.get("improvement_levers", [])
+    if not levers:
+        return ""
+    rows: list[str] = []
+    for item in levers:
+        cls = status_class(str(item.get("status", "")))
+        status_label = esc(item.get("status", "")) or "n/a"
+        rows.append(
+            f"""
+            <tr>
+              <th scope="row">{esc(item['lever'])}</th>
+              <td>{esc(item['change'])}</td>
+              <td>{esc(item['cluster'])}</td>
+              <td>{esc(item['predicted_impact'])}</td>
+              <td><span class="pill {cls}">{status_label}</span> {esc(item['measured'])}</td>
+            </tr>
+            """
+        )
+    body = "\n".join(rows)
+    return f"""
+    <section class="panel">
+      <h2>Improvement Levers: Predicted vs Measured</h2>
+      <p>Each shipped change maps to a standard improvement lever, the failure cluster it targeted, the impact predicted before the run, and the measured delta. The dominant cluster was post-retrieval citation mismatch, so most levers act after retrieval rather than on the index.</p>
+      <table>
+        <thead><tr><th>Lever</th><th>Change</th><th>Failure cluster targeted</th><th>Predicted</th><th>Measured</th></tr></thead>
+        <tbody>{body}</tbody>
+      </table>
+      <p style="margin-top:12px;">Levers deliberately not pulled: retrieval tuning (retrieval recall@5 was already 1.000, so the bottleneck was post-retrieval, not the index) and model upgrade (deferred to a governed provider/model bakeoff gated on data-egress and cost).</p>
+    </section>
+"""
+
+
+def render_failure_analysis(data: dict[str, Any]) -> str:
+    per_scenario = data.get("per_scenario", [])
+    distribution = data.get("failure_distribution", [])
+    open_axial = data.get("open_axial", [])
+    if not (per_scenario or distribution or open_axial):
+        return ""
+    ps_rows = "\n".join(
+        f"""<tr><th scope="row">{esc(r['scenario_type'])}</th><td>{esc(r['support'])}</td>"""
+        f"""<td><span class="pill {status_class(str(r.get('status', '')))}">{esc(r['task_pass'])}</span></td>"""
+        f"""<td>{esc(r['citation_f1'])}</td><td>{esc(r['false_refusals'])}</td></tr>"""
+        for r in per_scenario
+    )
+    max_runs = max((int(r["case_runs"]) for r in distribution), default=1) or 1
+    dist_rows = "\n".join(
+        f"""<div class="tool-row"><div><strong>{esc(r['category'])}</strong>"""
+        f"""<span>{esc(r['case_runs'])} case-runs / {esc(r['distinct_cases'])} cases - {esc(r['kind'])}</span></div>"""
+        f"""<div class="bar-track" aria-label="{esc(r['category'])} {esc(r['case_runs'])} case-runs">"""
+        f"""<span class="bar-fill amber" style="width:{bar_width(float(r['case_runs']), float(max_runs))}"></span></div></div>"""
+        for r in distribution
+    )
+    oa_rows = "\n".join(
+        f"""<tr><th scope="row"><code>{esc(r['case'])}</code></th><td>{esc(r['open_code'])}</td><td>{esc(r['axial_code'])}</td></tr>"""
+        for r in open_axial
+    )
+    return f"""
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Per-Scenario Breakdown</h2>
+        <p>Support, 3-run task pass, teachable citation F1, and false refusals by scenario type. Every task failure is a false refusal; adversarial is perfect.</p>
+        <table>
+          <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
+          <tbody>{ps_rows}</tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>Failure And Quality-Issue Distribution</h2>
+        <p>Across three runs (120 case-runs). Over-conservative refusal is every task failure; citation-span mismatch is a quality issue where the case still passes.</p>
+        {dist_rows}
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Open-Code To Axial-Code Analysis</h2>
+      <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
+      <table>
+        <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
+        <tbody>{oa_rows}</tbody>
+      </table>
+    </section>
+"""
+
+
+def render_production_monitoring(data: dict[str, Any]) -> str:
+    monitoring = data.get("production_monitoring", [])
+    if not monitoring:
+        return ""
+    rows = "\n".join(
+        f"""
+        <tr>
+          <th scope="row">{esc(item['signal'])}</th>
+          <td>{esc(item['metric'])}</td>
+          <td>{esc(item['threshold'])}</td>
+          <td>{esc(item['rationale'])}</td>
+        </tr>
+        """
+        for item in monitoring
+    )
+    return f"""
+    <section class="panel">
+      <h2>Production Monitoring</h2>
+      <p>Batch eval catches regressions before release; these are the live signals we would alert on for the grounded teach loop.</p>
+      <table>
+        <thead><tr><th>Signal</th><th>Metric</th><th>Alert threshold</th><th>Why</th></tr></thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </section>
+"""
 
 
 def render_dashboard(data: dict[str, Any]) -> str:
@@ -375,10 +487,12 @@ def render_dashboard(data: dict[str, Any]) -> str:
       </div>
     </section>
 
+    {render_improvement_levers(data)}
+
     <section class="grid-2">
       <div class="panel">
         <h2>Latency And Tool Attribution</h2>
-        <p>Measured tool time is dominated by check generation and retrieval. Turn latency still includes model inference around these calls.</p>
+        <p>Measured total tool time per full run is dominated by check generation and retrieval. Turn latency still includes model inference around these calls.</p>
         {render_tool_latency(data)}
       </div>
       <div class="panel">
@@ -386,6 +500,10 @@ def render_dashboard(data: dict[str, Any]) -> str:
         <div class="mini-grid">{render_guardrails(data)}</div>
       </div>
     </section>
+
+    {render_failure_analysis(data)}
+
+    {render_production_monitoring(data)}
 
     <section class="grid-2">
       <div class="panel">
@@ -420,6 +538,7 @@ def render_dashboard(data: dict[str, Any]) -> str:
 
     <footer>
       snapshot_date: {esc(provenance['snapshot_date'])} /
+      dataset_version: {esc(provenance['dataset_version'])} /
       generator_git_sha: {esc(provenance['generator_git_sha'])} /
       source: <a href="week4-eval-progress-handoff.md">docs/week4-eval-progress-handoff.md</a>
     </footer>
@@ -467,6 +586,7 @@ def main() -> None:
     data = json.loads(data_path.read_text(encoding="utf-8"))
     data.setdefault("provenance", {})["generator_git_sha"] = current_git_sha(root)
     validate_public_snapshot(data)
+    data_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     html_text = render_dashboard(data)
     out_path = root / args.out
     out_path.write_text(html_text, encoding="utf-8")

@@ -3,14 +3,15 @@
   "title": "Week-4 Eval Dashboard",
   "provenance": {
     "snapshot_date": "2026-06-25",
-    "generator_git_sha": "filled-by-render-command",
+    "generator_git_sha": "67020d3",
     "baseline_artifact": "golden-baseline-20260624.json",
     "current_run_ids": [
       "current-main-full-langsmith-r1",
       "current-main-full-langsmith-r2",
       "current-main-full-langsmith-r3"
     ],
-    "dataset_version_note": "40-case golden; 16 happy / 9 edge / 5 known_failure / 10 adversarial; splits seed/dev/negative_control, no frozen test split",
+    "dataset_version": "2026-06-24-plan1",
+    "dataset_version_note": "Dataset version 2026-06-24-plan1 (frozen): baseline and all three current-main runs were evaluated against this same 40-case golden set \u2014 the dataset did not change between baseline and re-evaluation, so the deltas are valid. Composition: 16 happy / 9 edge / 5 known_failure / 10 adversarial.",
     "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "thresholds": {
       "stop": 0.4,
@@ -22,7 +23,7 @@
   },
   "hero": {
     "primary_question": "Did the Week-4 improvements measurably help without breaking grounded refusal safety?",
-    "verdict": "Citation F1 improved by +0.150 and turn p95 latency improved by 27%; retrieval recall and refusal recall held at 1.000. Tradeoffs: refusal precision fell from 0.833 to 0.791 and task completion moved from 94.7% infra-excluded baseline to 93.3% current mean; citation F1 remains about 0.31 below the 0.90 plan pass bar."
+    "verdict": "Citation F1 improved by +0.150 and turn p95 latency improved by 27%; retrieval recall and refusal recall held at 1.000. Tradeoffs: refusal precision fell from 0.833 to 0.791 and task completion moved from 94.7% infra-excluded baseline to 93.3% current mean; citation F1 clears the 0.50 short-term floor but remains about 0.31 below the 0.90 plan pass bar."
   },
   "class_balance": {
     "happy": 16,
@@ -74,7 +75,7 @@
       "current": "0.594",
       "delta": "+0.150",
       "status": "win",
-      "note": "Improved materially, but still below the 0.90 plan pass bar."
+      "note": "Cleared the 0.50 short-term floor, but still below the 0.90 plan pass bar."
     },
     {
       "id": "turn_p95",
@@ -145,7 +146,7 @@
       "current": "0.594",
       "delta": "+0.150",
       "status": "win",
-      "note": "Improved, but below the 0.90 plan pass bar."
+      "note": "Cleared the 0.50 short-term floor, but remains below the 0.90 plan pass bar."
     },
     {
       "metric": "Refusal precision",
@@ -252,31 +253,184 @@
       "cost_usd": 0.13
     }
   ],
+  "improvement_levers": [
+    {
+      "lever": "Guardrails + control flow",
+      "change": "Single structured-output retry on missing/invalid agent output; tokens accumulated.",
+      "cluster": "Infra / structured-output failures (happy_014, edge_008)",
+      "predicted_impact": "Fewer infra rows; task +0.02 to +0.05",
+      "measured": "No infra errors across three runs; happy_014 now a visible, countable refusal.",
+      "status": "win"
+    },
+    {
+      "lever": "Control flow",
+      "change": "Correct deterministic grade plus grounded evidence forces advance.",
+      "cluster": "Correct answers that did not advance",
+      "predicted_impact": "Better task flow; refusal recall must stay 1.000",
+      "measured": "Task flow held; refusal recall stayed 1.000.",
+      "status": "held"
+    },
+    {
+      "lever": "Tool design + prompt engineering",
+      "change": "Preferred check-span signal: slide, then handout, then first citeable span.",
+      "cluster": "Citation mismatch (dominant cluster; 16 teachable rows at citation F1=0)",
+      "predicted_impact": "Hold or improve citation F1 above the 0.50 floor",
+      "measured": "Citation F1 0.444 -> 0.594 (+0.150).",
+      "status": "win"
+    },
+    {
+      "lever": "Control flow + tool design",
+      "change": "Cap/reuse repeated retrieval, check generation, and escalation within a turn.",
+      "cluster": "Latency tail and repeated tool loops",
+      "predicted_impact": "Turn p95 -1 to -2s; tokens flat or down",
+      "measured": "Turn p95 11.33s -> 8.28s (-27%); p50 -33%.",
+      "status": "win"
+    },
+    {
+      "lever": "Guardrail / anchoring attempt (rejected)",
+      "change": "Broad citation fallback to anchor final answers.",
+      "cluster": "Citation mismatch",
+      "predicted_impact": "citation F1 +0.10 to +0.20",
+      "measured": "-0.044 (0.444 -> 0.400); task -5.2 pp; not shipped.",
+      "status": "risk"
+    }
+  ],
+  "production_monitoring": [
+    {
+      "signal": "Quality drift",
+      "metric": "Citation F1 & task-completion (7-day rolling)",
+      "threshold": "Alert if either drops > 10% vs trailing baseline",
+      "rationale": "Catches retrieval/citation regressions before learners feel them."
+    },
+    {
+      "signal": "Cost spike",
+      "metric": "p95 tokens & cost per turn (24h)",
+      "threshold": "Alert if > 25% over budget",
+      "rationale": "Usually signals a tool-loop or retrieval blow-up."
+    },
+    {
+      "signal": "Latency regression",
+      "metric": "Turn p95 latency",
+      "threshold": "Alert if > 10s SLA on > 5% of runs",
+      "rationale": "Protects the interactive teach loop."
+    },
+    {
+      "signal": "Guardrail trips",
+      "metric": "Refusal + escalation rate",
+      "threshold": "Alert if > 2x trailing baseline",
+      "rationale": "Over-conservative refusal is our dominant failure mode \u2014 watch it live."
+    },
+    {
+      "signal": "Tool failure",
+      "metric": "Per-tool error rate: retrieve / generate_check / grade (1h)",
+      "threshold": "Alert if any single tool > 5%",
+      "rationale": "Flags external-dependency outage or structured-output regression."
+    }
+  ],
   "tool_latency": [
     {
       "tool": "generate_check_item",
-      "mean_ms": 49793,
+      "total_ms_per_run": 49793,
       "share": 0.6476
     },
     {
       "tool": "retrieve_course_corpus",
-      "mean_ms": 27046,
+      "total_ms_per_run": 27046,
       "share": 0.3517
     },
     {
       "tool": "escalate_to_mentor",
-      "mean_ms": 45,
+      "total_ms_per_run": 45,
       "share": 0.0006
     },
     {
       "tool": "grade_understanding",
-      "mean_ms": 2,
+      "total_ms_per_run": 2,
       "share": 0.0
     },
     {
       "tool": "update_profile",
-      "mean_ms": 2,
+      "total_ms_per_run": 2,
       "share": 0.0
+    }
+  ],
+  "per_scenario": [
+    {
+      "scenario_type": "happy",
+      "support": 16,
+      "task_pass": "93.8%",
+      "citation_f1": "0.576",
+      "false_refusals": "happy_014 (3/3)",
+      "status": "caveat"
+    },
+    {
+      "scenario_type": "edge",
+      "support": 9,
+      "task_pass": "92.6%",
+      "citation_f1": "0.735",
+      "false_refusals": "edge_002 (2/3)",
+      "status": "caveat"
+    },
+    {
+      "scenario_type": "known_failure",
+      "support": 5,
+      "task_pass": "80.0%",
+      "citation_f1": "0.400",
+      "false_refusals": "known_failure_001 (3/3)",
+      "status": "risk"
+    },
+    {
+      "scenario_type": "adversarial",
+      "support": 10,
+      "task_pass": "100.0%",
+      "citation_f1": "n/a (refusal)",
+      "false_refusals": "none; refusal recall 1.000",
+      "status": "win"
+    }
+  ],
+  "failure_distribution": [
+    {
+      "category": "Citation-span mismatch",
+      "case_runs": 31,
+      "distinct_cases": 18,
+      "kind": "Citation quality; case still passes",
+      "status": "caveat"
+    },
+    {
+      "category": "Over-conservative refusal",
+      "case_runs": 8,
+      "distinct_cases": 3,
+      "kind": "Task failure (all task failures)",
+      "status": "risk"
+    },
+    {
+      "category": "Infra / structured-output",
+      "case_runs": 0,
+      "distinct_cases": 0,
+      "kind": "Eliminated this week",
+      "status": "held"
+    }
+  ],
+  "open_axial": [
+    {
+      "case": "known_failure_001",
+      "open_code": "Expected span retrieved but scored ~0.31, below the 0.40 STOP threshold; agent refuses rather than teach from weak evidence.",
+      "axial_code": "Retrieval-confidence calibration -> over-conservative refusal"
+    },
+    {
+      "case": "happy_014",
+      "open_code": "Expected span present but scored 0.0 on the resolved query (query drift); was an infra error at baseline, now a stable refusal.",
+      "axial_code": "Query drift / possible label issue -> over-conservative refusal"
+    },
+    {
+      "case": "edge_002",
+      "open_code": "Intermittent false refusal (2 of 3 runs); citeable evidence sits at the threshold.",
+      "axial_code": "Borderline-evidence variance -> over-conservative refusal"
+    },
+    {
+      "case": "18 teachable rows",
+      "open_code": "Agent built the check from a weaker note/transcript span; final answer faithfully cites it but mismatches the golden citation.",
+      "axial_code": "Check-span selection -> citation mismatch"
     }
   ],
   "guardrails": [
@@ -337,7 +491,7 @@
   },
   "notes": [
     "Current values are the mean of three full current-main runs.",
-    "Citation improved materially but remains below the original aspirational pass bar.",
+    "Citation improved materially and clears the 0.50 short-term floor, but remains below the original 0.90 aspirational pass bar.",
     "Cost delta vs baseline is not meaningful because baseline and run 1 pricing env vars were unset.",
     "Case IDs are synthetic scenario labels and carry no learner text or corpus text.",
     "Private project and dataset URLs belong in local-only notes or submission materials, not in this committed dashboard."

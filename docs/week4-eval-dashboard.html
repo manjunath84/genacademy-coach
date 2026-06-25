@@ -108,7 +108,7 @@
       <div class="panel">
         <div class="eyebrow">GenAcademy Coach / Week-4 Eval</div>
         <h1>Week-4 Eval Dashboard</h1>
-        <p class="verdict">Citation F1 improved by +0.150 and turn p95 latency improved by 27%; retrieval recall and refusal recall held at 1.000. Tradeoffs: refusal precision fell from 0.833 to 0.791 and task completion moved from 94.7% infra-excluded baseline to 93.3% current mean; citation F1 remains about 0.31 below the 0.90 plan pass bar.</p>
+        <p class="verdict">Citation F1 improved by +0.150 and turn p95 latency improved by 27%; retrieval recall and refusal recall held at 1.000. Tradeoffs: refusal precision fell from 0.833 to 0.791 and task completion moved from 94.7% infra-excluded baseline to 93.3% current mean; citation F1 clears the 0.50 short-term floor but remains about 0.31 below the 0.90 plan pass bar.</p>
       </div>
       <aside class="panel hero-meta" aria-label="Dashboard provenance">
         <div class="meta-item"><span>Snapshot</span><strong>2026-06-25</strong></div>
@@ -126,7 +126,7 @@
               <div class="kpi-label">Citation F1</div>
               <div class="kpi-main">0.594</div>
               <div class="kpi-sub"><span>Baseline 0.444</span><strong>+0.150</strong></div>
-              <p>Improved materially, but still below the 0.90 plan pass bar.</p>
+              <p>Cleared the 0.50 short-term floor, but still below the 0.90 plan pass bar.</p>
             </article>
 
 
@@ -201,7 +201,7 @@
               <td>0.444</td>
               <td>0.594</td>
               <td><span class="pill status-win">+0.150</span></td>
-              <td>Improved, but below the 0.90 plan pass bar.</td>
+              <td>Cleared the 0.50 short-term floor, but remains below the 0.90 plan pass bar.</td>
             </tr>
 
 
@@ -338,17 +338,73 @@
       </div>
     </section>
 
+
+    <section class="panel">
+      <h2>Improvement Levers: Predicted vs Measured</h2>
+      <p>Each shipped change maps to a standard improvement lever, the failure cluster it targeted, the impact predicted before the run, and the measured delta. The dominant cluster was post-retrieval citation mismatch, so most levers act after retrieval rather than on the index.</p>
+      <table>
+        <thead><tr><th>Lever</th><th>Change</th><th>Failure cluster targeted</th><th>Predicted</th><th>Measured</th></tr></thead>
+        <tbody>
+            <tr>
+              <th scope="row">Guardrails + control flow</th>
+              <td>Single structured-output retry on missing/invalid agent output; tokens accumulated.</td>
+              <td>Infra / structured-output failures (happy_014, edge_008)</td>
+              <td>Fewer infra rows; task +0.02 to +0.05</td>
+              <td><span class="pill status-win">win</span> No infra errors across three runs; happy_014 now a visible, countable refusal.</td>
+            </tr>
+
+
+            <tr>
+              <th scope="row">Control flow</th>
+              <td>Correct deterministic grade plus grounded evidence forces advance.</td>
+              <td>Correct answers that did not advance</td>
+              <td>Better task flow; refusal recall must stay 1.000</td>
+              <td><span class="pill status-held">held</span> Task flow held; refusal recall stayed 1.000.</td>
+            </tr>
+
+
+            <tr>
+              <th scope="row">Tool design + prompt engineering</th>
+              <td>Preferred check-span signal: slide, then handout, then first citeable span.</td>
+              <td>Citation mismatch (dominant cluster; 16 teachable rows at citation F1=0)</td>
+              <td>Hold or improve citation F1 above the 0.50 floor</td>
+              <td><span class="pill status-win">win</span> Citation F1 0.444 -&gt; 0.594 (+0.150).</td>
+            </tr>
+
+
+            <tr>
+              <th scope="row">Control flow + tool design</th>
+              <td>Cap/reuse repeated retrieval, check generation, and escalation within a turn.</td>
+              <td>Latency tail and repeated tool loops</td>
+              <td>Turn p95 -1 to -2s; tokens flat or down</td>
+              <td><span class="pill status-win">win</span> Turn p95 11.33s -&gt; 8.28s (-27%); p50 -33%.</td>
+            </tr>
+
+
+            <tr>
+              <th scope="row">Guardrail / anchoring attempt (rejected)</th>
+              <td>Broad citation fallback to anchor final answers.</td>
+              <td>Citation mismatch</td>
+              <td>citation F1 +0.10 to +0.20</td>
+              <td><span class="pill status-risk">risk</span> -0.044 (0.444 -&gt; 0.400); task -5.2 pp; not shipped.</td>
+            </tr>
+            </tbody>
+      </table>
+      <p style="margin-top:12px;">Levers deliberately not pulled: retrieval tuning (retrieval recall@5 was already 1.000, so the bottleneck was post-retrieval, not the index) and model upgrade (deferred to a governed provider/model bakeoff gated on data-egress and cost).</p>
+    </section>
+
+
     <section class="grid-2">
       <div class="panel">
         <h2>Latency And Tool Attribution</h2>
-        <p>Measured tool time is dominated by check generation and retrieval. Turn latency still includes model inference around these calls.</p>
+        <p>Measured total tool time per full run is dominated by check generation and retrieval. Turn latency still includes model inference around these calls.</p>
 
             <div class="tool-row">
               <div>
                 <strong>generate_check_item</strong>
-                <span>49,793 ms mean / 64.8% share</span>
+                <span>49,793 ms total per run / 64.8% share</span>
               </div>
-              <div class="bar-track" aria-label="generate_check_item mean latency">
+              <div class="bar-track" aria-label="generate_check_item total tool time per run">
                 <span class="bar-fill amber" style="width:100.0%"></span>
               </div>
             </div>
@@ -357,9 +413,9 @@
             <div class="tool-row">
               <div>
                 <strong>retrieve_course_corpus</strong>
-                <span>27,046 ms mean / 35.2% share</span>
+                <span>27,046 ms total per run / 35.2% share</span>
               </div>
-              <div class="bar-track" aria-label="retrieve_course_corpus mean latency">
+              <div class="bar-track" aria-label="retrieve_course_corpus total tool time per run">
                 <span class="bar-fill amber" style="width:54.3%"></span>
               </div>
             </div>
@@ -368,9 +424,9 @@
             <div class="tool-row">
               <div>
                 <strong>escalate_to_mentor</strong>
-                <span>45 ms mean / 0.1% share</span>
+                <span>45 ms total per run / 0.1% share</span>
               </div>
-              <div class="bar-track" aria-label="escalate_to_mentor mean latency">
+              <div class="bar-track" aria-label="escalate_to_mentor total tool time per run">
                 <span class="bar-fill amber" style="width:4.0%"></span>
               </div>
             </div>
@@ -379,9 +435,9 @@
             <div class="tool-row">
               <div>
                 <strong>grade_understanding</strong>
-                <span>2 ms mean / 0.0% share</span>
+                <span>2 ms total per run / 0.0% share</span>
               </div>
-              <div class="bar-track" aria-label="grade_understanding mean latency">
+              <div class="bar-track" aria-label="grade_understanding total tool time per run">
                 <span class="bar-fill amber" style="width:4.0%"></span>
               </div>
             </div>
@@ -390,9 +446,9 @@
             <div class="tool-row">
               <div>
                 <strong>update_profile</strong>
-                <span>2 ms mean / 0.0% share</span>
+                <span>2 ms total per run / 0.0% share</span>
               </div>
-              <div class="bar-track" aria-label="update_profile mean latency">
+              <div class="bar-track" aria-label="update_profile total tool time per run">
                 <span class="bar-fill amber" style="width:4.0%"></span>
               </div>
             </div>
@@ -430,6 +486,91 @@
             </div>
       </div>
     </section>
+
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Per-Scenario Breakdown</h2>
+        <p>Support, 3-run task pass, teachable citation F1, and false refusals by scenario type. Every task failure is a false refusal; adversarial is perfect.</p>
+        <table>
+          <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
+          <tbody><tr><th scope="row">happy</th><td>16</td><td><span class="pill status-caveat">93.8%</span></td><td>0.576</td><td>happy_014 (3/3)</td></tr>
+<tr><th scope="row">edge</th><td>9</td><td><span class="pill status-caveat">92.6%</span></td><td>0.735</td><td>edge_002 (2/3)</td></tr>
+<tr><th scope="row">known_failure</th><td>5</td><td><span class="pill status-risk">80.0%</span></td><td>0.400</td><td>known_failure_001 (3/3)</td></tr>
+<tr><th scope="row">adversarial</th><td>10</td><td><span class="pill status-win">100.0%</span></td><td>n/a (refusal)</td><td>none; refusal recall 1.000</td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>Failure And Quality-Issue Distribution</h2>
+        <p>Across three runs (120 case-runs). Over-conservative refusal is every task failure; citation-span mismatch is a quality issue where the case still passes.</p>
+        <div class="tool-row"><div><strong>Citation-span mismatch</strong><span>31 case-runs / 18 cases - Citation quality; case still passes</span></div><div class="bar-track" aria-label="Citation-span mismatch 31 case-runs"><span class="bar-fill amber" style="width:100.0%"></span></div></div>
+<div class="tool-row"><div><strong>Over-conservative refusal</strong><span>8 case-runs / 3 cases - Task failure (all task failures)</span></div><div class="bar-track" aria-label="Over-conservative refusal 8 case-runs"><span class="bar-fill amber" style="width:25.8%"></span></div></div>
+<div class="tool-row"><div><strong>Infra / structured-output</strong><span>0 case-runs / 0 cases - Eliminated this week</span></div><div class="bar-track" aria-label="Infra / structured-output 0 case-runs"><span class="bar-fill amber" style="width:4.0%"></span></div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Open-Code To Axial-Code Analysis</h2>
+      <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
+      <table>
+        <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
+        <tbody><tr><th scope="row"><code>known_failure_001</code></th><td>Expected span retrieved but scored ~0.31, below the 0.40 STOP threshold; agent refuses rather than teach from weak evidence.</td><td>Retrieval-confidence calibration -&gt; over-conservative refusal</td></tr>
+<tr><th scope="row"><code>happy_014</code></th><td>Expected span present but scored 0.0 on the resolved query (query drift); was an infra error at baseline, now a stable refusal.</td><td>Query drift / possible label issue -&gt; over-conservative refusal</td></tr>
+<tr><th scope="row"><code>edge_002</code></th><td>Intermittent false refusal (2 of 3 runs); citeable evidence sits at the threshold.</td><td>Borderline-evidence variance -&gt; over-conservative refusal</td></tr>
+<tr><th scope="row"><code>18 teachable rows</code></th><td>Agent built the check from a weaker note/transcript span; final answer faithfully cites it but mismatches the golden citation.</td><td>Check-span selection -&gt; citation mismatch</td></tr></tbody>
+      </table>
+    </section>
+
+
+
+    <section class="panel">
+      <h2>Production Monitoring</h2>
+      <p>Batch eval catches regressions before release; these are the live signals we would alert on for the grounded teach loop.</p>
+      <table>
+        <thead><tr><th>Signal</th><th>Metric</th><th>Alert threshold</th><th>Why</th></tr></thead>
+        <tbody>
+        <tr>
+          <th scope="row">Quality drift</th>
+          <td>Citation F1 &amp; task-completion (7-day rolling)</td>
+          <td>Alert if either drops &gt; 10% vs trailing baseline</td>
+          <td>Catches retrieval/citation regressions before learners feel them.</td>
+        </tr>
+
+
+        <tr>
+          <th scope="row">Cost spike</th>
+          <td>p95 tokens &amp; cost per turn (24h)</td>
+          <td>Alert if &gt; 25% over budget</td>
+          <td>Usually signals a tool-loop or retrieval blow-up.</td>
+        </tr>
+
+
+        <tr>
+          <th scope="row">Latency regression</th>
+          <td>Turn p95 latency</td>
+          <td>Alert if &gt; 10s SLA on &gt; 5% of runs</td>
+          <td>Protects the interactive teach loop.</td>
+        </tr>
+
+
+        <tr>
+          <th scope="row">Guardrail trips</th>
+          <td>Refusal + escalation rate</td>
+          <td>Alert if &gt; 2x trailing baseline</td>
+          <td>Over-conservative refusal is our dominant failure mode — watch it live.</td>
+        </tr>
+
+
+        <tr>
+          <th scope="row">Tool failure</th>
+          <td>Per-tool error rate: retrieve / generate_check / grade (1h)</td>
+          <td>Alert if any single tool &gt; 5%</td>
+          <td>Flags external-dependency outage or structured-output regression.</td>
+        </tr>
+        </tbody>
+      </table>
+    </section>
+
 
     <section class="grid-2">
       <div class="panel">
@@ -485,13 +626,14 @@
     <section class="panel">
       <h2>Evidence And Caveats</h2>
       <ul class="note-list">
-        <li>Current values are the mean of three full current-main runs.</li><li>Citation improved materially but remains below the original aspirational pass bar.</li><li>Cost delta vs baseline is not meaningful because baseline and run 1 pricing env vars were unset.</li><li>Case IDs are synthetic scenario labels and carry no learner text or corpus text.</li><li>Private project and dataset URLs belong in local-only notes or submission materials, not in this committed dashboard.</li>
+        <li>Current values are the mean of three full current-main runs.</li><li>Citation improved materially and clears the 0.50 short-term floor, but remains below the original 0.90 aspirational pass bar.</li><li>Cost delta vs baseline is not meaningful because baseline and run 1 pricing env vars were unset.</li><li>Case IDs are synthetic scenario labels and carry no learner text or corpus text.</li><li>Private project and dataset URLs belong in local-only notes or submission materials, not in this committed dashboard.</li>
       </ul>
     </section>
 
     <footer>
       snapshot_date: 2026-06-25 /
-      generator_git_sha: 3c08907 /
+      dataset_version: 2026-06-24-plan1 /
+      generator_git_sha: 67020d3 /
       source: <a href="week4-eval-progress-handoff.md">docs/week4-eval-progress-handoff.md</a>
     </footer>
   </main>

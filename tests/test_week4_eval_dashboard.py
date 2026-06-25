@@ -27,6 +27,7 @@ def minimal_snapshot():
                 "current-main-full-langsmith-r2",
                 "current-main-full-langsmith-r3",
             ],
+            "dataset_version": "2026-06-24-plan1",
             "dataset_version_note": (
                 "40-case golden; 16 happy / 9 edge / 5 known_failure / 10 adversarial"
             ),
@@ -97,8 +98,103 @@ def minimal_snapshot():
             },
         ],
         "tool_latency": [
-            {"tool": "generate_check_item", "mean_ms": 49793, "share": 0.66},
-            {"tool": "retrieve_course_corpus", "mean_ms": 27046, "share": 0.34},
+            {"tool": "generate_check_item", "total_ms_per_run": 49793, "share": 0.66},
+            {"tool": "retrieve_course_corpus", "total_ms_per_run": 27046, "share": 0.34},
+        ],
+        "improvement_levers": [
+            {
+                "lever": "Tool design + prompt engineering",
+                "change": "Preferred check-span selection.",
+                "cluster": "Citation mismatch (dominant cluster)",
+                "predicted_impact": "Hold or improve citation F1 above the 0.50 floor",
+                "measured": "Citation F1 0.444 -> 0.594 (+0.150).",
+                "status": "win",
+            },
+            {
+                "lever": "Guardrail / anchoring attempt (rejected)",
+                "change": "Broad citation fallback to anchor final answers.",
+                "cluster": "Citation mismatch",
+                "predicted_impact": "citation F1 +0.10 to +0.20",
+                "measured": "-0.044 (0.444 -> 0.400); not shipped.",
+                "status": "risk",
+            },
+        ],
+        "production_monitoring": [
+            {
+                "signal": "Quality drift",
+                "metric": "Citation F1 & task-completion (7-day rolling)",
+                "threshold": "Alert if either drops > 10% vs trailing baseline",
+                "rationale": "Catches retrieval/citation regressions before learners feel them.",
+            },
+            {
+                "signal": "Cost spike",
+                "metric": "p95 tokens & cost per turn (24h)",
+                "threshold": "Alert if > 25% over budget",
+                "rationale": "Usually signals a tool-loop or retrieval blow-up.",
+            },
+            {
+                "signal": "Latency regression",
+                "metric": "Turn p95 latency",
+                "threshold": "Alert if > 10s SLA on > 5% of runs",
+                "rationale": "Protects the interactive teach loop.",
+            },
+            {
+                "signal": "Guardrail trips",
+                "metric": "Refusal + escalation rate",
+                "threshold": "Alert if > 2x trailing baseline",
+                "rationale": (
+                    "Over-conservative refusal is our dominant failure mode — watch it live."
+                ),
+            },
+            {
+                "signal": "Tool failure",
+                "metric": "Per-tool error rate: retrieve / generate_check / grade (1h)",
+                "threshold": "Alert if any single tool > 5%",
+                "rationale": (
+                    "Flags external-dependency outage or structured-output regression."
+                ),
+            },
+        ],
+        "per_scenario": [
+            {
+                "scenario_type": "happy",
+                "support": 16,
+                "task_pass": "93.8%",
+                "citation_f1": "0.576",
+                "false_refusals": "happy_014 (3/3)",
+                "status": "caveat",
+            },
+            {
+                "scenario_type": "adversarial",
+                "support": 10,
+                "task_pass": "100.0%",
+                "citation_f1": "n/a (refusal)",
+                "false_refusals": "none",
+                "status": "win",
+            },
+        ],
+        "failure_distribution": [
+            {
+                "category": "Citation-span mismatch",
+                "case_runs": 31,
+                "distinct_cases": 18,
+                "kind": "Citation quality",
+                "status": "caveat",
+            },
+            {
+                "category": "Over-conservative refusal",
+                "case_runs": 8,
+                "distinct_cases": 3,
+                "kind": "Task failure",
+                "status": "risk",
+            },
+        ],
+        "open_axial": [
+            {
+                "case": "known_failure_001",
+                "open_code": "Below STOP threshold.",
+                "axial_code": "Over-conservative refusal",
+            },
         ],
         "guardrails": [
             {
@@ -171,11 +267,44 @@ def test_render_dashboard_includes_honest_verdict_and_footer():
     assert "Citation F1 +0.150" in html
     assert "refusal precision" in html
     assert "snapshot_date" in html
+    assert "2026-06-24-plan1" in html
     assert "docs/week4-eval-progress-handoff.md" in html
     assert "langsmith.com" not in html
     assert "user_query" not in html
     assert "answer_text" not in html
     assert "trace_id" not in html
+
+
+def test_render_dashboard_includes_improvement_levers():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert "Improvement Levers" in html
+    assert "Tool design + prompt engineering" in html
+    assert "Predicted" in html
+    assert "Levers deliberately not pulled" in html
+    assert "retrieval recall@5 was already 1.000" in html
+
+
+def test_render_dashboard_includes_failure_analysis():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert "Per-Scenario Breakdown" in html
+    assert "Failure And Quality-Issue Distribution" in html
+    assert "Open-Code To Axial-Code" in html
+    assert "Over-conservative refusal" in html
+
+
+def test_render_dashboard_includes_production_monitoring():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert "Production Monitoring" in html
+    assert "Over-conservative refusal" in html
+
+
+def test_improvement_levers_keys_pass_public_snapshot_validation():
+    module = load_dashboard_module()
+    # The lever section must not trip the forbidden-key privacy guard.
+    module.validate_public_snapshot(minimal_snapshot())
 
 
 def test_write_private_appendix_noops_without_localdocs(tmp_path):
