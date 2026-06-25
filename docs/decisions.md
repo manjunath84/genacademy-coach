@@ -58,6 +58,10 @@ dev/seed only.
 available only as a secondary faithfulness audit.
 **Why.** The MVP needs repeatable grading and a clear "won't bluff" boundary. Using the inherited judge
 as audit avoids throwing away Week-2 infrastructure while keeping pass/fail deterministic.
+**Evolution path.** Open-answer teach checks may become more semantic through deterministic concept
+groups, supported synonyms, and optional embedding similarity against the cited expected answer/source
+span. Any such grader change must be scorer-versioned and re-evaluated; an LLM judge can audit or
+tie-break ambiguous cases only after data-egress approval.
 **Rejected.** LLM self-ratings or LLM-judge pass/fail for the teach-loop MVP.
 
 ### AD-7 - Agenticity Proof: Model-Chosen Action + Strategy

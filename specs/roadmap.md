@@ -139,17 +139,22 @@ This list is future-only; shipped pull-ins stay in Done.
    auth/upload patterns only after a privacy review.
 3. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth.
 4. **Track-aware retrieval** — corpus tagged by track if measured retrieval gaps justify it.
-5. **Memory hardening for cohort rollout** — decide retention, deletion, admin visibility, and whether
+5. **Semantic check-answer grading** — keep Python as the pass/fail gate, but evolve open-answer checks
+   from literal keyword matching to deterministic concept coverage: supported synonym groups first, then
+   optional embedding similarity between the learner answer and the cited expected answer/source span.
+   LLM-as-judge remains an offline audit or uncertain-case tie-break only, behind data-egress approval
+   and scorer-versioned evals.
+6. **Memory hardening for cohort rollout** — decide retention, deletion, admin visibility, and whether
    Mem0 managed storage remains the right provider. Memory may personalize style/struggle history, but
    course facts still require citations.
-6. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
+7. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
    coordination outgrow `create_agent`.
-7. **Caching and model tiering** — latency/cost optimization after behavior is stable.
-8. **Multimodal slide questions** — only with a clear grounded-citation path.
-9. **Cohort rollout hardening** — per-user cost caps, account lifecycle, and admin operations beyond
+8. **Caching and model tiering** — latency/cost optimization after behavior is stable.
+9. **Multimodal slide questions** — only with a clear grounded-citation path.
+10. **Cohort rollout hardening** — per-user cost caps, account lifecycle, and admin operations beyond
    the minimal login/account-creation gate.
-10. **Flashcards / mind-map artifacts** — generated only from cited spans.
-11. **GraphRAG** — course knowledge graph if the single-retriever contract shows a measured recall gap.
+11. **Flashcards / mind-map artifacts** — generated only from cited spans.
+12. **GraphRAG** — course knowledge graph if the single-retriever contract shows a measured recall gap.
 
 ## North Star
 
@@ -171,6 +176,9 @@ material.
 - **Memory privacy.** Cross-session memory can store learner preferences, counts, and topic hashes, not
   raw user IDs/emails, learner answers, generated tutor text, private corpus/eval text, retrieved spans,
   quiz prompts/options/rationales, or uncited course claims.
+- **Grader evolution.** The Week-4 v1 metrics are tied to the current deterministic scorer. Any semantic
+  grading, embedding-similarity, or LLM-judge change must be separately versioned, re-evaluated on the
+  same golden set, and reported as a new result, not retrofitted onto the submitted baseline.
 - **Demo artifact privacy.** Local/private demo trace cards may show decision basis and labeled
   action/band status, but raw trace JSON, generated screenshots, generated DOCX packets, secrets, and
   unreviewed corpus-bearing captures stay in ignored local paths such as `localdocs/` or `tmp/`.
