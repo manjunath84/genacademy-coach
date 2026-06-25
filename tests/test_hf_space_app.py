@@ -435,7 +435,7 @@ def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries
         TEACH_GROUNDED_PRESET[0],
         TEACH_GROUNDED_PRESET[1],
         TEACH_GROUNDED_PRESET[2],
-        "",
+        TEACH_GROUNDED_PRESET[3],
         None,
     )
     assert grounded_ui_preset[5]["interactive"] is False
@@ -452,6 +452,28 @@ def test_demo_presets_are_fixed_public_safe_values_and_not_eval_manifest_entries
     assert DEMO_PRESET_TOPICS.isdisjoint(eval_tokens)
     assert set(_parse_source_session_ids(SKILLGAP_SOURCE_PRESET)).isdisjoint(eval_tokens)
     assert TEACH_REFUSAL_PRESET[0] == "Gen Academy cafeteria menu"
+
+
+def test_start_teach_check_prefills_grounded_demo_answer(monkeypatch):
+    def fake_run_teach_ui(topic, style, track_lens, learner_answer, state_token, request):
+        assert (topic, style, track_lens) == TEACH_GROUNDED_PRESET[:3]
+        assert learner_answer == ""
+        assert state_token is None
+        assert request is None
+        return "output", "trace summary", {"status": "ok"}, "state-token", ""
+
+    monkeypatch.setattr(gradio_app, "run_teach_ui", fake_run_teach_ui)
+
+    output, trace_summary, metadata, state_token, answer, submit_update = (
+        gradio_app.start_teach_check_ui(*TEACH_GROUNDED_PRESET[:3])
+    )
+
+    assert output == "output"
+    assert trace_summary == "trace summary"
+    assert metadata == {"status": "ok"}
+    assert state_token == "state-token"
+    assert answer == TEACH_GROUNDED_PRESET[3]
+    assert submit_update["interactive"] is True
 
 
 def test_runtime_reuses_foundation_for_local_demo(monkeypatch):

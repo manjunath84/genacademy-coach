@@ -48,7 +48,10 @@ TEACH_GROUNDED_PRESET = (
     "agent harness",
     "analogy",
     "code_heavy",
-    "It is just one prompt with no tool checks or feedback.",
+    (
+        "It controls tool access, enforces guardrails, maintains context and memory, "
+        "enables verification, and supports error recovery."
+    ),
 )
 TEACH_REFUSAL_PRESET = (
     "Gen Academy cafeteria menu",
@@ -841,8 +844,8 @@ def fill_teach_grounded_preset_ui(
     state_token: str | None = None,
 ) -> tuple[str, str, str, str, None, Any]:
     _finish_teach_state(state_token)
-    topic, style, lens, _answer = TEACH_GROUNDED_PRESET
-    return topic, style, lens, "", None, _teach_submit_button_update(interactive=False)
+    topic, style, lens, answer = TEACH_GROUNDED_PRESET
+    return topic, style, lens, answer, None, _teach_submit_button_update(interactive=False)
 
 
 def fill_teach_refusal_preset_ui(
@@ -850,6 +853,13 @@ def fill_teach_refusal_preset_ui(
 ) -> tuple[str, str, str, str, None, Any]:
     _finish_teach_state(state_token)
     return (*TEACH_REFUSAL_PRESET, None, _teach_submit_button_update(interactive=False))
+
+
+def _teach_demo_answer(*, clean_topic: str, clean_style: str, clean_lens: str) -> str:
+    topic, style, lens, answer = TEACH_GROUNDED_PRESET
+    if (clean_topic, clean_style, clean_lens) == (topic, style, lens):
+        return answer
+    return ""
 
 
 def fill_quiz_grounded_preset() -> tuple[str, int, str, bool]:
@@ -1969,7 +1979,9 @@ def start_teach_check_ui(
         trace_summary,
         metadata,
         next_state_token,
-        answer,
+        _teach_demo_answer(clean_topic=topic, clean_style=style, clean_lens=track_lens)
+        if next_state_token is not None
+        else answer,
         _teach_submit_button_update(interactive=next_state_token is not None),
     )
 
