@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "title": "Week-4 Eval Dashboard",
+  "provenance": {
+    "snapshot_date": "2026-06-25",
+    "generator_git_sha": "filled-by-render-command",
+    "baseline_artifact": "golden-baseline-20260624.json",
+    "current_run_ids": [
+      "current-main-full-langsmith-r1",
+      "current-main-full-langsmith-r2",
+      "current-main-full-langsmith-r3"
+    ],
+    "dataset_version_note": "40-case golden; 16 happy / 9 edge / 5 known_failure / 10 adversarial; splits seed/dev/negative_control, no frozen test split",
+    "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "thresholds": {
+      "stop": 0.4,
+      "confirm_upper": 0.85
+    },
+    "source_handoff_doc": "docs/week4-eval-progress-handoff.md",
+    "privacy_reviewed": true,
+    "redaction_policy": "Committed dashboard data contains aggregate metrics, synthetic case IDs, and public-safe caveats only; no raw learner text, tutor prose, retrieved spans, raw traces, private URLs, secrets, or frozen test data."
+  },
+  "hero": {
+    "primary_question": "Did the Week-4 improvements measurably help without breaking grounded refusal safety?",
+    "verdict": "Citation F1 improved by +0.150 and turn p95 latency improved by 27%; retrieval recall and refusal recall held at 1.000. Tradeoffs: refusal precision fell from 0.833 to 0.791 and task completion moved from 94.7% infra-excluded baseline to 93.3% current mean; citation F1 remains about 0.31 below the 0.90 plan pass bar."
+  },
+  "class_balance": {
+    "happy": 16,
+    "edge": 9,
+    "known_failure": 5,
+    "adversarial": 10
+  },
+  "baseline": {
+    "label": "Baseline",
+    "task_completion_rate": 0.947,
+    "teachable_rate": 0.929,
+    "refusal_precision": 0.833,
+    "refusal_recall": 1.0,
+    "refusal_f1": 0.909,
+    "citation_f1": 0.444,
+    "tool_f1": 0.893,
+    "retrieval_recall_at_5": 1.0,
+    "turn_p50_ms": 6843,
+    "turn_p95_ms": 11328,
+    "total_tokens": 1330184,
+    "cost_usd": 0.0
+  },
+  "current_mean": {
+    "label": "Current mean",
+    "task_completion_rate": 0.933,
+    "teachable_rate": 0.911,
+    "refusal_precision": 0.791,
+    "refusal_recall": 1.0,
+    "refusal_f1": 0.883,
+    "citation_f1": 0.594,
+    "tool_f1": 0.9,
+    "retrieval_recall_at_5": 1.0,
+    "turn_p50_ms": 4607,
+    "turn_p95_ms": 8275,
+    "case_p50_ms": 13841,
+    "case_p95_ms": 21961,
+    "total_tokens": 1300903,
+    "cost_usd_reference": 0.138,
+    "avg_tool_calls_per_case": 11.15,
+    "agent_attempts": 114,
+    "retrieval_cache_hits": 25,
+    "max_repeated_tool_count": 4.33
+  },
+  "kpis": [
+    {
+      "id": "citation_f1",
+      "label": "Citation F1",
+      "baseline": "0.444",
+      "current": "0.594",
+      "delta": "+0.150",
+      "status": "win",
+      "note": "Improved materially, but still below the 0.90 plan pass bar."
+    },
+    {
+      "id": "turn_p95",
+      "label": "Turn p95 latency",
+      "baseline": "11.33s",
+      "current": "8.28s",
+      "delta": "-27%",
+      "status": "win",
+      "note": "The clearest speed win from loop controls and attribution work."
+    },
+    {
+      "id": "refusal_recall",
+      "label": "Refusal recall",
+      "baseline": "1.000",
+      "current": "1.000",
+      "delta": "held",
+      "status": "held",
+      "note": "The never-bluff guardrail stayed intact across all three runs."
+    },
+    {
+      "id": "retrieval_recall",
+      "label": "Retrieval recall@5",
+      "baseline": "1.000",
+      "current": "1.000",
+      "delta": "held",
+      "status": "held",
+      "note": "Retrieval stayed healthy; failures are mostly post-retrieval behavior."
+    },
+    {
+      "id": "task_completion",
+      "label": "Task completion",
+      "baseline": "94.7%",
+      "current": "93.3%",
+      "delta": "-1.4 pp",
+      "status": "caveat",
+      "note": "Baseline excludes two infra errors; current mean includes all 40 cases."
+    },
+    {
+      "id": "refusal_precision",
+      "label": "Refusal precision",
+      "baseline": "0.833",
+      "current": "0.791",
+      "delta": "-0.043",
+      "status": "caveat",
+      "note": "Small-N precision moved with a few teachable false refusals."
+    }
+  ],
+  "metric_deltas": [
+    {
+      "metric": "Task completion",
+      "baseline": "94.7% (36/38)",
+      "current": "93.3% mean",
+      "delta": "-1.4 pp",
+      "status": "caveat",
+      "note": "Baseline excluded two infra errors; current runs had no infra exclusions."
+    },
+    {
+      "metric": "Teachable completion",
+      "baseline": "92.9% (26/28)",
+      "current": "91.1% mean",
+      "delta": "-1.8 pp",
+      "status": "caveat",
+      "note": "Remaining misses are concentrated false refusals."
+    },
+    {
+      "metric": "Citation F1",
+      "baseline": "0.444",
+      "current": "0.594",
+      "delta": "+0.150",
+      "status": "win",
+      "note": "Improved, but below the 0.90 plan pass bar."
+    },
+    {
+      "metric": "Refusal precision",
+      "baseline": "0.833",
+      "current": "0.791",
+      "delta": "-0.043",
+      "status": "caveat",
+      "note": "Tiny-N metric; a few false refusals move it visibly."
+    },
+    {
+      "metric": "Refusal recall",
+      "baseline": "1.000",
+      "current": "1.000",
+      "delta": "0.000",
+      "status": "held",
+      "note": "The core grounding safety guardrail held."
+    },
+    {
+      "metric": "Tool F1",
+      "baseline": "0.893",
+      "current": "0.900",
+      "delta": "+0.007",
+      "status": "held",
+      "note": "Slight movement; not the main story."
+    },
+    {
+      "metric": "Retrieval recall@5",
+      "baseline": "1.000",
+      "current": "1.000",
+      "delta": "0.000",
+      "status": "held",
+      "note": "Retrieval was not the primary remaining bottleneck."
+    },
+    {
+      "metric": "Turn p50 latency",
+      "baseline": "6.84s",
+      "current": "4.61s",
+      "delta": "-33%",
+      "status": "win",
+      "note": "Median turn became substantially faster."
+    },
+    {
+      "metric": "Turn p95 latency",
+      "baseline": "11.33s",
+      "current": "8.28s",
+      "delta": "-27%",
+      "status": "win",
+      "note": "Tail turn latency improved materially."
+    },
+    {
+      "metric": "Case p95 latency",
+      "baseline": "not captured",
+      "current": "21.96s",
+      "delta": "new metric",
+      "status": "held",
+      "note": "Added by PR #45 latency attribution."
+    },
+    {
+      "metric": "Total tokens",
+      "baseline": "1,330,184",
+      "current": "1,300,903 mean",
+      "delta": "-2.2%",
+      "status": "held",
+      "note": "Token usage stayed in the same band."
+    },
+    {
+      "metric": "Cost",
+      "baseline": "$0.00",
+      "current": "$0.14 reference",
+      "delta": "not comparable",
+      "status": "caveat",
+      "note": "Baseline and run 1 pricing env vars were unset; use runs 2 and 3 only as current cost reference."
+    }
+  ],
+  "runs": [
+    {
+      "run_id": "r1",
+      "task_completion_rate": 0.925,
+      "citation_f1": 0.539,
+      "refusal_precision": 0.769,
+      "refusal_recall": 1.0,
+      "turn_p95_ms": 8102,
+      "total_tokens": 1310309,
+      "cost_usd": 0.0
+    },
+    {
+      "run_id": "r2",
+      "task_completion_rate": 0.95,
+      "citation_f1": 0.667,
+      "refusal_precision": 0.833,
+      "refusal_recall": 1.0,
+      "turn_p95_ms": 8356,
+      "total_tokens": 1380538,
+      "cost_usd": 0.147
+    },
+    {
+      "run_id": "r3",
+      "task_completion_rate": 0.925,
+      "citation_f1": 0.578,
+      "refusal_precision": 0.769,
+      "refusal_recall": 1.0,
+      "turn_p95_ms": 8368,
+      "total_tokens": 1211862,
+      "cost_usd": 0.13
+    }
+  ],
+  "tool_latency": [
+    {
+      "tool": "generate_check_item",
+      "mean_ms": 49793,
+      "share": 0.6476
+    },
+    {
+      "tool": "retrieve_course_corpus",
+      "mean_ms": 27046,
+      "share": 0.3517
+    },
+    {
+      "tool": "escalate_to_mentor",
+      "mean_ms": 45,
+      "share": 0.0006
+    },
+    {
+      "tool": "grade_understanding",
+      "mean_ms": 2,
+      "share": 0.0
+    },
+    {
+      "tool": "update_profile",
+      "mean_ms": 2,
+      "share": 0.0
+    }
+  ],
+  "guardrails": [
+    {
+      "label": "Refusal recall",
+      "value": "1.000",
+      "status": "held",
+      "note": "All refusal-expected cases still refused instead of bluffing."
+    },
+    {
+      "label": "Retrieval recall@5",
+      "value": "1.000",
+      "status": "held",
+      "note": "Expected spans remained retrievable in the top five."
+    },
+    {
+      "label": "Scorer integrity",
+      "value": "unchanged",
+      "status": "held",
+      "note": "Dashboard work does not alter eval scoring or denominators."
+    },
+    {
+      "label": "Privacy",
+      "value": "redacted",
+      "status": "held",
+      "note": "Committed artifact uses aggregate metrics and synthetic case labels only."
+    }
+  ],
+  "remaining_failures": [
+    {
+      "case_id": "happy_014",
+      "summary": "Stable false refusal across all three current-main runs.",
+      "status": "open",
+      "status_label": "open"
+    },
+    {
+      "case_id": "known_failure_001",
+      "summary": "Stable false refusal; do not lower STOP threshold casually.",
+      "status": "open",
+      "status_label": "open"
+    },
+    {
+      "case_id": "edge_002",
+      "summary": "False refusal in two of three current-main runs.",
+      "status": "open",
+      "status_label": "open"
+    },
+    {
+      "case_id": "edge_008",
+      "summary": "No current infra failure, but kept on watchlist from historical instability.",
+      "status": "watch",
+      "status_label": "watch"
+    }
+  ],
+  "perspectives": {
+    "user": "The tutor is faster and cites better, and it still refuses unsupported questions. The visible product risk is over-refusing a few teachable cases.",
+    "builder": "Retrieval is healthy; remaining work is mostly post-retrieval decision behavior, false-refusal calibration, and citation quality rather than index recall."
+  },
+  "notes": [
+    "Current values are the mean of three full current-main runs.",
+    "Citation improved materially but remains below the original aspirational pass bar.",
+    "Cost delta vs baseline is not meaningful because baseline and run 1 pricing env vars were unset.",
+    "Case IDs are synthetic scenario labels and carry no learner text or corpus text.",
+    "Private project and dataset URLs belong in local-only notes or submission materials, not in this committed dashboard."
+  ],
+  "sources": [
+    {
+      "label": "Week-4 eval handoff",
+      "path": "docs/week4-eval-progress-handoff.md"
+    },
+    {
+      "label": "Dashboard design spec",
+      "path": "docs/superpowers/specs/2026-06-25-week4-eval-dashboard-design.md"
+    }
+  ]
+}
