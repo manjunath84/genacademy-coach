@@ -64,7 +64,25 @@ Snapshot contents:
 - class/segment counts
 - sanitized remaining failure modes
 - guardrail status and caveats
-- provenance fields naming the local run IDs and dates, but not raw trace paths or private URLs
+- a provenance block filled by the generator, not hand-written:
+  - `snapshot_date`
+  - `generator_git_sha`
+  - `baseline_artifact`
+  - `current_run_ids`
+  - `dataset_version_note`
+  - `model_id`
+  - `thresholds`
+  - `source_handoff_doc`
+  - `privacy_reviewed`
+  - `redaction_policy`
+
+The provenance block must name local run IDs and artifact filenames, but not raw trace paths or private
+URLs. `privacy_reviewed: true` is set by the project owner after a final scan; the generator must not
+auto-set it.
+
+The dashboard is regenerated only when the owner re-runs `scripts/build_week4_eval_dashboard.py` against
+a new committed JSON snapshot. The handoff doc is updated by hand to match. If the dashboard and handoff
+disagree, the committed JSON snapshot and the generator diff are canonical for the dashboard artifact.
 
 Local-only appendix contents:
 
@@ -72,13 +90,19 @@ Local-only appendix contents:
 - private LangSmith project/dataset URLs
 - richer explanation of which local artifacts support each dashboard section
 
+If `localdocs/INDEX.md` is absent, the generator must skip the local-appendix write and must not fail the
+public build.
+
 ## 4. Dashboard Layout
 
 The default page is a guided analytical report, not a dense BI workbench.
 
 1. **Hero verdict**
-   - one-sentence verdict: citation and latency improved; retrieval/refusal recall held; false-refusal
-     tradeoff remains
+   - one-sentence verdict: citation F1 improved by about `+0.150` and turn p95 latency improved by about
+     `-27%`; retrieval recall and refusal recall held at `1.000`; tradeoffs are measurable small
+     regressions in refusal precision (`0.833` to `0.791`) and task completion (`94.7%` infra-excluded
+     baseline to `93.3%` current mean); citation F1 remains about `0.31` below the plan-defined `0.90`
+     pass bar
    - four to six KPI cards with baseline/current/delta
 
 2. **Metric delta panel**
@@ -87,10 +111,13 @@ The default page is a guided analytical report, not a dense BI workbench.
      exclusions in the three runs
    - include task completion, teachable completion, citation F1, refusal P/R/F1, tool F1, retrieval
      recall@5, turn p50/p95, case p50/p95, tokens, and cost note
+   - show an amber "below 0.90 plan pass bar" indicator next to citation F1
+   - show the cost caveat visibly: baseline and run 1 were recorded with pricing env unset (`$0.0`), so
+     cost delta vs baseline is not meaningful; use runs 2 and 3 only as the current cost reference
 
 3. **Three-run variance**
    - compact run table for `r1`, `r2`, `r3`
-   - small chart for citation F1 and turn p95 movement across runs
+   - small sparkline-style chart for citation F1 and turn p95 movement across runs, labeled `N=3 runs`
    - call out that tiny-N refusal precision is sensitive to one or two cases
 
 4. **Quality and safety guardrails**
@@ -102,11 +129,14 @@ The default page is a guided analytical report, not a dense BI workbench.
    - deterministic metrics remain the official scorer; LLM-as-judge is optional/future only
 
 5. **Latency and tool-loop attribution**
-   - chart per-tool measured latency share across current runs
+   - chart aggregate per-tool measured latency share across the three current runs, using mean ms and mean
+     share per tool
    - explain that check generation and retrieval dominate measured tool time
    - show average tool calls per case, retrieval cache hits, max repeated tool count, and agent attempts
 
 6. **Remaining failure modes**
+   - case IDs are synthetic scenario labels, such as `happy_014`; they carry no learner text and no corpus
+     text
    - stable false refusals for `happy_014` and `known_failure_001`
    - `edge_002` false refusal in two of three runs
    - citation improved but remains imperfect
@@ -134,6 +164,12 @@ Use a restrained analytics-report style:
   tables
 - first viewport should answer the main question without scrolling
 - dense enough for evaluation work, but with enough spacing that it can be used in a Loom walkthrough
+- use WCAG AA color contrast for the teal/amber/red palette
+- add `aria-label` text on KPI cards and alt text or equivalent accessible labels on charts
+- standardize display precision: ratios to three decimals, latency as whole milliseconds or seconds with
+  two decimals, tokens as whole integers, and cost as dollars to two decimals
+- include a footer with `snapshot_date`, `generator_git_sha`, and a link back to
+  `docs/week4-eval-progress-handoff.md`
 
 The dashboard is a report artifact, not an app landing page.
 
@@ -146,11 +182,21 @@ Add a small static generator:
 Responsibilities:
 
 - load `docs/week4-eval-dashboard-data.json`
-- validate public-safe fields and fail on forbidden keys such as raw prompt/prose/span/trace fields
+- validate public-safe fields with an explicit denylist, including:
+  - exact keys: `user_query`, `answer_text`, `predicted_text`, `final_text`, `assistant_text`,
+    `tutor_text`, `retrieved_span`, `retrieved_span_text`, `raw_span`, `raw_prompt`, `system_prompt`,
+    `trace`, `trace_id`, `trace_json`, `langsmith_url`, `langsmith_experiment_url`
+  - key-name regex:
+    `(?i)(langsmith|trace|prompt|span|tutor_?text|learner_?text|user_?query|answer_?text)`
+  - URL regex in any string value: `https://(smith\.langchain\.com|eu\.smith\.langchain\.com)`
 - compute display-ready deltas when possible
 - write `docs/week4-eval-dashboard.html`
 - optionally write/update `localdocs/docs/week4-eval-dashboard-private-appendix.md` when local-only
   context is available
+
+The generator must fail loudly on public-snapshot denylist matches. It must skip the local appendix when
+`localdocs/INDEX.md` is absent. It must never auto-set `privacy_reviewed: true`; that flag is set by the
+project owner after a final scan.
 
 The generated HTML should be self-contained:
 
@@ -169,9 +215,11 @@ Public dashboard guardrails:
 - no raw traces
 - no secrets or environment values
 - no private LangSmith URLs
-- no frozen `test` split data
+- no frozen `test` split data; the frozen `test` split is never read or referenced by the generator or
+  the dashboard data file
 - no RAGAS/LLM-judge claims beyond "optional/future" unless a separate judge-egress decision exists
 - no scorer-hack framing or hidden denominator changes
+- case IDs are synthetic scenario labels and carry no learner text or corpus text
 
 The public data snapshot should include an explicit `privacy_reviewed: true` field and a short
 `redaction_policy` string.
@@ -185,6 +233,9 @@ Before handoff:
 - inspect the first viewport and mobile/narrow width for text overlap
 - verify the key metrics reconcile with `docs/week4-eval-progress-handoff.md`
 - scan public dashboard/data files for forbidden private fields and private URL patterns
+- run `scripts/check_eval_leak.py` against the generated JSON before commit
+- verify `git grep` for `langsmith.com`, `user_query`, `answer_text`, and `trace_id` returns no hits in
+  the committed dashboard files
 - run `git diff --check`
 
 No full eval run is required for this dashboard work because it reports already completed eval artifacts.
