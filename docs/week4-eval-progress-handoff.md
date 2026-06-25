@@ -29,13 +29,13 @@ selection, and tool-loop observability rather than changing the scorer or weaken
 
 | Change | User-visible problem | Builder-side fix | Evidence / current status |
 |---|---|---|---|
-| Structured-output retry | Occasional infra-style refusal or malformed agent response | Retry missing/invalid structured output once, with token usage accumulated | Implemented; reduced noise but `edge_008` and `happy_014` still need current-main full-eval confirmation |
+| Structured-output retry | Occasional infra-style refusal or malformed agent response | Retry missing/invalid structured output once, with token usage accumulated | Implemented; no infra errors appeared in the three current-main full runs |
 | Correct answer must advance | Learner could answer correctly and still be drilled/re-explained | `_enforce_grounding` forces `advance` when deterministic grade is correct and grounded evidence exists | Three historical runs improved task flow while refusal recall stayed `1.0` |
 | Preferred check span | Citation could point to weaker note/transcript/glossary material | Mark `preferred_for_check`; guide agent toward slide/handout spans for check generation | Historical citation F1 improved from about `0.394` to about `0.506` |
-| Latency attribution | Slow turns were hard to explain from a single total duration | Add redacted agent/tool timing, attempts, cache hits, case latency, and repeated-tool metrics | Implemented in PR #45; cloud-safe smoke confirms refusal safety, full 40-case eval still pending |
-| Loop reduction | Repeated retrieval/check/escalation calls inflated latency and sometimes exhausted turns | Add LangChain tool-call caps plus same-turn retrieval/check reuse | Implemented in PR #45; needs full eval to prove teachable/citation no-regression |
-| Slide-first hardening | Preferred source behavior could drift with source-priority changes | Choose first slide, then first handout, then first citeable span | Implemented in PR #45; cloud-safe run cannot measure citation impact |
-| LangSmith governance | Full eval needed private traces, but old docs only allowed cloud-safe tracing | AD-12 now permits owner-approved private seed/dev LangSmith eval traces with explicit CLI gate | Implemented in PR #46; actual LangSmith dataset/experiment still pending |
+| Latency attribution | Slow turns were hard to explain from a single total duration | Add redacted agent/tool timing, attempts, cache hits, case latency, and repeated-tool metrics | Implemented in PR #45; three full runs show turn p95 improved from `11328 ms` to `8275 ms` mean |
+| Loop reduction | Repeated retrieval/check/escalation calls inflated latency and sometimes exhausted turns | Add LangChain tool-call caps plus same-turn retrieval/check reuse | Implemented in PR #45; full runs show no infra errors, but some high-latency tool loops remain |
+| Slide-first hardening | Preferred source behavior could drift with source-priority changes | Choose first slide, then first handout, then first citeable span | Implemented in PR #45; three full runs show citation F1 mean `0.594` vs `0.444` baseline |
+| LangSmith governance | Full eval needed private traces, but old docs only allowed cloud-safe tracing | AD-12 now permits owner-approved private seed/dev LangSmith eval traces with explicit CLI gate | Implemented in PR #46; three full runs completed locally under the private eval project |
 
 ## Handout Mapping
 
@@ -84,7 +84,7 @@ mostly machine-checkable. No LLM-as-judge is currently needed for the core score
 
 ### Phase 2: LangSmith instrumentation and governance
 
-Status: governance complete; LangSmith execution still pending.
+Status: governance complete; three full current-main LangSmith runs completed locally.
 
 Local observability is strong:
 
@@ -116,21 +116,21 @@ Governance status:
   `GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true` before tracing.
 - Public/committed artifacts remain redacted. Raw learner text, tutor prose, retrieved span text, and raw
   traces still must not be committed, screenshotted publicly, or posted.
-- A cloud-safe-only LangSmith smoke run completed on June 24, 2026 against the private eval project. This
-  validates the tracing gate and basic trace plumbing for safe adversarial controls only; it does not
-  replace the full seed/dev golden eval.
+- A cloud-safe-only LangSmith smoke run completed on June 24, 2026 against the private eval project.
+- Three full current-main runs also completed locally under the same private project gate:
+  `current-main-full-langsmith-r1`, `current-main-full-langsmith-r2`, and
+  `current-main-full-langsmith-r3`.
 
 Remaining handout gap:
 
-- upload/version the golden eval dataset in the private LangSmith project under AD-12
 - include the LangSmith project/experiment link in the final submission
-- confirm full seed/dev LangSmith traces show LLM calls, tool calls, latency, and tokens
+- confirm the LangSmith UI shows the three expected full-run traces/experiments before recording
 - record the upload command, experiment URL, and any retention reason in submission notes if traces are
   kept after the submission window
 
 ### Phase 3: Run eval and analyze failures
 
-Status: historical baseline/failure analysis complete locally; current-main full eval pending.
+Status: complete locally, with three current-main full LangSmith runs measured on June 24, 2026.
 
 Baseline provided for the 40-case golden run:
 
@@ -156,10 +156,36 @@ was retrieved. The agent often generated the check from a lower-value span, then
 span later. This means citation quality had to be improved through product/tool behavior, not scorer
 changes.
 
+Current-main three-run LangSmith measurement after PR #45 and PR #46:
+
+| Metric | Run 1 | Run 2 | Run 3 | Mean |
+|---|---:|---:|---:|---:|
+| Task completion | 37/40 | 38/40 | 37/40 | 93.3% |
+| Teachable | 27/30 | 28/30 | 27/30 | 91.1% |
+| Refusal precision / recall / F1 | 0.769 / 1.000 / 0.870 | 0.833 / 1.000 / 0.909 | 0.769 / 1.000 / 0.870 | 0.791 / 1.000 / 0.883 |
+| Citation F1 | 0.539 | 0.667 | 0.578 | 0.594 |
+| Tool F1 | 0.911 | 0.902 | 0.887 | 0.900 |
+| Retrieval recall@5 | 1.000 | 1.000 | 1.000 | 1.000 |
+| Turn latency p50 / p95 | 4737 / 8102 ms | 4577 / 8356 ms | 4507 / 8368 ms | 4607 / 8275 ms |
+| Case latency p50 / p95 | 13630 / 21374 ms | 14198 / 21962 ms | 13695 / 22547 ms | 13841 / 21961 ms |
+| Total tokens | 1,310,309 | 1,380,538 | 1,211,862 | 1,300,903 |
+| Cost | pricing unset | $0.147 | $0.130 | about $0.139 with pricing active |
+
+Compared with the original baseline, the strongest measured wins are citation quality and turn latency:
+
+- citation F1 improved from `0.444` to a three-run mean of `0.594`
+- turn latency p50 improved from `6843 ms` to `4607 ms`
+- turn latency p95 improved from `11328 ms` to `8275 ms`
+- retrieval recall stayed at `1.000`
+- refusal recall stayed at `1.000`
+
+The remaining tradeoff is refusal precision/task completion: the current runs have no infra exclusions,
+but two teachable cases now fail consistently by refusing even though retrieval recall@5 is true.
+
 ### Phase 4: Improve and measure delta
 
-Status: product/instrumentation improvements are implemented; current full 40-case post-PR #45
-measurement is still pending under the merged AD-12 governance path.
+Status: product/instrumentation improvements are implemented and measured with three full current-main
+LangSmith runs.
 
 #### Improvement 1: structured-output retry
 
@@ -256,8 +282,13 @@ Cloud-safe measurement after PR #45 shows refusal safety held, but it only cover
 `10/10` task completion, refusal precision/recall/F1 `1.0 / 1.0 / 1.0`, turn latency p50/p95
 `2202.7 / 3718.0 ms`, case latency p50/p95 `4869.3 / 7109.4 ms`, average tool calls per case `4.8`.
 
-Verdict: keep the implementation. The missing proof is not code correctness; it is a governed current-main
-40-case eval to measure teachable task completion, citation quality, and full-case latency after PR #45.
+Full current-main measurement after PR #45 shows the implementation should still be kept: citation F1 and
+turn latency improved materially, retrieval recall and refusal recall held at `1.0`, and there were no
+infra errors in the three measured runs. Task completion remains roughly in the baseline band, but stable
+false refusals remain for `happy_014` and `known_failure_001`; `edge_002` failed in two of three runs.
+
+Verdict: keep the implementation. Do not add more product changes before submission unless there is time
+for a targeted false-refusal investigation plus another full eval.
 
 ## User Perspective
 
@@ -354,20 +385,22 @@ make product numbers look better.
 
 ## Remaining Issues
 
-Stable remaining issues to confirm after the current-main full eval:
+Stable remaining issues after the current-main full eval:
 
-- `known_failure_001`: false refusal caused by below-threshold retrieval
-- `edge_008`: recurring structured-output infra failure
-- `happy_014`: intermittent refusal/infra behavior
+- `known_failure_001`: stable false refusal; expected span is retrieved, but the runtime still refuses
+- `happy_014`: stable false refusal across all three current-main runs
+- `edge_002`: false refusal in two of three current-main runs
 - citation F1 improved but remains below the original aspirational pass bar
+- `edge_008`: no infra failure appeared in the three current-main runs, but keep it on the watchlist
+  because it was historically unstable
 
 Submission/package gaps against the handout:
 
-- LangSmith project link still needs to be produced under the merged AD-12 governance path
-- dataset upload/versioning in LangSmith is not yet proven
-- full post-PR #45 40-case golden eval still needs to run under the approved governance path
+- LangSmith project/experiment link needs to be copied into the final submission
+- dataset/version note should reference the committed golden manifest and the three run IDs
 - final report and Loom walkthrough still need to be assembled
-- cost remains `0.0` until model pricing env vars are set
+- r1 cost remains `0.0` because pricing env vars were unset; r2/r3 cost is active and should be used
+  for the cost estimate
 
 ## Latency/Loop Implementation Snapshot
 
@@ -390,14 +423,22 @@ Merged into `main` via PR #45 (`codex/week4-latency-improvements`):
 - Preferred check selection:
   - `_preferred_check_citation_id` now chooses first slide, else first handout, else first citeable span
 
-Local verification is complete. A new full 40-case golden eval has not been run after these changes.
-Before PR #46, the managed environment blocked remote egress for non-cloud-safe golden rows. After PR #46,
-the documentation now defines the owner-approved private LangSmith eval path, but the actual 40-case run
-still needs to be executed with the explicit eval-egress gate and recorded in the submission notes. Run it
-only from an approved environment/path for that specific eval/provider egress, and keep the frozen `test`
-split out of LangSmith. Attempts from this Codex tenant to run the full non-cloud-safe eval through
-Nebius only, and through Nebius plus LangSmith, were rejected by the environment's external-egress policy
-even after owner approval. Treat that as an environment boundary, not a repo limitation.
+Local verification is complete. This Codex tenant could not run the full non-cloud-safe eval because its
+external-egress policy rejected Nebius/LangSmith data transfer even after owner approval. The owner then
+ran the approved full eval locally with the explicit AD-12 gate:
+
+```bash
+LANGSMITH_TRACING=true \
+LANGSMITH_PROJECT=genacademy-coach-week4-eval \
+GENACADEMY_LANGSMITH_EVAL_EGRESS_OK=true \
+uv run python scripts/run_golden_eval.py \
+  --tag current-main-full-langsmith \
+  --run-id current-main-full-langsmith-r1
+```
+
+The same command was repeated for `current-main-full-langsmith-r2` and
+`current-main-full-langsmith-r3`. All three used model
+`Qwen/Qwen3-30B-A3B-Instruct-2507`.
 
 Cloud-safe remote verification was run on June 24, 2026 using:
 
@@ -477,6 +518,9 @@ Local ignored artifacts produced during this work:
 - `eval/runs/golden-preferred-check-preferred-check-r2-20260624.json`
 - `eval/runs/golden-preferred-check-preferred-check-r3-20260624.json`
 - `eval/runs/golden-latency-loop-slide-cloudsafe-latency-loop-slide-cloudsafe-r1-20260624.json`
+- `eval/runs/golden-current-main-full-langsmith-current-main-full-langsmith-r1-20260624.json`
+- `eval/runs/golden-current-main-full-langsmith-current-main-full-langsmith-r2-20260624.json`
+- `eval/runs/golden-current-main-full-langsmith-current-main-full-langsmith-r3-20260624.json`
 
 These artifacts are useful for report tables and failure analysis, but raw traces and generated tutor
 prose must not be committed or publicly shared.
@@ -491,7 +535,9 @@ If another AI session continues this work:
 3. Do not lower STOP threshold for `known_failure_001` without a separate calibration study.
 4. Preserve guardrails: no scorer hacks, no frozen test split edits, no raw learner text or traces in
    committed artifacts.
-5. The next highest-value work is the governed full 40-case eval on the current `main`, then submission
-   packaging: LangSmith project/experiment link, dataset version note, final report, and Loom outline.
-6. Do not start provider/model bakeoff work until the current-model full eval is captured, or explicitly
-   document why the bakeoff is starting from cloud-safe-only evidence.
+5. The next highest-value work is submission packaging: LangSmith project/experiment link, dataset
+   version note, final report, and Loom outline.
+6. Do not start provider/model bakeoff work unless the submission has enough time left for provider
+   governance plus three full eval runs per finalist.
+7. Treat LLM-as-judge as an optional audit layer, not the pass/fail scorer. Keep deterministic golden
+   metrics as the official result unless a separate judge-egress decision is approved and documented.

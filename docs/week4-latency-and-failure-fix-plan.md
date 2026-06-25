@@ -17,10 +17,10 @@ calibration study proves they are safe.
 retrieval through the Week-2 foundation adapter, existing 40-case golden eval.
 
 **Current status:** Tasks 1, 3, and 4 are implemented and merged via PR #45. PR #46 merged the AD-12
-governance path for owner-approved private LangSmith seed/dev eval traces. The current missing evidence
-is a governed full 40-case eval on `main`; the cloud-safe smoke run only verifies the adversarial refusal
-path. A cloud-safe-only LangSmith smoke run has also validated the private eval tracing gate on safe rows;
-the full non-cloud-safe Nebius eval remains blocked from this Codex tenant by external-egress policy.
+governance path for owner-approved private LangSmith seed/dev eval traces. Three full current-main
+LangSmith runs have now measured the implementation: citation F1 and turn latency improved materially,
+retrieval recall and refusal recall stayed at `1.0`, and stable false refusals remain for `happy_014` and
+`known_failure_001`.
 
 ---
 
@@ -374,27 +374,26 @@ golden eval.
 
 - [x] Task 1: add redacted latency attribution and aggregate metrics.
 - [x] Run one current-model cloud-safe golden eval with attribution to confirm the refusal-path delay split.
-      Full 40-case eval is now governed by AD-12 but has not been run after PR #45.
+      Full 40-case eval was later run locally under AD-12.
 - [x] Task 3: reduce repeated tool loops.
 - [x] Run an isolated cloud-safe golden eval and compare refusal recall, tool counts, and turn/case
       latency for the refusal path.
-      Full teachable-path comparison still requires the governed full 40-case run.
+      Full teachable-path comparison is now covered by the three current-main full runs.
 - [x] Task 4: harden slide-first preferred check selection.
-- [ ] Run an isolated golden eval and verify citation/task/refusal no-regression.
-      Cloud-safe refusal no-regression passed; citation/task teachable no-regression still requires the
-      governed full 40-case run.
+- [x] Run an isolated golden eval and verify citation/task/refusal no-regression.
+      Citation and latency improved; task/refusal precision have stable false-refusal residual risk.
 - [x] Complete the AD-12 LangSmith eval-egress governance gate for the current seed/dev golden eval path.
 - [x] Run a cloud-safe-only LangSmith smoke eval to validate the private project gate and trace plumbing.
       This covered only the 10 adversarial controls; it is not teachable-path or citation evidence.
-- [ ] Run the full current-model 40-case Nebius eval from an environment approved for non-cloud-safe
-      provider egress. Attempts from this Codex tenant were blocked even with LangSmith disabled.
+- [x] Run the full current-model 40-case Nebius eval from an environment approved for non-cloud-safe
+      provider egress. Attempts from this Codex tenant were blocked, so the owner ran it locally.
 - [ ] Complete the Task 2 governance gate for any new inference provider.
 - [ ] Task 2: run approved model/provider screening evals.
 - [ ] Promote at most 2 finalists, then run 3x finalist golden evals.
 - [ ] Pick one latency winner only if it passes safety, quality, privacy, and cost gates.
 - [x] Task 5: document accepted remaining failures and future calibration/label-audit path.
 - [x] Document cloud-safe measured latency labels in `docs/week4-eval-progress-handoff.md`.
-      Full measured deltas still require the governed 40-case run.
+      Full measured deltas are now documented in `docs/week4-eval-progress-handoff.md`.
 
 ## Residual Risks
 
