@@ -1,6 +1,6 @@
 # Roadmap
 
-Status updated: 2026-06-21.
+Status updated: 2026-06-26.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
@@ -12,21 +12,42 @@ roadmap preserves the current direction but makes "reliable" measurable before m
 added: baseline + reliability bar, deterministic decision safety, the FastAPI/HTMX service boundary,
 provider resilience, stable corpus references, and datastore/deployment seams.
 
-## Active priority: Week 4 — Evaluation (target Thu 2026-06-25)
+## Active priority: Post-eval citation provenance and refusal precision
 
-Evaluation is the current top priority. The filled framework, golden-dataset spec, metric set, and
-day-by-day plan live in **`docs/week4-eval-plan.md`**: run the teach agent over a 30–50 case
-class-balanced golden set, score every quality metric as precision/recall/F1 **paired** with
-cost/latency, cross-check on the cloud-safe subset with pinned RAGAS + a calibrated LLM-judge unless a
-separate judge-egress decision is approved, then baseline → error-analysis loop → 3–4 improvements →
-measured delta. LangSmith is adopted for owner-approved private seed/dev golden eval traces plus
-cloud-safe controls; the frozen `test` split stays local and public/committed artifacts stay redacted per
-`docs/decisions.md` AD-12. The existing local harness (`scripts/eval_teach_loop.py`,
-`scripts/split_eval.py`, negative controls) is reused, not rebuilt.
+Week-4 evaluation changed the next build order. Retrieval recall is healthy, refusal recall remains the
+load-bearing guardrail, and the remaining quality work is mostly post-retrieval behavior: citation
+selection/provenance, false-refusal precision on teachable borderline cases, then bounded Turn-2
+recovery specialization. The reasoning is captured in
+[`docs/agentic-orchestration-improvement-review.md`](../docs/agentic-orchestration-improvement-review.md);
+the first scoped plan is
+[`docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`](../docs/superpowers/plans/2026-06-26-citation-provenance-audit.md).
 
-**Deferred until Week 4 ships (not dropped):** the production-hardening track beyond the in-flight doc
-fixes (`docs/production-roadmap.md`), the public-safe deployment decision (below), and the Future
-Pull-Ins. These resume after the evaluation work lands.
+The immediate priority is **not** adding more agents or direct LangGraph. It is to prove how much of the
+citation gap is real product failure versus sibling-span/label ambiguity, then design role-keyed
+provenance and deterministic check-span selection without moving eval goalposts.
+
+Current priority stack:
+
+1. **Citation label audit** — classify citation misses as real miss, acceptable sibling span, label
+   error, or ambiguous source-family match. If labels change, freeze a labeled-v2 golden set and rerun
+   the baseline before reporting product deltas.
+2. **Role-keyed provenance + deterministic check-span policy** — capture `role -> span_id` when
+   evidence is selected; prefer slide, then handout, then first citeable span unless the audit proves a
+   better policy.
+3. **CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
+   CONFIRM-band evidence where the model refused anyway. STOP remains untouched; refusal recall is the
+   tripwire.
+4. **Cheap semantic grading** — add deterministic synonym/concept coverage before Turn-2 recovery so
+   literal keyword false negatives do not pollute recovery metrics.
+5. **Bounded Turn-2 recovery** — one-cycle diagnose → strategy map → grounded re-teach → same-span
+   smaller check. No memory dependency and no six-agent split.
+6. **Mock interview and explicit LangGraph decision** — mock interview remains a future pull-in, but
+   direct LangGraph is earned only by durable resume, real HITL interrupt/resume, or persisted multi-mode
+   routing.
+
+Production hardening still matters, but behavior correctness stays ahead of new product surfaces:
+`docs/production-roadmap.md` remains the reliability track for service boundaries, provider resilience,
+stable corpus references, and datastore/deployment seams.
 
 ## Status Snapshot
 
@@ -93,6 +114,10 @@ Pull-Ins. These resume after the evaluation work lands.
 
 ### In Progress
 
+- **Citation provenance and roadmap reprioritization.** The next planning slice audits citation misses,
+  defines role-keyed provenance, and locks reporting rules so label deltas, scorer-version deltas, and
+  product deltas stay separate. This is the gate before Turn-2 recovery or any explicit orchestration
+  expansion.
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
   Do not upload private course material to a public deployment. Owner-approved private LangSmith eval
@@ -103,6 +128,8 @@ Pull-Ins. These resume after the evaluation work lands.
 
 ### Pending
 
+- Review and approve `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md` before any
+  provenance or eval-audit implementation work.
 - Keep the held-out `test` split unused until final evaluation/reporting.
 - Re-run `pytest`, `ruff`, `check_eval_leak.py`, and the dev eval before any public release milestone.
 - If a public-safe corpus subset is approved, ingest it separately from the private collection and
@@ -132,29 +159,37 @@ Completed requirements:
 
 ## Future Pull-Ins
 
-This list is future-only; shipped pull-ins stay in Done.
+This list is future-only; shipped pull-ins stay in Done. Near-term quality work now precedes new product
+surfaces. Items that also appear in the active priority stack are listed here because they are planned
+but not implemented; the active stack above is the binding order for the next slices.
 
-1. **Mock-interview mode** — open-answer grounded grading, follow-up probing, and cited gap report.
-2. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2
+1. **Semantic check-answer grading, cheap slice first** — keep Python as the pass/fail gate, but evolve
+   open-answer checks from literal keyword matching to deterministic synonym/concept coverage before
+   Turn-2 recovery. Optional embedding similarity and any LLM-judge audit are later scorer-versioned
+   changes, behind data-egress approval where applicable.
+2. **Bounded Turn-2 recovery specialization** — a one-cycle, grounded recovery path after a learner
+   stumbles: diagnose error type, map to a strategy, re-teach from a selected recovery span, and ask a
+   smaller same-span check. Memory does not influence this path until memory-hardening has its own eval.
+3. **Mock-interview mode** — open-answer grounded grading, follow-up probing, and cited gap report. This
+   is the likely feature family where explicit orchestration may become useful, but only if durable
+   resume, HITL interrupt/resume, or persisted multi-mode routing is required.
+4. **Memory hardening for cohort rollout** — decide retention, deletion, admin visibility, and whether
+   Mem0 managed storage remains the right provider. Memory may personalize style/struggle history later,
+   but course facts still require citations, and recovery-strategy memory needs its own eval.
+5. **Cohort rollout hardening** — per-user cost caps, account lifecycle, and admin operations beyond the
+   minimal login/account-creation gate.
+6. **Admin upload** — low-priority pull-in for admin-authored docs/quiz questions, reusing Week-2
    auth/upload patterns only after a privacy review.
-3. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth.
-4. **Track-aware retrieval** — corpus tagged by track if measured retrieval gaps justify it.
-5. **Semantic check-answer grading** — keep Python as the pass/fail gate, but evolve open-answer checks
-   from literal keyword matching to deterministic concept coverage: supported synonym groups first, then
-   optional embedding similarity between the learner answer and the cited expected answer/source span.
-   LLM-as-judge remains an offline audit or uncertain-case tie-break only, behind data-egress approval
-   and scorer-versioned evals.
-6. **Memory hardening for cohort rollout** — decide retention, deletion, admin visibility, and whether
-   Mem0 managed storage remains the right provider. Memory may personalize style/struggle history, but
-   course facts still require citations.
-7. **Explicit LangGraph orchestration** — only when durable memory, HITL interrupts, or multi-mode
-   coordination outgrow `create_agent`.
-8. **Caching and model tiering** — latency/cost optimization after behavior is stable.
-9. **Multimodal slide questions** — only with a clear grounded-citation path.
-10. **Cohort rollout hardening** — per-user cost caps, account lifecycle, and admin operations beyond
-   the minimal login/account-creation gate.
-11. **Flashcards / mind-map artifacts** — generated only from cited spans.
-12. **GraphRAG** — course knowledge graph if the single-retriever contract shows a measured recall gap.
+7. **Track-aware retrieval** — corpus tagged by track only if measured retrieval gaps justify it.
+8. **Caching and model tiering** — latency/cost optimization after behavior is stable, especially if
+   Turn-2 recovery adds model calls.
+9. **Explicit LangGraph orchestration** — only when durable resume, HITL interrupts, or persisted
+   multi-mode coordination outgrow `create_agent`; the feature name alone is not enough.
+10. **ElevenLabs voice** — voice over the same text engine; text transcript remains the source of truth.
+11. **Multimodal slide questions** — only with a clear grounded-citation path.
+12. **Flashcards / mind-map artifacts** — generated only from cited spans.
+13. **GraphRAG** — course knowledge graph only if the single-retriever contract shows a measured recall
+   gap.
 
 ## North Star
 
@@ -187,6 +222,10 @@ material.
 
 ## Cut Order If Slipping
 
-voice -> explicit LangGraph -> memory hardening -> admin upload -> multimodal -> flashcards ->
-caching -> track-aware retrieval -> interview -> **never the grounded teach loop** -> **never the
-refusal / eval / trace path**.
+The active-priority behavior-correctness work — citation audit, role-keyed provenance, and narrow
+CONFIRM-band false-refusal precision — comes before this cut list. It is not optional feature backlog.
+
+voice -> explicit LangGraph -> GraphRAG -> flashcards -> multimodal -> admin upload ->
+track-aware retrieval -> caching/model tiering -> memory hardening -> mock interview ->
+Turn-2 recovery -> semantic grading -> **never the grounded teach loop** -> **never the refusal / eval /
+trace path**.
