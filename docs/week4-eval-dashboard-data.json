@@ -3,7 +3,7 @@
   "title": "Week-4 Eval Dashboard",
   "contract": {
     "title": "Tutor Safety Contract",
-    "summary": "GenAcademy Coach is a grounded tutor over the Gen Academy course corpus. The contract is: if it can cite the course material, it teaches. If retrieval confidence is low, it refuses and escalates. It must never answer from model priors."
+    "summary": "GenAcademy Coach is a personalized, adaptive, grounded AI tutor over the Gen Academy course corpus. The contract is: if it can cite the course material, it teaches. If retrieval confidence is low, it refuses and escalates. It must never answer from model priors."
   },
   "eval_setup": {
     "title": "Evaluation Setup & Scope",
@@ -59,7 +59,7 @@
   },
   "provenance": {
     "snapshot_date": "2026-06-25",
-    "generator_git_sha": "9068b89",
+    "generator_git_sha": "31fa64b",
     "baseline_artifact": "golden-baseline-20260624.json",
     "current_run_ids": [
       "current-main-full-langsmith-r1",

@@ -20,7 +20,7 @@ def minimal_snapshot():
         "title": "Week-4 Eval Dashboard",
         "contract": {
             "title": "Tutor Safety Contract",
-            "summary": "Safety contract summary here."
+            "summary": "GenAcademy Coach is a personalized, adaptive, grounded AI tutor."
         },
         "eval_setup": {
             "title": "Evaluation Setup & Scope",
@@ -422,7 +422,7 @@ def test_render_dashboard_includes_new_framing_sections():
     module = load_dashboard_module()
     html = module.render_dashboard(minimal_snapshot())
     assert "Tutor Safety Contract" in html
-    assert "Safety contract summary here." in html
+    assert "personalized, adaptive, grounded AI tutor" in html
     assert "Evaluation Setup &amp; Scope" in html
     assert "Setup summary here, future offline audit work." in html
     assert "Observability details here." in html
