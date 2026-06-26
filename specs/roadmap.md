@@ -160,7 +160,8 @@ Completed requirements:
 ## Future Pull-Ins
 
 This list is future-only; shipped pull-ins stay in Done. Near-term quality work now precedes new product
-surfaces.
+surfaces. Items that also appear in the active priority stack are listed here because they are planned
+but not implemented; the active stack above is the binding order for the next slices.
 
 1. **Semantic check-answer grading, cheap slice first** — keep Python as the pass/fail gate, but evolve
    open-answer checks from literal keyword matching to deterministic synonym/concept coverage before
@@ -220,6 +221,9 @@ material.
   written delta against the current `create_agent` boundary before code.
 
 ## Cut Order If Slipping
+
+The active-priority behavior-correctness work — citation audit, role-keyed provenance, and narrow
+CONFIRM-band false-refusal precision — comes before this cut list. It is not optional feature backlog.
 
 voice -> explicit LangGraph -> GraphRAG -> flashcards -> multimodal -> admin upload ->
 track-aware retrieval -> caching/model tiering -> memory hardening -> mock interview ->
