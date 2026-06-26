@@ -405,6 +405,7 @@ def test_render_dashboard_layout_order():
         "Analytics Snapshot",
         "Product Behavior Changed, Not The Scorer",
         "Baseline vs Current Mean",
+        "Three-Run Variance",
         "Per-Scenario Breakdown",
         "Why Eval Mattered: Rejected Levers",
         "Improvement Levers",
