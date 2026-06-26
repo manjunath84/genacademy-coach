@@ -3,7 +3,7 @@
   "title": "Week-4 Eval Dashboard",
   "provenance": {
     "snapshot_date": "2026-06-25",
-    "generator_git_sha": "67020d3",
+    "generator_git_sha": "c5bf46a",
     "baseline_artifact": "golden-baseline-20260624.json",
     "current_run_ids": [
       "current-main-full-langsmith-r1",
@@ -31,6 +31,20 @@
     "known_failure": 5,
     "adversarial": 10
   },
+  "evaluator_types": [
+    {
+      "label": "Code-based checks",
+      "summary": "Deterministic Python checks for labeled outcomes: task completion, citations, tools, retrieval, refusal, latency, tokens, cost, and privacy guards."
+    },
+    {
+      "label": "Trajectory eval",
+      "summary": "Path-level scoring: what the agent retrieved, which tools it used, what action it chose, whether it cited evidence, and whether it advanced, re-explained, or refused in the right place."
+    },
+    {
+      "label": "Human review",
+      "summary": "Reviewer inspection of the report, dashboard, and sampled trace evidence for pedagogical quality, caveats, and public-safe redaction."
+    }
+  ],
   "baseline": {
     "label": "Baseline",
     "task_completion_rate": 0.947,

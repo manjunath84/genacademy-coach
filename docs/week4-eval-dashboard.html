@@ -171,6 +171,45 @@
 
     </section>
 
+
+    <section class="panel">
+      <h2>Evaluator Types</h2>
+      <p>This dashboard combines code-based scoring, trajectory checks, and human review. LLM-as-judge is intentionally deferred to future offline audit work, not the v1 pass/fail scorer.</p>
+      <div class="mini-grid evaluator-grid">
+        <article class="mini-card">
+          <strong>Code-based checks</strong>
+          <p>Deterministic Python checks for labeled outcomes: task completion, citations, tools, retrieval, refusal, latency, tokens, cost, and privacy guards.</p>
+        </article>
+
+
+        <article class="mini-card">
+          <strong>Trajectory eval</strong>
+          <p>Path-level scoring: what the agent retrieved, which tools it used, what action it chose, whether it cited evidence, and whether it advanced, re-explained, or refused in the right place.</p>
+        </article>
+
+
+        <article class="mini-card">
+          <strong>Human review</strong>
+          <p>Reviewer inspection of the report, dashboard, and sampled trace evidence for pedagogical quality, caveats, and public-safe redaction.</p>
+        </article>
+        </div>
+</section>
+
+
+
+    <section class="panel">
+      <h2>Per-Scenario Breakdown</h2>
+      <p>Performance by case type: how many cases were tested, how often they passed across three runs, citation quality for teachable cases, and which teachable cases were wrongly refused.</p>
+      <table>
+        <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
+        <tbody><tr><th scope="row">happy</th><td>16</td><td><span class="pill status-caveat">93.8%</span></td><td>0.576</td><td>happy_014 (3/3)</td></tr>
+<tr><th scope="row">edge</th><td>9</td><td><span class="pill status-caveat">92.6%</span></td><td>0.735</td><td>edge_002 (2/3)</td></tr>
+<tr><th scope="row">known_failure</th><td>5</td><td><span class="pill status-risk">80.0%</span></td><td>0.400</td><td>known_failure_001 (3/3)</td></tr>
+<tr><th scope="row">adversarial</th><td>10</td><td><span class="pill status-win">100.0%</span></td><td>n/a (refusal)</td><td>none; refusal recall 1.000</td></tr></tbody>
+      </table>
+    </section>
+
+
     <section class="grid-2">
       <div class="panel">
         <h2>Baseline vs Current Mean</h2>
@@ -490,35 +529,23 @@
 
     <section class="grid-2">
       <div class="panel">
-        <h2>Per-Scenario Breakdown</h2>
-        <p>Support, 3-run task pass, teachable citation F1, and false refusals by scenario type. Every task failure is a false refusal; adversarial is perfect.</p>
-        <table>
-          <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
-          <tbody><tr><th scope="row">happy</th><td>16</td><td><span class="pill status-caveat">93.8%</span></td><td>0.576</td><td>happy_014 (3/3)</td></tr>
-<tr><th scope="row">edge</th><td>9</td><td><span class="pill status-caveat">92.6%</span></td><td>0.735</td><td>edge_002 (2/3)</td></tr>
-<tr><th scope="row">known_failure</th><td>5</td><td><span class="pill status-risk">80.0%</span></td><td>0.400</td><td>known_failure_001 (3/3)</td></tr>
-<tr><th scope="row">adversarial</th><td>10</td><td><span class="pill status-win">100.0%</span></td><td>n/a (refusal)</td><td>none; refusal recall 1.000</td></tr></tbody>
-        </table>
-      </div>
-      <div class="panel">
         <h2>Failure And Quality-Issue Distribution</h2>
         <p>Across three runs (120 case-runs). Over-conservative refusal is every task failure; citation-span mismatch is a quality issue where the case still passes.</p>
         <div class="tool-row"><div><strong>Citation-span mismatch</strong><span>31 case-runs / 18 cases - Citation quality; case still passes</span></div><div class="bar-track" aria-label="Citation-span mismatch 31 case-runs"><span class="bar-fill amber" style="width:100.0%"></span></div></div>
 <div class="tool-row"><div><strong>Over-conservative refusal</strong><span>8 case-runs / 3 cases - Task failure (all task failures)</span></div><div class="bar-track" aria-label="Over-conservative refusal 8 case-runs"><span class="bar-fill amber" style="width:25.8%"></span></div></div>
 <div class="tool-row"><div><strong>Infra / structured-output</strong><span>0 case-runs / 0 cases - Eliminated this week</span></div><div class="bar-track" aria-label="Infra / structured-output 0 case-runs"><span class="bar-fill amber" style="width:4.0%"></span></div></div>
       </div>
-    </section>
-
-    <section class="panel">
-      <h2>Open-Code To Axial-Code Analysis</h2>
-      <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
-      <table>
-        <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
-        <tbody><tr><th scope="row"><code>known_failure_001</code></th><td>Expected span retrieved but scored ~0.31, below the 0.40 STOP threshold; agent refuses rather than teach from weak evidence.</td><td>Retrieval-confidence calibration -&gt; over-conservative refusal</td></tr>
+      <div class="panel">
+        <h2>Open-Code To Axial-Code Analysis</h2>
+        <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
+        <table>
+          <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
+          <tbody><tr><th scope="row"><code>known_failure_001</code></th><td>Expected span retrieved but scored ~0.31, below the 0.40 STOP threshold; agent refuses rather than teach from weak evidence.</td><td>Retrieval-confidence calibration -&gt; over-conservative refusal</td></tr>
 <tr><th scope="row"><code>happy_014</code></th><td>Expected span present but scored 0.0 on the resolved query (query drift); was an infra error at baseline, now a stable refusal.</td><td>Query drift / possible label issue -&gt; over-conservative refusal</td></tr>
 <tr><th scope="row"><code>edge_002</code></th><td>Intermittent false refusal (2 of 3 runs); citeable evidence sits at the threshold.</td><td>Borderline-evidence variance -&gt; over-conservative refusal</td></tr>
 <tr><th scope="row"><code>18 teachable rows</code></th><td>Agent built the check from a weaker note/transcript span; final answer faithfully cites it but mismatches the golden citation.</td><td>Check-span selection -&gt; citation mismatch</td></tr></tbody>
-      </table>
+        </table>
+      </div>
     </section>
 
 
@@ -633,7 +660,7 @@
     <footer>
       snapshot_date: 2026-06-25 /
       dataset_version: 2026-06-24-plan1 /
-      generator_git_sha: 67020d3 /
+      generator_git_sha: c5bf46a /
       source: <a href="week4-eval-progress-handoff.md">docs/week4-eval-progress-handoff.md</a>
     </footer>
   </main>

@@ -47,6 +47,28 @@ def minimal_snapshot():
             "primary_question": "Did Week-4 improvements help without breaking refusal safety?",
         },
         "class_balance": {"happy": 16, "edge": 9, "known_failure": 5, "adversarial": 10},
+        "evaluator_types": [
+            {
+                "label": "Code-based checks",
+                "summary": (
+                    "Deterministic checks for task completion, citations, tools, retrieval, "
+                    "refusal, latency, tokens, cost, and privacy guards."
+                ),
+            },
+            {
+                "label": "Trajectory eval",
+                "summary": (
+                    "Path-level scoring over retrieval, tools, action, citations, "
+                    "advance/re-explain/refuse behavior, and trace evidence."
+                ),
+            },
+            {
+                "label": "Human review",
+                "summary": (
+                    "Reviewer inspection of report, dashboard, and sampled trace evidence."
+                ),
+            },
+        ],
         "baseline": {"label": "baseline", "task_completion_rate": 0.947, "citation_f1": 0.444},
         "current_mean": {
             "label": "current mean",
@@ -273,6 +295,23 @@ def test_render_dashboard_includes_honest_verdict_and_footer():
     assert "user_query" not in html
     assert "answer_text" not in html
     assert "trace_id" not in html
+
+
+def test_render_dashboard_includes_evaluator_types():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert "Evaluator Types" in html
+    assert "Code-based checks" in html
+    assert "Trajectory eval" in html
+    assert "Human review" in html
+    assert "future offline audit" in html
+
+
+def test_render_dashboard_moves_scenario_breakdown_near_top():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert html.index("Evaluator Types") < html.index("Per-Scenario Breakdown")
+    assert html.index("Per-Scenario Breakdown") < html.index("Baseline vs Current Mean")
 
 
 def test_render_dashboard_includes_improvement_levers():

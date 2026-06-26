@@ -197,6 +197,50 @@ def render_guardrails(data: dict[str, Any]) -> str:
     return "\n".join(cards)
 
 
+def render_evaluator_types(data: dict[str, Any]) -> str:
+    evaluator_types = data.get("evaluator_types", [])
+    if not evaluator_types:
+        return ""
+    cards = "\n".join(
+        f"""
+        <article class="mini-card">
+          <strong>{esc(item['label'])}</strong>
+          <p>{esc(item['summary'])}</p>
+        </article>
+        """
+        for item in evaluator_types
+    )
+    return f"""
+    <section class="panel">
+      <h2>Evaluator Types</h2>
+      <p>This dashboard combines code-based scoring, trajectory checks, and human review. LLM-as-judge is intentionally deferred to future offline audit work, not the v1 pass/fail scorer.</p>
+      <div class="mini-grid evaluator-grid">{cards}</div>
+</section>
+"""
+
+
+def render_scenario_breakdown(data: dict[str, Any]) -> str:
+    per_scenario = data.get("per_scenario", [])
+    if not per_scenario:
+        return ""
+    rows = "\n".join(
+        f"""<tr><th scope="row">{esc(r['scenario_type'])}</th><td>{esc(r['support'])}</td>"""
+        f"""<td><span class="pill {status_class(str(r.get('status', '')))}">{esc(r['task_pass'])}</span></td>"""
+        f"""<td>{esc(r['citation_f1'])}</td><td>{esc(r['false_refusals'])}</td></tr>"""
+        for r in per_scenario
+    )
+    return f"""
+    <section class="panel">
+      <h2>Per-Scenario Breakdown</h2>
+      <p>Performance by case type: how many cases were tested, how often they passed across three runs, citation quality for teachable cases, and which teachable cases were wrongly refused.</p>
+      <table>
+        <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </section>
+"""
+
+
 def render_failures(data: dict[str, Any]) -> str:
     rows: list[str] = []
     for item in data["remaining_failures"]:
@@ -262,17 +306,10 @@ def render_improvement_levers(data: dict[str, Any]) -> str:
 
 
 def render_failure_analysis(data: dict[str, Any]) -> str:
-    per_scenario = data.get("per_scenario", [])
     distribution = data.get("failure_distribution", [])
     open_axial = data.get("open_axial", [])
-    if not (per_scenario or distribution or open_axial):
+    if not (distribution or open_axial):
         return ""
-    ps_rows = "\n".join(
-        f"""<tr><th scope="row">{esc(r['scenario_type'])}</th><td>{esc(r['support'])}</td>"""
-        f"""<td><span class="pill {status_class(str(r.get('status', '')))}">{esc(r['task_pass'])}</span></td>"""
-        f"""<td>{esc(r['citation_f1'])}</td><td>{esc(r['false_refusals'])}</td></tr>"""
-        for r in per_scenario
-    )
     max_runs = max((int(r["case_runs"]) for r in distribution), default=1) or 1
     dist_rows = "\n".join(
         f"""<div class="tool-row"><div><strong>{esc(r['category'])}</strong>"""
@@ -288,27 +325,18 @@ def render_failure_analysis(data: dict[str, Any]) -> str:
     return f"""
     <section class="grid-2">
       <div class="panel">
-        <h2>Per-Scenario Breakdown</h2>
-        <p>Support, 3-run task pass, teachable citation F1, and false refusals by scenario type. Every task failure is a false refusal; adversarial is perfect.</p>
-        <table>
-          <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
-          <tbody>{ps_rows}</tbody>
-        </table>
-      </div>
-      <div class="panel">
         <h2>Failure And Quality-Issue Distribution</h2>
         <p>Across three runs (120 case-runs). Over-conservative refusal is every task failure; citation-span mismatch is a quality issue where the case still passes.</p>
         {dist_rows}
       </div>
-    </section>
-
-    <section class="panel">
-      <h2>Open-Code To Axial-Code Analysis</h2>
-      <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
-      <table>
-        <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
-        <tbody>{oa_rows}</tbody>
-      </table>
+      <div class="panel">
+        <h2>Open-Code To Axial-Code Analysis</h2>
+        <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
+        <table>
+          <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
+          <tbody>{oa_rows}</tbody>
+        </table>
+      </div>
     </section>
 """
 
@@ -467,6 +495,10 @@ def render_dashboard(data: dict[str, Any]) -> str:
     <section class="kpi-grid" aria-label="Key metrics">
       {render_kpis(data)}
     </section>
+
+    {render_evaluator_types(data)}
+
+    {render_scenario_breakdown(data)}
 
     <section class="grid-2">
       <div class="panel">
