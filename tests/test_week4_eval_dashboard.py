@@ -18,6 +18,39 @@ def minimal_snapshot():
     return {
         "schema_version": 1,
         "title": "Week-4 Eval Dashboard",
+        "contract": {
+            "title": "Tutor Safety Contract",
+            "summary": "Safety contract summary here."
+        },
+        "eval_setup": {
+            "title": "Evaluation Setup & Scope",
+            "summary": "Setup summary here, future offline audit work.",
+            "observability": "Observability details here."
+        },
+        "eval_insight": {
+            "title": "Why Eval Mattered: Rejected Levers",
+            "summary": "Insight summary here."
+        },
+        "live_demo": {
+            "title": "Live Demo Bridge",
+            "summary": "Live demo summary here.",
+            "steps": [
+                {
+                    "step_num": 1,
+                    "action_label": "Grounded Preset",
+                    "instruction": "Instruction here."
+                }
+            ]
+        },
+        "roadmap": {
+            "title": "Grader Evolution & Roadmap",
+            "items": [
+                {
+                    "label": "Semantic Grading",
+                    "details": "Roadmap item details here."
+                }
+            ]
+        },
         "provenance": {
             "snapshot_date": "2026-06-25",
             "generator_git_sha": "test-sha",
@@ -69,11 +102,42 @@ def minimal_snapshot():
                 ),
             },
         ],
-        "baseline": {"label": "baseline", "task_completion_rate": 0.947, "citation_f1": 0.444},
+        "product_behavior_changes": {
+            "title": "Product Behavior Changed, Not The Scorer",
+            "summary": (
+                "The golden set, labels, and deterministic scorer stayed fixed while product "
+                "behavior changed."
+            ),
+            "items": [
+                {
+                    "label": "Correct + grounded answers advance",
+                    "problem": "Correct learner answers could still trigger another drill.",
+                    "change": "Correct and grounded answers advance.",
+                    "proof": "Trajectory scoring checks the selected action.",
+                },
+                {
+                    "label": "Checks prefer stronger citation spans",
+                    "problem": "The agent sometimes used a weaker span.",
+                    "change": "Prefer slide evidence first, then handouts.",
+                    "proof": "Citation F1 measures support-span match.",
+                },
+            ],
+        },
+        "baseline": {
+            "label": "baseline",
+            "task_completion_rate": 0.947,
+            "citation_f1": 0.444,
+            "refusal_precision": 0.833,
+            "refusal_recall": 1.0,
+            "turn_p95_ms": 11328,
+        },
         "current_mean": {
             "label": "current mean",
             "task_completion_rate": 0.933,
             "citation_f1": 0.594,
+            "refusal_precision": 0.791,
+            "refusal_recall": 1.0,
+            "turn_p95_ms": 8275,
         },
         "kpis": [
             {
@@ -307,11 +371,68 @@ def test_render_dashboard_includes_evaluator_types():
     assert "future offline audit" in html
 
 
-def test_render_dashboard_moves_scenario_breakdown_near_top():
+def test_render_dashboard_includes_analytics_charts():
     module = load_dashboard_module()
     html = module.render_dashboard(minimal_snapshot())
-    assert html.index("Evaluator Types") < html.index("Per-Scenario Breakdown")
-    assert html.index("Per-Scenario Breakdown") < html.index("Baseline vs Current Mean")
+    assert "Analytics Snapshot" in html
+    assert "Baseline to Current Movement" in html
+    assert "Three-Run Stability" in html
+    assert "Citation F1 by run" in html
+    assert "Task completion by run" in html
+    assert "<polyline" in html
+
+
+def test_render_dashboard_includes_product_behavior_infographic():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert "Product Behavior Changed, Not The Scorer" in html
+    assert "The golden set, labels, and deterministic scorer stayed fixed" in html
+    assert "Correct + grounded answers advance" in html
+    assert "Problem" in html
+    assert "Product change" in html
+    assert "Eval proof" in html
+
+
+def test_render_dashboard_layout_order():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    # Narrative spine: contract -> setup -> fast read (KPIs/analytics) -> product
+    # behavior -> measured results -> why-eval-mattered + levers -> failure clusters
+    # -> live-demo bridge -> supporting depth -> roadmap (close).
+    spine = [
+        "Tutor Safety Contract",
+        "Evaluation Setup &amp; Scope",
+        "Analytics Snapshot",
+        "Product Behavior Changed, Not The Scorer",
+        "Baseline vs Current Mean",
+        "Per-Scenario Breakdown",
+        "Why Eval Mattered: Rejected Levers",
+        "Improvement Levers",
+        "Failure And Quality-Issue Distribution",
+        "Live Demo Bridge",
+        "Production Monitoring",
+        "Grader Evolution &amp; Roadmap",
+        "Evidence And Caveats",
+    ]
+    positions = [html.index(title) for title in spine]
+    assert positions == sorted(positions), positions
+
+
+def test_render_dashboard_includes_new_framing_sections():
+    module = load_dashboard_module()
+    html = module.render_dashboard(minimal_snapshot())
+    assert "Tutor Safety Contract" in html
+    assert "Safety contract summary here." in html
+    assert "Evaluation Setup &amp; Scope" in html
+    assert "Setup summary here, future offline audit work." in html
+    assert "Observability details here." in html
+    assert "Why Eval Mattered: Rejected Levers" in html
+    assert "Insight summary here." in html
+    assert "Live Demo Bridge" in html
+    assert "Live demo summary here." in html
+    assert "Grounded Preset" in html
+    assert "Grader Evolution &amp; Roadmap" in html
+    assert "Roadmap item details here." in html
 
 
 def test_render_dashboard_includes_improvement_levers():

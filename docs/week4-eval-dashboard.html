@@ -60,6 +60,32 @@
     .kpi-sub { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 13px; }
     .kpi-sub strong { color: var(--text); }
     .kpi p { margin-top: 10px; font-size: 13px; }
+    .analytics-panel { display: grid; gap: 16px; }
+    .analytics-heading { max-width: 920px; }
+    .analytics-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 18px; align-items: start; }
+    .legend { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+    .legend span { width: 22px; height: 8px; border-radius: 999px; display: inline-block; }
+    .legend-baseline { background: #9aa8b7; }
+    .legend-current { background: var(--teal); }
+    .metric-chart { display: grid; gap: 12px; }
+    .chart-row { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(180px, 1fr) 76px; gap: 12px; align-items: center; }
+    .chart-label strong, .chart-label span, .chart-values span, .chart-values strong { display: block; }
+    .chart-label span { color: var(--muted); font-size: 12px; }
+    .chart-values { text-align: right; color: var(--muted); font-size: 12px; }
+    .chart-values strong { color: var(--text); font-size: 13px; }
+    .compare-bars { display: grid; gap: 5px; }
+    .compare-track { height: 10px; background: #e8eef4; border-radius: 999px; overflow: hidden; }
+    .compare-track span { display: block; height: 100%; border-radius: inherit; }
+    .compare-track.baseline span { background: #9aa8b7; }
+    .compare-track.current span { background: var(--teal); }
+    .compare-track.current.status-caveat span { background: var(--amber); }
+    .spark-grid { display: grid; gap: 10px; }
+    .spark-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }
+    .spark-card strong { display: block; font-size: 14px; margin-bottom: 4px; }
+    .spark-card svg { width: 100%; height: 76px; display: block; }
+    .spark-card p { font-size: 12px; }
+    .spark-axis { stroke: #d8e1ea; stroke-width: 2; }
+    .spark-line { fill: none; stroke: var(--teal); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
     .status-win { border-color: #a8d1c7; background: var(--teal-soft); }
     .status-held { border-color: #b8d1df; background: #eef7fa; }
     .status-caveat { border-color: #edcf9b; background: var(--amber-soft); }
@@ -82,6 +108,29 @@
     .mini-card strong, .mini-card span { display: block; }
     .mini-card span { font-size: 24px; font-weight: 780; color: var(--text); margin: 3px 0; }
     .mini-card p { font-size: 13px; }
+    .behavior-panel { display: grid; gap: 16px; }
+    .behavior-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .behavior-card { position: relative; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%); }
+    .behavior-card:not(:last-child)::after { content: "->"; position: absolute; right: -10px; top: 22px; color: var(--teal); font-weight: 850; }
+    .behavior-index { color: var(--teal); font-size: 12px; font-weight: 850; letter-spacing: .08em; }
+    .behavior-card h3 { font-size: 15px; line-height: 1.25; margin: 4px 0 10px; }
+    .behavior-card dl { margin: 0; display: grid; gap: 7px; }
+    .behavior-card dt { color: var(--text); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .behavior-card dd { margin: -5px 0 0; color: var(--muted); font-size: 12px; }
+    .contract-panel .contract-lede { color: var(--text); font-size: 16px; margin: 0; }
+    .setup-panel .setup-lede { margin: 0 0 16px; }
+    .setup-panel .setup-subhead { margin: 0 0 12px; }
+    .setup-panel .setup-evaluators { margin-bottom: 16px; }
+    .setup-observability { background: var(--slate-soft); border-radius: 6px; padding: 12px; font-size: 14px; }
+    .eval-insight-panel .insight-lede { color: var(--red); font-weight: 500; margin: 0; }
+    .live-demo-panel .demo-lede { margin: 0 0 12px; font-weight: 500; }
+    .demo-steps-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .demo-step { border-left: 3px solid var(--teal); padding-left: 12px; }
+    .demo-step p { margin: 2px 0 0; font-size: 13px; }
+    .roadmap-panel .roadmap-lede { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+    .roadmap-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .roadmap-card { border-top: 3px solid var(--teal); background: #fbfdff; }
+    .roadmap-card p { margin: 4px 0 0; font-size: 13px; }
     .stacked-bar { display: flex; height: 14px; overflow: hidden; border-radius: 999px; background: var(--slate-soft); margin-top: 12px; }
     .stacked-bar span:nth-child(1) { background: var(--teal); }
     .stacked-bar span:nth-child(2) { background: #5a7d96; }
@@ -95,7 +144,13 @@
     @media (max-width: 840px) {
       main { padding: 18px 12px 28px; }
       header, .grid-2, .perspectives { grid-template-columns: 1fr; }
+      .analytics-grid { grid-template-columns: 1fr; }
+      .chart-row { grid-template-columns: 1fr; }
+      .chart-values { text-align: left; }
       .kpi-grid, .mini-grid { grid-template-columns: 1fr; }
+      .demo-steps-grid, .roadmap-grid { grid-template-columns: 1fr; }
+      .behavior-flow { grid-template-columns: 1fr; }
+      .behavior-card:not(:last-child)::after { display: none; }
       .tool-row { grid-template-columns: 1fr; }
       table { font-size: 13px; }
       th, td { padding: 8px 5px; }
@@ -119,6 +174,42 @@
         <div class="meta-item"><span>Model</span><strong>Qwen/Qwen3-30B-A3B-Instruct-2507</strong></div>
       </aside>
     </header>
+
+
+    <section class="panel contract-panel">
+      <h2>Tutor Safety Contract</h2>
+      <p class="contract-lede">GenAcademy Coach is a grounded tutor over the Gen Academy course corpus. The contract is: if it can cite the course material, it teaches. If retrieval confidence is low, it refuses and escalates. It must never answer from model priors.</p>
+    </section>
+
+
+
+    <section class="panel setup-panel">
+      <h2>Evaluation Setup &amp; Scope</h2>
+      <p class="setup-lede">Evaluated against dataset version 2026-06-24-plan1 (frozen 40-case golden set: 16 happy, 9 edge, 5 known_failure, 10 adversarial). Evaluators combine code-based checks (deterministic Python metrics), trajectory eval (path-level next action and citation verification), and human review. LLM-as-judge is deferred to future offline audits.</p>
+      <h3 class="setup-subhead">Evaluator Types</h3>
+      <div class="mini-grid evaluator-grid setup-evaluators">
+        <article class="mini-card">
+          <strong>Code-based checks</strong>
+          <p>Deterministic Python checks for labeled outcomes: task completion, citations, tools, retrieval, refusal, latency, tokens, cost, and privacy guards.</p>
+        </article>
+
+
+        <article class="mini-card">
+          <strong>Trajectory eval</strong>
+          <p>Path-level scoring: what the agent retrieved, which tools it used, what action it chose, whether it cited evidence, and whether it advanced, re-explained, or refused in the right place.</p>
+        </article>
+
+
+        <article class="mini-card">
+          <strong>Human review</strong>
+          <p>Reviewer inspection of the report, dashboard, and sampled trace evidence for pedagogical quality, caveats, and public-safe redaction.</p>
+        </article>
+        </div>
+      <div class="setup-observability">
+        <strong>Observability:</strong> Local eval runs emit redacted JSON diagnostics. LangSmith is used for owner-approved private trace review only; no private traces or urls are exposed.
+      </div>
+    </section>
+
 
     <section class="kpi-grid" aria-label="Key metrics">
 
@@ -172,41 +263,207 @@
     </section>
 
 
-    <section class="panel">
-      <h2>Evaluator Types</h2>
-      <p>This dashboard combines code-based scoring, trajectory checks, and human review. LLM-as-judge is intentionally deferred to future offline audit work, not the v1 pass/fail scorer.</p>
-      <div class="mini-grid evaluator-grid">
-        <article class="mini-card">
-          <strong>Code-based checks</strong>
-          <p>Deterministic Python checks for labeled outcomes: task completion, citations, tools, retrieval, refusal, latency, tokens, cost, and privacy guards.</p>
+    <section class="panel analytics-panel">
+      <div class="analytics-heading">
+        <h2>Analytics Snapshot</h2>
+        <p>Same frozen golden set and scorer. These charts show what moved: citation quality and latency improved, safety held, and task/refusal precision remain the tradeoff to watch.</p>
+      </div>
+      <div class="analytics-grid">
+        <div>
+          <h3>Baseline to Current Movement</h3>
+          <div class="legend"><span class="legend-baseline"></span>Baseline <span class="legend-current"></span>Current mean</div>
+          <div class="metric-chart">
+        <div class="chart-row">
+          <div class="chart-label">
+            <strong>Citation F1</strong>
+            <span>+0.150</span>
+          </div>
+          <div class="compare-bars" aria-label="Citation F1: baseline 0.444, current 0.594">
+            <div class="compare-track baseline"><span style="width:44.4%"></span></div>
+            <div class="compare-track current status-win"><span style="width:59.4%"></span></div>
+          </div>
+          <div class="chart-values">
+            <span>0.444</span>
+            <strong>0.594</strong>
+          </div>
+        </div>
+
+
+        <div class="chart-row">
+          <div class="chart-label">
+            <strong>Task completion</strong>
+            <span>-1.4 pp</span>
+          </div>
+          <div class="compare-bars" aria-label="Task completion: baseline 94.7%, current 93.3%">
+            <div class="compare-track baseline"><span style="width:94.7%"></span></div>
+            <div class="compare-track current status-caveat"><span style="width:93.3%"></span></div>
+          </div>
+          <div class="chart-values">
+            <span>94.7%</span>
+            <strong>93.3%</strong>
+          </div>
+        </div>
+
+
+        <div class="chart-row">
+          <div class="chart-label">
+            <strong>Refusal precision</strong>
+            <span>-0.043</span>
+          </div>
+          <div class="compare-bars" aria-label="Refusal precision: baseline 0.833, current 0.791">
+            <div class="compare-track baseline"><span style="width:83.3%"></span></div>
+            <div class="compare-track current status-caveat"><span style="width:79.1%"></span></div>
+          </div>
+          <div class="chart-values">
+            <span>0.833</span>
+            <strong>0.791</strong>
+          </div>
+        </div>
+
+
+        <div class="chart-row">
+          <div class="chart-label">
+            <strong>Refusal recall</strong>
+            <span>held</span>
+          </div>
+          <div class="compare-bars" aria-label="Refusal recall: baseline 1.000, current 1.000">
+            <div class="compare-track baseline"><span style="width:100.0%"></span></div>
+            <div class="compare-track current status-held"><span style="width:100.0%"></span></div>
+          </div>
+          <div class="chart-values">
+            <span>1.000</span>
+            <strong>1.000</strong>
+          </div>
+        </div>
+
+
+        <div class="chart-row">
+          <div class="chart-label">
+            <strong>Turn p95 latency</strong>
+            <span>-27%</span>
+          </div>
+          <div class="compare-bars" aria-label="Turn p95 latency: baseline 11.33s, current 8.28s">
+            <div class="compare-track baseline"><span style="width:100.0%"></span></div>
+            <div class="compare-track current status-win"><span style="width:73.0%"></span></div>
+          </div>
+          <div class="chart-values">
+            <span>11.33s</span>
+            <strong>8.28s</strong>
+          </div>
+        </div>
+        </div>
+        </div>
+        <div>
+          <h3>Three-Run Stability</h3>
+          <div class="spark-grid">
+            <article class="spark-card">
+              <strong>Citation F1</strong>
+              <svg viewBox="0 0 300 112" role="img" aria-label="Citation F1 by run">
+                <line x1="28" y1="88" x2="272" y2="88" class="spark-axis"/>
+                <polyline points="28.0,88.0 150.0,20.0 272.0,67.3" class="spark-line"/>
+              </svg>
+              <p>r1: 0.539 / r2: 0.667 / r3: 0.578</p>
+            </article>
+
+            <article class="spark-card">
+              <strong>Task completion</strong>
+              <svg viewBox="0 0 300 112" role="img" aria-label="Task completion by run">
+                <line x1="28" y1="88" x2="272" y2="88" class="spark-axis"/>
+                <polyline points="28.0,88.0 150.0,20.0 272.0,88.0" class="spark-line"/>
+              </svg>
+              <p>r1: 92.5% / r2: 95.0% / r3: 92.5%</p>
+            </article>
+
+            <article class="spark-card">
+              <strong>Turn p95 latency</strong>
+              <svg viewBox="0 0 300 112" role="img" aria-label="Turn p95 latency by run">
+                <line x1="28" y1="88" x2="272" y2="88" class="spark-axis"/>
+                <polyline points="28.0,88.0 150.0,23.1 272.0,20.0" class="spark-line"/>
+              </svg>
+              <p>r1: 8.10s / r2: 8.36s / r3: 8.37s</p>
+            </article>
+            </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <section class="panel behavior-panel">
+      <div>
+        <h2>Product Behavior Changed, Not The Scorer</h2>
+        <p>The 40-case golden set, labels, and deterministic scorer stayed fixed. The changes were inside the tutor: how it advances, cites, retries, caps repeated calls, and reports latency without exposing private text.</p>
+      </div>
+      <div class="behavior-flow">
+        <article class="behavior-card">
+          <div class="behavior-index">01</div>
+          <h3>Correct + grounded answers advance</h3>
+          <dl>
+            <dt>Problem</dt>
+            <dd>Correct learner answers could still trigger another drill or re-explanation.</dd>
+            <dt>Product change</dt>
+            <dd>When Python grading says the answer is correct and grounded, the session advances.</dd>
+            <dt>Eval proof</dt>
+            <dd>Trajectory scoring checks the selected action, not only final prose.</dd>
+          </dl>
         </article>
 
 
-        <article class="mini-card">
-          <strong>Trajectory eval</strong>
-          <p>Path-level scoring: what the agent retrieved, which tools it used, what action it chose, whether it cited evidence, and whether it advanced, re-explained, or refused in the right place.</p>
+        <article class="behavior-card">
+          <div class="behavior-index">02</div>
+          <h3>Checks prefer stronger citation spans</h3>
+          <dl>
+            <dt>Problem</dt>
+            <dd>Retrieval found evidence, but the agent sometimes used a weaker note or transcript span.</dd>
+            <dt>Product change</dt>
+            <dd>Check generation prefers slide evidence first, handouts second, then another citable span.</dd>
+            <dt>Eval proof</dt>
+            <dd>Citation F1 measures whether the chosen citation matches the labeled support.</dd>
+          </dl>
         </article>
 
 
-        <article class="mini-card">
-          <strong>Human review</strong>
-          <p>Reviewer inspection of the report, dashboard, and sampled trace evidence for pedagogical quality, caveats, and public-safe redaction.</p>
+        <article class="behavior-card">
+          <div class="behavior-index">03</div>
+          <h3>Malformed model output gets one retry</h3>
+          <dl>
+            <dt>Problem</dt>
+            <dd>A missing or invalid structured response could derail a teach turn.</dd>
+            <dt>Product change</dt>
+            <dd>The product retries once and counts the extra tokens instead of hiding the cost.</dd>
+            <dt>Eval proof</dt>
+            <dd>Token and latency metrics keep the retry visible.</dd>
+          </dl>
+        </article>
+
+
+        <article class="behavior-card">
+          <div class="behavior-index">04</div>
+          <h3>Repeated calls are capped or reused</h3>
+          <dl>
+            <dt>Problem</dt>
+            <dd>Retrieval, check generation, or escalation could repeat inside a turn.</dd>
+            <dt>Product change</dt>
+            <dd>The loop caps or reuses repeated retrieval/check/escalation calls.</dd>
+            <dt>Eval proof</dt>
+            <dd>Tool-call counts and latency attribution show whether the loop stayed bounded.</dd>
+          </dl>
+        </article>
+
+
+        <article class="behavior-card">
+          <div class="behavior-index">05</div>
+          <h3>Latency attribution stays redacted</h3>
+          <dl>
+            <dt>Problem</dt>
+            <dd>The reviewer needs cost and speed evidence without seeing private learner or corpus text.</dd>
+            <dt>Product change</dt>
+            <dd>The dashboard reports aggregate latency, tokens, and tool shares only.</dd>
+            <dt>Eval proof</dt>
+            <dd>The public snapshot guard blocks private fields and URLs.</dd>
+          </dl>
         </article>
         </div>
-</section>
-
-
-
-    <section class="panel">
-      <h2>Per-Scenario Breakdown</h2>
-      <p>Performance by case type: how many cases were tested, how often they passed across three runs, citation quality for teachable cases, and which teachable cases were wrongly refused.</p>
-      <table>
-        <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
-        <tbody><tr><th scope="row">happy</th><td>16</td><td><span class="pill status-caveat">93.8%</span></td><td>0.576</td><td>happy_014 (3/3)</td></tr>
-<tr><th scope="row">edge</th><td>9</td><td><span class="pill status-caveat">92.6%</span></td><td>0.735</td><td>edge_002 (2/3)</td></tr>
-<tr><th scope="row">known_failure</th><td>5</td><td><span class="pill status-risk">80.0%</span></td><td>0.400</td><td>known_failure_001 (3/3)</td></tr>
-<tr><th scope="row">adversarial</th><td>10</td><td><span class="pill status-win">100.0%</span></td><td>n/a (refusal)</td><td>none; refusal recall 1.000</td></tr></tbody>
-      </table>
     </section>
 
 
@@ -379,6 +636,27 @@
 
 
     <section class="panel">
+      <h2>Per-Scenario Breakdown</h2>
+      <p>Performance by case type: how many cases were tested, how often they passed across three runs, citation quality for teachable cases, and which teachable cases were wrongly refused.</p>
+      <table>
+        <thead><tr><th>Scenario type</th><th>Support</th><th>Task pass</th><th>Citation F1</th><th>False refusals</th></tr></thead>
+        <tbody><tr><th scope="row">happy</th><td>16</td><td><span class="pill status-caveat">93.8%</span></td><td>0.576</td><td>happy_014 (3/3)</td></tr>
+<tr><th scope="row">edge</th><td>9</td><td><span class="pill status-caveat">92.6%</span></td><td>0.735</td><td>edge_002 (2/3)</td></tr>
+<tr><th scope="row">known_failure</th><td>5</td><td><span class="pill status-risk">80.0%</span></td><td>0.400</td><td>known_failure_001 (3/3)</td></tr>
+<tr><th scope="row">adversarial</th><td>10</td><td><span class="pill status-win">100.0%</span></td><td>n/a (refusal)</td><td>none; refusal recall 1.000</td></tr></tbody>
+      </table>
+    </section>
+
+
+
+    <section class="panel status-risk eval-insight-panel">
+      <h2>Why Eval Mattered: Rejected Levers</h2>
+      <p class="insight-lede">A broad citation fallback was proposed to anchor final answers and improve citation F1. However, evaluation showed it caused a regression: citation F1 fell from 0.444 to 0.400 and task completion dropped by 5.2 pp. The change was rejected and not shipped. The eval was our debugger.</p>
+    </section>
+
+
+
+    <section class="panel">
       <h2>Improvement Levers: Predicted vs Measured</h2>
       <p>Each shipped change maps to a standard improvement lever, the failure cluster it targeted, the impact predicted before the run, and the measured delta. The dominant cluster was post-retrieval citation mismatch, so most levers act after retrieval rather than on the index.</p>
       <table>
@@ -432,6 +710,113 @@
       <p style="margin-top:12px;">Levers deliberately not pulled: retrieval tuning (retrieval recall@5 was already 1.000, so the bottleneck was post-retrieval, not the index) and model upgrade (deferred to a governed provider/model bakeoff gated on data-egress and cost).</p>
     </section>
 
+
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Failure And Quality-Issue Distribution</h2>
+        <p>Across three runs (120 case-runs). Over-conservative refusal is every task failure; citation-span mismatch is a quality issue where the case still passes.</p>
+        <div class="tool-row"><div><strong>Citation-span mismatch</strong><span>31 case-runs / 18 cases - Citation quality; case still passes</span></div><div class="bar-track" aria-label="Citation-span mismatch 31 case-runs"><span class="bar-fill amber" style="width:100.0%"></span></div></div>
+<div class="tool-row"><div><strong>Over-conservative refusal</strong><span>8 case-runs / 3 cases - Task failure (all task failures)</span></div><div class="bar-track" aria-label="Over-conservative refusal 8 case-runs"><span class="bar-fill amber" style="width:25.8%"></span></div></div>
+<div class="tool-row"><div><strong>Infra / structured-output</strong><span>0 case-runs / 0 cases - Eliminated this week</span></div><div class="bar-track" aria-label="Infra / structured-output 0 case-runs"><span class="bar-fill amber" style="width:4.0%"></span></div></div>
+      </div>
+      <div class="panel">
+        <h2>Open-Code To Axial-Code Analysis</h2>
+        <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
+        <table>
+          <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
+          <tbody><tr><th scope="row"><code>known_failure_001</code></th><td>Expected span retrieved but scored ~0.31, below the 0.40 STOP threshold; agent refuses rather than teach from weak evidence.</td><td>Retrieval-confidence calibration -&gt; over-conservative refusal</td></tr>
+<tr><th scope="row"><code>happy_014</code></th><td>Expected span present but scored 0.0 on the resolved query (query drift); was an infra error at baseline, now a stable refusal.</td><td>Query drift / possible label issue -&gt; over-conservative refusal</td></tr>
+<tr><th scope="row"><code>edge_002</code></th><td>Intermittent false refusal (2 of 3 runs); citeable evidence sits at the threshold.</td><td>Borderline-evidence variance -&gt; over-conservative refusal</td></tr>
+<tr><th scope="row"><code>18 teachable rows</code></th><td>Agent built the check from a weaker note/transcript span; final answer faithfully cites it but mismatches the golden citation.</td><td>Check-span selection -&gt; citation mismatch</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+
+
+    <section class="panel live-demo-panel">
+      <h2>Live Demo Bridge</h2>
+      <p class="demo-lede">After the measured results above, switch to the Gradio UI (127.0.0.1:7860) and confirm the headline behavior live: one correct, grounded answer drives action=advance.</p>
+      <div class="demo-steps-grid">
+
+        <div class="demo-step">
+          <strong>Step 1: Grounded Preset</strong>
+          <p>Click the &#x27;Grounded preset&#x27; button on the Teach tab to load the topic &#x27;agent harness&#x27;.</p>
+        </div>
+
+
+        <div class="demo-step">
+          <strong>Step 2: Start Check</strong>
+          <p>Click &#x27;Start check&#x27; to retrieve evidence and generate the first explanation.</p>
+        </div>
+
+
+        <div class="demo-step">
+          <strong>Step 3: Submit Answer</strong>
+          <p>Use the prefilled correct/grounded answer in the box and click &#x27;Submit answer&#x27;.</p>
+        </div>
+
+
+        <div class="demo-step">
+          <strong>Step 4: Observe action=advance</strong>
+          <p>The session moves to action=advance: the measured &#x27;Correct + grounded answers advance&#x27; change, confirmed live. Trajectory eval scores this selected action, not just the final prose.</p>
+        </div>
+
+      </div>
+    </section>
+
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Remaining Failure Modes</h2>
+        <p>Case IDs are synthetic scenario labels. They carry no learner text and no corpus text.</p>
+        <table>
+          <thead><tr><th>Case</th><th>What remains</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>happy_014</code></th>
+              <td>Stable false refusal across all three current-main runs.</td>
+              <td><span class="pill status-risk">open</span></td>
+            </tr>
+
+
+            <tr>
+              <th scope="row"><code>known_failure_001</code></th>
+              <td>Stable false refusal; do not lower STOP threshold casually.</td>
+              <td><span class="pill status-risk">open</span></td>
+            </tr>
+
+
+            <tr>
+              <th scope="row"><code>edge_002</code></th>
+              <td>False refusal in two of three current-main runs.</td>
+              <td><span class="pill status-risk">open</span></td>
+            </tr>
+
+
+            <tr>
+              <th scope="row"><code>edge_008</code></th>
+              <td>No current infra failure, but kept on watchlist from historical instability.</td>
+              <td><span class="pill status-caveat">watch</span></td>
+            </tr>
+            </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>User And Builder Perspective</h2>
+        <div class="perspectives">
+          <article>
+            <h3>User view</h3>
+            <p>The tutor is faster and cites better, and it still refuses unsupported questions. The visible product risk is over-refusing a few teachable cases.</p>
+          </article>
+          <article>
+            <h3>Builder view</h3>
+            <p>Retrieval is healthy; remaining work is mostly post-retrieval decision behavior, false-refusal calibration, and citation quality rather than index recall.</p>
+          </article>
+        </div>
+      </div>
+    </section>
 
     <section class="grid-2">
       <div class="panel">
@@ -527,29 +912,6 @@
     </section>
 
 
-    <section class="grid-2">
-      <div class="panel">
-        <h2>Failure And Quality-Issue Distribution</h2>
-        <p>Across three runs (120 case-runs). Over-conservative refusal is every task failure; citation-span mismatch is a quality issue where the case still passes.</p>
-        <div class="tool-row"><div><strong>Citation-span mismatch</strong><span>31 case-runs / 18 cases - Citation quality; case still passes</span></div><div class="bar-track" aria-label="Citation-span mismatch 31 case-runs"><span class="bar-fill amber" style="width:100.0%"></span></div></div>
-<div class="tool-row"><div><strong>Over-conservative refusal</strong><span>8 case-runs / 3 cases - Task failure (all task failures)</span></div><div class="bar-track" aria-label="Over-conservative refusal 8 case-runs"><span class="bar-fill amber" style="width:25.8%"></span></div></div>
-<div class="tool-row"><div><strong>Infra / structured-output</strong><span>0 case-runs / 0 cases - Eliminated this week</span></div><div class="bar-track" aria-label="Infra / structured-output 0 case-runs"><span class="bar-fill amber" style="width:4.0%"></span></div></div>
-      </div>
-      <div class="panel">
-        <h2>Open-Code To Axial-Code Analysis</h2>
-        <p>Per-failure qualitative coding: the observed open code grouped into an axial category. Synthetic case labels only.</p>
-        <table>
-          <thead><tr><th>Case</th><th>Open code (what went wrong)</th><th>Axial code (category)</th></tr></thead>
-          <tbody><tr><th scope="row"><code>known_failure_001</code></th><td>Expected span retrieved but scored ~0.31, below the 0.40 STOP threshold; agent refuses rather than teach from weak evidence.</td><td>Retrieval-confidence calibration -&gt; over-conservative refusal</td></tr>
-<tr><th scope="row"><code>happy_014</code></th><td>Expected span present but scored 0.0 on the resolved query (query drift); was an infra error at baseline, now a stable refusal.</td><td>Query drift / possible label issue -&gt; over-conservative refusal</td></tr>
-<tr><th scope="row"><code>edge_002</code></th><td>Intermittent false refusal (2 of 3 runs); citeable evidence sits at the threshold.</td><td>Borderline-evidence variance -&gt; over-conservative refusal</td></tr>
-<tr><th scope="row"><code>18 teachable rows</code></th><td>Agent built the check from a weaker note/transcript span; final answer faithfully cites it but mismatches the golden citation.</td><td>Check-span selection -&gt; citation mismatch</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-
-
     <section class="panel">
       <h2>Production Monitoring</h2>
       <p>Batch eval catches regressions before release; these are the live signals we would alert on for the grounded teach loop.</p>
@@ -599,56 +961,30 @@
     </section>
 
 
-    <section class="grid-2">
-      <div class="panel">
-        <h2>Remaining Failure Modes</h2>
-        <p>Case IDs are synthetic scenario labels. They carry no learner text and no corpus text.</p>
-        <table>
-          <thead><tr><th>Case</th><th>What remains</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr>
-              <th scope="row"><code>happy_014</code></th>
-              <td>Stable false refusal across all three current-main runs.</td>
-              <td><span class="pill status-risk">open</span></td>
-            </tr>
+
+    <section class="panel roadmap-panel">
+      <h2>Grader Evolution &amp; Roadmap</h2>
+      <p class="roadmap-lede">Next steps for tutor evolution, strictly respecting the Grader Evolution risk-cap: future checks remain versioned separately and evaluated on the frozen golden set.</p>
+      <div class="mini-grid roadmap-grid">
+        <article class="mini-card roadmap-card">
+          <strong>Semantic Grading</strong>
+          <p>Move from literal keyword checking to deterministic synonym groups and optional embedding similarity. Grader changes will be versioned separately and re-evaluated on the same golden set, never retrofitted.</p>
+        </article>
 
 
-            <tr>
-              <th scope="row"><code>known_failure_001</code></th>
-              <td>Stable false refusal; do not lower STOP threshold casually.</td>
-              <td><span class="pill status-risk">open</span></td>
-            </tr>
+        <article class="mini-card roadmap-card">
+          <strong>Turn-2 Copy Polish</strong>
+          <p>Improve the conversational flow when the session advances so the transition feels natural.</p>
+        </article>
 
 
-            <tr>
-              <th scope="row"><code>edge_002</code></th>
-              <td>False refusal in two of three current-main runs.</td>
-              <td><span class="pill status-risk">open</span></td>
-            </tr>
-
-
-            <tr>
-              <th scope="row"><code>edge_008</code></th>
-              <td>No current infra failure, but kept on watchlist from historical instability.</td>
-              <td><span class="pill status-caveat">watch</span></td>
-            </tr>
-            </tbody>
-        </table>
-      </div>
-      <div class="panel">
-        <h2>User And Builder Perspective</h2>
-        <div class="perspectives">
-          <article>
-            <h3>User view</h3>
-            <p>The tutor is faster and cites better, and it still refuses unsupported questions. The visible product risk is over-refusing a few teachable cases.</p>
-          </article>
-          <article>
-            <h3>Builder view</h3>
-            <p>Retrieval is healthy; remaining work is mostly post-retrieval decision behavior, false-refusal calibration, and citation quality rather than index recall.</p>
-          </article>
+        <article class="mini-card roadmap-card">
+          <strong>Targeted False-Refusals</strong>
+          <p>Calibrate thresholding to address over-conservative refusals in teachable cases (our main task failure mode).</p>
+        </article>
         </div>
-      </div>
     </section>
+
 
     <section class="panel">
       <h2>Evidence And Caveats</h2>
@@ -660,7 +996,7 @@
     <footer>
       snapshot_date: 2026-06-25 /
       dataset_version: 2026-06-24-plan1 /
-      generator_git_sha: c5bf46a /
+      generator_git_sha: 9068b89 /
       source: <a href="week4-eval-progress-handoff.md">docs/week4-eval-progress-handoff.md</a>
     </footer>
   </main>

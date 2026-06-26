@@ -1,9 +1,65 @@
 {
   "schema_version": 1,
   "title": "Week-4 Eval Dashboard",
+  "contract": {
+    "title": "Tutor Safety Contract",
+    "summary": "GenAcademy Coach is a grounded tutor over the Gen Academy course corpus. The contract is: if it can cite the course material, it teaches. If retrieval confidence is low, it refuses and escalates. It must never answer from model priors."
+  },
+  "eval_setup": {
+    "title": "Evaluation Setup & Scope",
+    "summary": "Evaluated against dataset version 2026-06-24-plan1 (frozen 40-case golden set: 16 happy, 9 edge, 5 known_failure, 10 adversarial). Evaluators combine code-based checks (deterministic Python metrics), trajectory eval (path-level next action and citation verification), and human review. LLM-as-judge is deferred to future offline audits.",
+    "observability": "Local eval runs emit redacted JSON diagnostics. LangSmith is used for owner-approved private trace review only; no private traces or urls are exposed."
+  },
+  "eval_insight": {
+    "title": "Why Eval Mattered: Rejected Levers",
+    "summary": "A broad citation fallback was proposed to anchor final answers and improve citation F1. However, evaluation showed it caused a regression: citation F1 fell from 0.444 to 0.400 and task completion dropped by 5.2 pp. The change was rejected and not shipped. The eval was our debugger."
+  },
+  "live_demo": {
+    "title": "Live Demo Bridge",
+    "summary": "After the measured results above, switch to the Gradio UI (127.0.0.1:7860) and confirm the headline behavior live: one correct, grounded answer drives action=advance.",
+    "steps": [
+      {
+        "step_num": 1,
+        "action_label": "Grounded Preset",
+        "instruction": "Click the 'Grounded preset' button on the Teach tab to load the topic 'agent harness'."
+      },
+      {
+        "step_num": 2,
+        "action_label": "Start Check",
+        "instruction": "Click 'Start check' to retrieve evidence and generate the first explanation."
+      },
+      {
+        "step_num": 3,
+        "action_label": "Submit Answer",
+        "instruction": "Use the prefilled correct/grounded answer in the box and click 'Submit answer'."
+      },
+      {
+        "step_num": 4,
+        "action_label": "Observe action=advance",
+        "instruction": "The session moves to action=advance: the measured 'Correct + grounded answers advance' change, confirmed live. Trajectory eval scores this selected action, not just the final prose."
+      }
+    ]
+  },
+  "roadmap": {
+    "title": "Grader Evolution & Roadmap",
+    "items": [
+      {
+        "label": "Semantic Grading",
+        "details": "Move from literal keyword checking to deterministic synonym groups and optional embedding similarity. Grader changes will be versioned separately and re-evaluated on the same golden set, never retrofitted."
+      },
+      {
+        "label": "Turn-2 Copy Polish",
+        "details": "Improve the conversational flow when the session advances so the transition feels natural."
+      },
+      {
+        "label": "Targeted False-Refusals",
+        "details": "Calibrate thresholding to address over-conservative refusals in teachable cases (our main task failure mode)."
+      }
+    ]
+  },
   "provenance": {
     "snapshot_date": "2026-06-25",
-    "generator_git_sha": "c5bf46a",
+    "generator_git_sha": "9068b89",
     "baseline_artifact": "golden-baseline-20260624.json",
     "current_run_ids": [
       "current-main-full-langsmith-r1",
@@ -45,6 +101,42 @@
       "summary": "Reviewer inspection of the report, dashboard, and sampled trace evidence for pedagogical quality, caveats, and public-safe redaction."
     }
   ],
+  "product_behavior_changes": {
+    "title": "Product Behavior Changed, Not The Scorer",
+    "summary": "The 40-case golden set, labels, and deterministic scorer stayed fixed. The changes were inside the tutor: how it advances, cites, retries, caps repeated calls, and reports latency without exposing private text.",
+    "items": [
+      {
+        "label": "Correct + grounded answers advance",
+        "problem": "Correct learner answers could still trigger another drill or re-explanation.",
+        "change": "When Python grading says the answer is correct and grounded, the session advances.",
+        "proof": "Trajectory scoring checks the selected action, not only final prose."
+      },
+      {
+        "label": "Checks prefer stronger citation spans",
+        "problem": "Retrieval found evidence, but the agent sometimes used a weaker note or transcript span.",
+        "change": "Check generation prefers slide evidence first, handouts second, then another citable span.",
+        "proof": "Citation F1 measures whether the chosen citation matches the labeled support."
+      },
+      {
+        "label": "Malformed model output gets one retry",
+        "problem": "A missing or invalid structured response could derail a teach turn.",
+        "change": "The product retries once and counts the extra tokens instead of hiding the cost.",
+        "proof": "Token and latency metrics keep the retry visible."
+      },
+      {
+        "label": "Repeated calls are capped or reused",
+        "problem": "Retrieval, check generation, or escalation could repeat inside a turn.",
+        "change": "The loop caps or reuses repeated retrieval/check/escalation calls.",
+        "proof": "Tool-call counts and latency attribution show whether the loop stayed bounded."
+      },
+      {
+        "label": "Latency attribution stays redacted",
+        "problem": "The reviewer needs cost and speed evidence without seeing private learner or corpus text.",
+        "change": "The dashboard reports aggregate latency, tokens, and tool shares only.",
+        "proof": "The public snapshot guard blocks private fields and URLs."
+      }
+    ]
+  },
   "baseline": {
     "label": "Baseline",
     "task_completion_rate": 0.947,

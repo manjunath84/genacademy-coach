@@ -103,6 +103,34 @@ def bar_width(value: float, max_value: float) -> str:
     return f"{max(4.0, min(100.0, value / max_value * 100)):.1f}%"
 
 
+def chart_value(value: float, kind: str) -> str:
+    if kind == "percent":
+        return pct(value)
+    if kind == "seconds":
+        return f"{value:.2f}s"
+    return f"{value:.3f}"
+
+
+def sparkline_points(values: list[float], *, width: int = 300, height: int = 112) -> str:
+    if not values:
+        return ""
+    chart_left = 28
+    chart_top = 20
+    chart_width = width - 56
+    chart_height = height - 44
+    min_value = min(values)
+    max_value = max(values)
+    if max_value == min_value:
+        min_value -= 0.5
+        max_value += 0.5
+    points: list[str] = []
+    for index, value in enumerate(values):
+        x = chart_left + (chart_width * index / max(1, len(values) - 1))
+        y = chart_top + ((max_value - value) / (max_value - min_value) * chart_height)
+        points.append(f"{x:.1f},{y:.1f}")
+    return " ".join(points)
+
+
 def render_kpis(data: dict[str, Any]) -> str:
     cards: list[str] = []
     for item in data["kpis"]:
@@ -119,6 +147,124 @@ def render_kpis(data: dict[str, Any]) -> str:
             """
         )
     return "\n".join(cards)
+
+
+def render_analytics_snapshot(data: dict[str, Any]) -> str:
+    baseline = data["baseline"]
+    current = data["current_mean"]
+    metrics = [
+        {
+            "label": "Citation F1",
+            "baseline": float(baseline["citation_f1"]),
+            "current": float(current["citation_f1"]),
+            "max": 1.0,
+            "kind": "score",
+            "readout": "+0.150",
+            "status": "win",
+        },
+        {
+            "label": "Task completion",
+            "baseline": float(baseline["task_completion_rate"]),
+            "current": float(current["task_completion_rate"]),
+            "max": 1.0,
+            "kind": "percent",
+            "readout": "-1.4 pp",
+            "status": "caveat",
+        },
+        {
+            "label": "Refusal precision",
+            "baseline": float(baseline["refusal_precision"]),
+            "current": float(current["refusal_precision"]),
+            "max": 1.0,
+            "kind": "score",
+            "readout": "-0.043",
+            "status": "caveat",
+        },
+        {
+            "label": "Refusal recall",
+            "baseline": float(baseline["refusal_recall"]),
+            "current": float(current["refusal_recall"]),
+            "max": 1.0,
+            "kind": "score",
+            "readout": "held",
+            "status": "held",
+        },
+        {
+            "label": "Turn p95 latency",
+            "baseline": float(baseline["turn_p95_ms"]) / 1000,
+            "current": float(current["turn_p95_ms"]) / 1000,
+            "max": max(float(baseline["turn_p95_ms"]), float(current["turn_p95_ms"])) / 1000,
+            "kind": "seconds",
+            "readout": "-27%",
+            "status": "win",
+        },
+    ]
+    movement_rows = "\n".join(
+        f"""
+        <div class="chart-row">
+          <div class="chart-label">
+            <strong>{esc(metric['label'])}</strong>
+            <span>{esc(metric['readout'])}</span>
+          </div>
+          <div class="compare-bars" aria-label="{esc(metric['label'])}: baseline {chart_value(float(metric['baseline']), str(metric['kind']))}, current {chart_value(float(metric['current']), str(metric['kind']))}">
+            <div class="compare-track baseline"><span style="width:{bar_width(float(metric['baseline']), float(metric['max']))}"></span></div>
+            <div class="compare-track current {status_class(str(metric['status']))}"><span style="width:{bar_width(float(metric['current']), float(metric['max']))}"></span></div>
+          </div>
+          <div class="chart-values">
+            <span>{chart_value(float(metric['baseline']), str(metric['kind']))}</span>
+            <strong>{chart_value(float(metric['current']), str(metric['kind']))}</strong>
+          </div>
+        </div>
+        """
+        for metric in metrics
+    )
+
+    run_specs = [
+        ("Citation F1", "citation_f1", "score"),
+        ("Task completion", "task_completion_rate", "percent"),
+        ("Turn p95 latency", "turn_p95_ms", "seconds"),
+    ]
+    spark_cards: list[str] = []
+    for label, field, kind in run_specs:
+        values = [
+            float(run[field]) / 1000 if kind == "seconds" else float(run[field])
+            for run in data["runs"]
+        ]
+        point_labels = " / ".join(
+            f"{esc(run['run_id'])}: {chart_value(value, kind)}"
+            for run, value in zip(data["runs"], values, strict=True)
+        )
+        spark_cards.append(
+            f"""
+            <article class="spark-card">
+              <strong>{esc(label)}</strong>
+              <svg viewBox="0 0 300 112" role="img" aria-label="{esc(label)} by run">
+                <line x1="28" y1="88" x2="272" y2="88" class="spark-axis"/>
+                <polyline points="{sparkline_points(values)}" class="spark-line"/>
+              </svg>
+              <p>{point_labels}</p>
+            </article>
+            """
+        )
+    return f"""
+    <section class="panel analytics-panel">
+      <div class="analytics-heading">
+        <h2>Analytics Snapshot</h2>
+        <p>Same frozen golden set and scorer. These charts show what moved: citation quality and latency improved, safety held, and task/refusal precision remain the tradeoff to watch.</p>
+      </div>
+      <div class="analytics-grid">
+        <div>
+          <h3>Baseline to Current Movement</h3>
+          <div class="legend"><span class="legend-baseline"></span>Baseline <span class="legend-current"></span>Current mean</div>
+          <div class="metric-chart">{movement_rows}</div>
+        </div>
+        <div>
+          <h3>Three-Run Stability</h3>
+          <div class="spark-grid">{"".join(spark_cards)}</div>
+        </div>
+      </div>
+    </section>
+"""
 
 
 def render_metric_rows(data: dict[str, Any]) -> str:
@@ -197,25 +343,35 @@ def render_guardrails(data: dict[str, Any]) -> str:
     return "\n".join(cards)
 
 
-def render_evaluator_types(data: dict[str, Any]) -> str:
-    evaluator_types = data.get("evaluator_types", [])
-    if not evaluator_types:
+def render_product_behavior_changes(data: dict[str, Any]) -> str:
+    behavior = data.get("product_behavior_changes")
+    if not behavior:
         return ""
     cards = "\n".join(
         f"""
-        <article class="mini-card">
-          <strong>{esc(item['label'])}</strong>
-          <p>{esc(item['summary'])}</p>
+        <article class="behavior-card">
+          <div class="behavior-index">{index:02d}</div>
+          <h3>{esc(item['label'])}</h3>
+          <dl>
+            <dt>Problem</dt>
+            <dd>{esc(item['problem'])}</dd>
+            <dt>Product change</dt>
+            <dd>{esc(item['change'])}</dd>
+            <dt>Eval proof</dt>
+            <dd>{esc(item['proof'])}</dd>
+          </dl>
         </article>
         """
-        for item in evaluator_types
+        for index, item in enumerate(behavior.get("items", []), start=1)
     )
     return f"""
-    <section class="panel">
-      <h2>Evaluator Types</h2>
-      <p>This dashboard combines code-based scoring, trajectory checks, and human review. LLM-as-judge is intentionally deferred to future offline audit work, not the v1 pass/fail scorer.</p>
-      <div class="mini-grid evaluator-grid">{cards}</div>
-</section>
+    <section class="panel behavior-panel">
+      <div>
+        <h2>{esc(behavior['title'])}</h2>
+        <p>{esc(behavior['summary'])}</p>
+      </div>
+      <div class="behavior-flow">{cards}</div>
+    </section>
 """
 
 
@@ -368,6 +524,103 @@ def render_production_monitoring(data: dict[str, Any]) -> str:
 """
 
 
+def render_contract(data: dict[str, Any]) -> str:
+    contract = data.get("contract", {})
+    if not contract:
+        return ""
+    return f"""
+    <section class="panel contract-panel">
+      <h2>{esc(contract['title'])}</h2>
+      <p class="contract-lede">{esc(contract['summary'])}</p>
+    </section>
+"""
+
+
+def render_eval_setup(data: dict[str, Any]) -> str:
+    setup = data.get("eval_setup", {})
+    evaluator_types = data.get("evaluator_types", [])
+    if not setup:
+        return ""
+    cards = "\n".join(
+        f"""
+        <article class="mini-card">
+          <strong>{esc(item['label'])}</strong>
+          <p>{esc(item['summary'])}</p>
+        </article>
+        """
+        for item in evaluator_types
+    )
+    return f"""
+    <section class="panel setup-panel">
+      <h2>{esc(setup['title'])}</h2>
+      <p class="setup-lede">{esc(setup['summary'])}</p>
+      <h3 class="setup-subhead">Evaluator Types</h3>
+      <div class="mini-grid evaluator-grid setup-evaluators">{cards}</div>
+      <div class="setup-observability">
+        <strong>Observability:</strong> {esc(setup['observability'])}
+      </div>
+    </section>
+"""
+
+
+def render_eval_insight(data: dict[str, Any]) -> str:
+    insight = data.get("eval_insight", {})
+    if not insight:
+        return ""
+    return f"""
+    <section class="panel status-risk eval-insight-panel">
+      <h2>{esc(insight['title'])}</h2>
+      <p class="insight-lede">{esc(insight['summary'])}</p>
+    </section>
+"""
+
+
+def render_live_demo(data: dict[str, Any]) -> str:
+    demo = data.get("live_demo", {})
+    if not demo:
+        return ""
+    steps_html = "\n".join(
+        f"""
+        <div class="demo-step">
+          <strong>Step {int(step['step_num'])}: {esc(step['action_label'])}</strong>
+          <p>{esc(step['instruction'])}</p>
+        </div>
+        """
+        for step in demo.get("steps", [])
+    )
+    return f"""
+    <section class="panel live-demo-panel">
+      <h2>{esc(demo['title'])}</h2>
+      <p class="demo-lede">{esc(demo['summary'])}</p>
+      <div class="demo-steps-grid">
+        {steps_html}
+      </div>
+    </section>
+"""
+
+
+def render_roadmap(data: dict[str, Any]) -> str:
+    roadmap = data.get("roadmap", {})
+    if not roadmap:
+        return ""
+    items_html = "\n".join(
+        f"""
+        <article class="mini-card roadmap-card">
+          <strong>{esc(item['label'])}</strong>
+          <p>{esc(item['details'])}</p>
+        </article>
+        """
+        for item in roadmap.get("items", [])
+    )
+    return f"""
+    <section class="panel roadmap-panel">
+      <h2>{esc(roadmap['title'])}</h2>
+      <p class="roadmap-lede">Next steps for tutor evolution, strictly respecting the Grader Evolution risk-cap: future checks remain versioned separately and evaluated on the frozen golden set.</p>
+      <div class="mini-grid roadmap-grid">{items_html}</div>
+    </section>
+"""
+
+
 def render_dashboard(data: dict[str, Any]) -> str:
     validate_public_snapshot(data)
     provenance = data["provenance"]
@@ -435,6 +688,32 @@ def render_dashboard(data: dict[str, Any]) -> str:
     .kpi-sub {{ display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 13px; }}
     .kpi-sub strong {{ color: var(--text); }}
     .kpi p {{ margin-top: 10px; font-size: 13px; }}
+    .analytics-panel {{ display: grid; gap: 16px; }}
+    .analytics-heading {{ max-width: 920px; }}
+    .analytics-grid {{ display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 18px; align-items: start; }}
+    .legend {{ display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 12px; }}
+    .legend span {{ width: 22px; height: 8px; border-radius: 999px; display: inline-block; }}
+    .legend-baseline {{ background: #9aa8b7; }}
+    .legend-current {{ background: var(--teal); }}
+    .metric-chart {{ display: grid; gap: 12px; }}
+    .chart-row {{ display: grid; grid-template-columns: minmax(130px, .7fr) minmax(180px, 1fr) 76px; gap: 12px; align-items: center; }}
+    .chart-label strong, .chart-label span, .chart-values span, .chart-values strong {{ display: block; }}
+    .chart-label span {{ color: var(--muted); font-size: 12px; }}
+    .chart-values {{ text-align: right; color: var(--muted); font-size: 12px; }}
+    .chart-values strong {{ color: var(--text); font-size: 13px; }}
+    .compare-bars {{ display: grid; gap: 5px; }}
+    .compare-track {{ height: 10px; background: #e8eef4; border-radius: 999px; overflow: hidden; }}
+    .compare-track span {{ display: block; height: 100%; border-radius: inherit; }}
+    .compare-track.baseline span {{ background: #9aa8b7; }}
+    .compare-track.current span {{ background: var(--teal); }}
+    .compare-track.current.status-caveat span {{ background: var(--amber); }}
+    .spark-grid {{ display: grid; gap: 10px; }}
+    .spark-card {{ border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }}
+    .spark-card strong {{ display: block; font-size: 14px; margin-bottom: 4px; }}
+    .spark-card svg {{ width: 100%; height: 76px; display: block; }}
+    .spark-card p {{ font-size: 12px; }}
+    .spark-axis {{ stroke: #d8e1ea; stroke-width: 2; }}
+    .spark-line {{ fill: none; stroke: var(--teal); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }}
     .status-win {{ border-color: #a8d1c7; background: var(--teal-soft); }}
     .status-held {{ border-color: #b8d1df; background: #eef7fa; }}
     .status-caveat {{ border-color: #edcf9b; background: var(--amber-soft); }}
@@ -457,6 +736,29 @@ def render_dashboard(data: dict[str, Any]) -> str:
     .mini-card strong, .mini-card span {{ display: block; }}
     .mini-card span {{ font-size: 24px; font-weight: 780; color: var(--text); margin: 3px 0; }}
     .mini-card p {{ font-size: 13px; }}
+    .behavior-panel {{ display: grid; gap: 16px; }}
+    .behavior-flow {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }}
+    .behavior-card {{ position: relative; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%); }}
+    .behavior-card:not(:last-child)::after {{ content: "->"; position: absolute; right: -10px; top: 22px; color: var(--teal); font-weight: 850; }}
+    .behavior-index {{ color: var(--teal); font-size: 12px; font-weight: 850; letter-spacing: .08em; }}
+    .behavior-card h3 {{ font-size: 15px; line-height: 1.25; margin: 4px 0 10px; }}
+    .behavior-card dl {{ margin: 0; display: grid; gap: 7px; }}
+    .behavior-card dt {{ color: var(--text); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }}
+    .behavior-card dd {{ margin: -5px 0 0; color: var(--muted); font-size: 12px; }}
+    .contract-panel .contract-lede {{ color: var(--text); font-size: 16px; margin: 0; }}
+    .setup-panel .setup-lede {{ margin: 0 0 16px; }}
+    .setup-panel .setup-subhead {{ margin: 0 0 12px; }}
+    .setup-panel .setup-evaluators {{ margin-bottom: 16px; }}
+    .setup-observability {{ background: var(--slate-soft); border-radius: 6px; padding: 12px; font-size: 14px; }}
+    .eval-insight-panel .insight-lede {{ color: var(--red); font-weight: 500; margin: 0; }}
+    .live-demo-panel .demo-lede {{ margin: 0 0 12px; font-weight: 500; }}
+    .demo-steps-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
+    .demo-step {{ border-left: 3px solid var(--teal); padding-left: 12px; }}
+    .demo-step p {{ margin: 2px 0 0; font-size: 13px; }}
+    .roadmap-panel .roadmap-lede {{ margin: 0 0 12px; color: var(--muted); font-size: 14px; }}
+    .roadmap-grid {{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }}
+    .roadmap-card {{ border-top: 3px solid var(--teal); background: #fbfdff; }}
+    .roadmap-card p {{ margin: 4px 0 0; font-size: 13px; }}
     .stacked-bar {{ display: flex; height: 14px; overflow: hidden; border-radius: 999px; background: var(--slate-soft); margin-top: 12px; }}
     .stacked-bar span:nth-child(1) {{ background: var(--teal); }}
     .stacked-bar span:nth-child(2) {{ background: #5a7d96; }}
@@ -470,7 +772,13 @@ def render_dashboard(data: dict[str, Any]) -> str:
     @media (max-width: 840px) {{
       main {{ padding: 18px 12px 28px; }}
       header, .grid-2, .perspectives {{ grid-template-columns: 1fr; }}
+      .analytics-grid {{ grid-template-columns: 1fr; }}
+      .chart-row {{ grid-template-columns: 1fr; }}
+      .chart-values {{ text-align: left; }}
       .kpi-grid, .mini-grid {{ grid-template-columns: 1fr; }}
+      .demo-steps-grid, .roadmap-grid {{ grid-template-columns: 1fr; }}
+      .behavior-flow {{ grid-template-columns: 1fr; }}
+      .behavior-card:not(:last-child)::after {{ display: none; }}
       .tool-row {{ grid-template-columns: 1fr; }}
       table {{ font-size: 13px; }}
       th, td {{ padding: 8px 5px; }}
@@ -492,13 +800,17 @@ def render_dashboard(data: dict[str, Any]) -> str:
       </aside>
     </header>
 
+    {render_contract(data)}
+
+    {render_eval_setup(data)}
+
     <section class="kpi-grid" aria-label="Key metrics">
       {render_kpis(data)}
     </section>
 
-    {render_evaluator_types(data)}
+    {render_analytics_snapshot(data)}
 
-    {render_scenario_breakdown(data)}
+    {render_product_behavior_changes(data)}
 
     <section class="grid-2">
       <div class="panel">
@@ -519,23 +831,15 @@ def render_dashboard(data: dict[str, Any]) -> str:
       </div>
     </section>
 
-    {render_improvement_levers(data)}
+    {render_scenario_breakdown(data)}
 
-    <section class="grid-2">
-      <div class="panel">
-        <h2>Latency And Tool Attribution</h2>
-        <p>Measured total tool time per full run is dominated by check generation and retrieval. Turn latency still includes model inference around these calls.</p>
-        {render_tool_latency(data)}
-      </div>
-      <div class="panel">
-        <h2>Quality And Safety Guardrails</h2>
-        <div class="mini-grid">{render_guardrails(data)}</div>
-      </div>
-    </section>
+    {render_eval_insight(data)}
+
+    {render_improvement_levers(data)}
 
     {render_failure_analysis(data)}
 
-    {render_production_monitoring(data)}
+    {render_live_demo(data)}
 
     <section class="grid-2">
       <div class="panel">
@@ -560,6 +864,22 @@ def render_dashboard(data: dict[str, Any]) -> str:
         </div>
       </div>
     </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Latency And Tool Attribution</h2>
+        <p>Measured total tool time per full run is dominated by check generation and retrieval. Turn latency still includes model inference around these calls.</p>
+        {render_tool_latency(data)}
+      </div>
+      <div class="panel">
+        <h2>Quality And Safety Guardrails</h2>
+        <div class="mini-grid">{render_guardrails(data)}</div>
+      </div>
+    </section>
+
+    {render_production_monitoring(data)}
+
+    {render_roadmap(data)}
 
     <section class="panel">
       <h2>Evidence And Caveats</h2>
