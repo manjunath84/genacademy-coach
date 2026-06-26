@@ -1,8 +1,8 @@
 # GenAcademy Coach
 
-Learners re-watch lectures hoping a concept clicks. GenAcademy Coach replaces that loop with an
-adaptive, grounded AI tutor: it retrieves citeable course evidence, explains in the learner's chosen
-style and teaching lens, checks understanding with a grounded question, and when the learner stumbles,
+Learners re-watch lectures hoping a concept clicks. GenAcademy Coach replaces that loop with a
+personalized, adaptive, grounded AI tutor: it retrieves citeable course evidence, explains in the learner's
+chosen style and teaching lens, checks understanding with a grounded question, and when the learner stumbles,
 the model chooses a different explanation strategy at runtime — not a hardcoded Python branch. When it
 cannot cite the answer, it refuses and escalates to a human mentor instead of guessing. Three shipped
 modes (teach, quiz, skill-gap diagnosis) share the same grounded core. The product promise is simple:
