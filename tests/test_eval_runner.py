@@ -672,6 +672,8 @@ def test_run_golden_eval_reports_semantic_decisive_synonym_case(
                 }
             ]
 
+    sessions = []
+
     def session_factory(**kwargs):
         agent = StaticAgentPort(
             CoachAgentResponse(
@@ -700,6 +702,7 @@ def test_run_golden_eval_reports_semantic_decisive_synonym_case(
         session = CoachSession(**kwargs, agent_port=agent)
         session.runtime.last_spans = [span]
         session.runtime.current_check = check
+        sessions.append(session)
         return session
 
     case = GoldenCase(
@@ -730,6 +733,11 @@ def test_run_golden_eval_reports_semantic_decisive_synonym_case(
     )
 
     row = result["rows"][0]
+    assert sessions[0].runtime.last_grade is not None
+    assert sessions[0].runtime.last_grade.matched_keyword_modes == {
+        "focus": "semantic_alias",
+        "relevant context": "semantic_alias",
+    }
     assert row["task_completion_pass"] is True
     assert row["grade_correct"] is True
     assert row["grade_scorer_version"] == "concept-v1"
