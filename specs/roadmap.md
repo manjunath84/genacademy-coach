@@ -23,9 +23,9 @@ the completed provenance learning note is
 [`docs/post-v1-eval-provenance-learning.md`](../docs/post-v1-eval-provenance-learning.md).
 
 The immediate priority is **not** adding more agents or direct LangGraph. It is to keep the grounded
-core stable while improving the next weak decisions: when to salvage teachable CONFIRM-band cases, how
-to avoid literal keyword grading false negatives, and how to run one bounded recovery cycle after a real
-stumble.
+core stable while improving the next weak decisions: how to avoid literal keyword grading false
+negatives, when to salvage teachable CONFIRM-band cases, and how to run one bounded recovery cycle after
+a real stumble.
 
 Current priority stack:
 
@@ -35,11 +35,12 @@ Current priority stack:
    `role -> span_id` when evidence is selected and enforces slide, then handout, then first citeable span
    for checks. Citation F1 improved from `0.45` to `0.6333` without task-completion or refusal-safety
    regression.
-3. **Next: CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
+3. **Next: cheap semantic grading** — add deterministic synonym/concept coverage before Turn-2
+   recovery so literal keyword false negatives do not pollute recovery metrics. The plan is
+   [`docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md`](../docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md).
+4. **CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
    CONFIRM-band evidence where the model refused anyway. STOP remains untouched; refusal recall is the
    tripwire.
-4. **Cheap semantic grading** — add deterministic synonym/concept coverage before Turn-2 recovery so
-   literal keyword false negatives do not pollute recovery metrics.
 5. **Bounded Turn-2 recovery** — one-cycle diagnose → strategy map → grounded re-teach → same-span
    smaller check. No memory dependency and no six-agent split. The plan is
    [`docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md`](../docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md).

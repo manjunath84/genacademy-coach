@@ -27,6 +27,21 @@ proves a broader graph or multi-agent split is necessary.
 
 ---
 
+## 2026-06-27 — Fix the mistake detector before adding recovery
+
+**What I believed:** once the bounded recovery plan existed, the next implementation could start with
+the recovery diagnoser.
+
+**What I found:** recovery depends on the boundary grade being trustworthy. If the deterministic grader
+is too literal, a learner can answer correctly with a synonym, get marked wrong, and trigger a recovery
+loop that should never have run.
+
+**Principle:** before adding an agentic repair path, sharpen the deterministic signal that says repair
+is needed. Scorer changes must be versioned and re-evaluated as new results, never retrofitted onto old
+baselines.
+
+---
+
 ## 2026-06-27 — Citation failures become fixable when evidence roles are explicit
 
 **What I believed:** after v1 eval, the main citation problem might be retrieval quality: if the final
