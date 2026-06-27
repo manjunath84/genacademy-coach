@@ -136,6 +136,10 @@ Expected:
 - The owner has either completed or explicitly accepted the risk of deferring:
   - narrow CONFIRM-band false-refusal precision
   - cheap synonym/concept grading
+- If recovery metrics will rely on semantic grading as trustworthy, the owner has either completed or
+  explicitly accepted the risk of deferring a provider-backed synonym proof: a non-brittle
+  check-pinning/fixture mechanism plus a dev-split case where a generated check expects `focus` /
+  `relevant context` and a synonym answer drives `grade_semantic_decisive_count >= 1`.
 
 If either prerequisite is neither complete nor owner-accepted, stop before code changes and ask whether
 to implement the prerequisite slice first.
@@ -1266,3 +1270,7 @@ Expected:
   some error-type precision for less raw-text egress.
 - If cheap semantic grading has not landed, recovery may fire on literal-keyword false negatives.
   Treat that as a known dependency risk, not proof the recovery loop is bad.
+- If semantic grading has landed only with deterministic harness proof, recovery may still lack
+  provider-backed evidence that live generated checks exercise the alias path. Complete the
+  non-brittle dev-split synonym proof or record explicit owner risk acceptance before treating recovery
+  metrics as grading-clean.
