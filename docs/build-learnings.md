@@ -10,6 +10,23 @@
 
 ---
 
+## 2026-06-27 — Agent specialization should name the missing cognition, not multiply roles
+
+**What I believed:** the Week-3 "limited agent specialization" feedback might require a visibly larger
+multi-agent architecture for Turn-2 recovery.
+
+**What I found:** most proposed specialist roles already have deterministic owners in the system:
+retrieval, grounding, provenance, grading boundaries, and escalation. The actual missing cognitive step
+is narrower: diagnosing why the learner missed a grounded check. PR #54 plans one bounded misconception
+diagnoser, a deterministic strategy map, same-span re-teaching, and a smaller same-span check, with
+false-refusal and grading gates before implementation.
+
+**Principle:** do not add agents for optics. Add a specialist only where the workflow needs a new kind
+of judgment that deterministic code does not already own. Keep orchestration bounded until eval evidence
+proves a broader graph or multi-agent split is necessary.
+
+---
+
 ## 2026-06-27 — Citation failures become fixable when evidence roles are explicit
 
 **What I believed:** after v1 eval, the main citation problem might be retrieval quality: if the final

@@ -24,17 +24,21 @@ commit or quote `localdocs/` content unless the owner explicitly asks.
 For post-Week-4 work, start with:
 
 - `docs/agentic-orchestration-improvement-review.md` - measured diagnosis and orchestration options.
-- `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md` - next approved slice: audit
-  citation misses before product behavior changes.
-- `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md` - proposed next product-behavior slice:
-  role-keyed provenance plus deterministic check-span selection.
+- `docs/post-v1-eval-provenance-learning.md` - beginner-friendly explanation of the merged provenance
+  changes and PR #53 review follow-ups.
+- `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` - reviewable plan for the
+  bounded Turn-2 recovery slice, with prerequisite gates for false-refusal precision and cheap grading.
+- `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md` - completed citation-miss audit plan.
+- `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md` - completed role-keyed provenance plus
+  deterministic check-span implementation plan.
 - `docs/citation-provenance-audit-current-main-r3-20260624.json` - public-safe audit output with
   review buckets, source-family signals, and heuristic citation-F1 ceilings.
 - `docs/week4-eval-progress-handoff.md` - detailed eval history, remaining failures, and warnings.
 - `docs/week4-eval-dashboard-data.json` - redacted dashboard metrics used for trend evidence.
 
-The current architectural stance is conservative: fix citation provenance, check-span selection, and
-false-refusal precision before adding broader multi-agent orchestration or explicit LangGraph graphs.
+The current architectural stance is conservative: keep the grounded core, improve false-refusal
+precision and grading, then add one bounded recovery specialist before considering broader multi-agent
+orchestration or explicit LangGraph graphs.
 
 ## Task Routing
 
@@ -44,11 +48,12 @@ Use this table to avoid opening the whole docs folder blindly.
 |---|---|
 | New feature or architecture change | `AGENTS.md`, `specs/mission.md`, `specs/tech-stack.md`, `specs/roadmap.md`, `docs/decisions.md` |
 | Teach-loop behavior | `docs/teach-loop-status.md`, `docs/teach-loop-threshold-calibration.md`, `docs/week4-eval-progress-handoff.md` |
-| Citation, provenance, or eval failures | `docs/week4-eval-plan.md`, `docs/week4-eval-progress-handoff.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`, `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md`, `docs/citation-provenance-audit-current-main-r3-20260624.json` |
+| Citation, provenance, or eval failures | `docs/week4-eval-plan.md`, `docs/week4-eval-progress-handoff.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/post-v1-eval-provenance-learning.md`, `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`, `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md`, `docs/citation-provenance-audit-current-main-r3-20260624.json` |
+| Turn-2 recovery planning | `docs/agentic-orchestration-improvement-review.md`, `specs/roadmap.md`, `docs/post-v1-eval-provenance-learning.md`, `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` |
 | Retrieval/index changes | `docs/genacademy-rag-foundation.md`, `docs/foundation-adapter-spec.md`, `docs/teach-loop-retrieval-triage.md`, `specs/tech-stack.md` |
 | UI/demo changes | `docs/architecture-diagrams.md`, `docs/teach-loop-status.md`, relevant UI/demo plans in `docs/superpowers/plans/` |
 | Deployment | `docs/hugging-face-deployment-plan.md`, `docs/production-roadmap.md` |
-| Learning/write-up material | `docs/build-learnings.md`, `docs/agent-concepts-from-genacademy-coach.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/post-v1-eval-provenance-learning.md` |
+| Learning/write-up material | `docs/build-learnings.md`, `docs/agent-concepts-from-genacademy-coach.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/post-v1-eval-provenance-learning.md`, `docs/pr54-bounded-turn2-recovery-learning.md` |
 
 ## Source-Of-Truth Hierarchy
 
@@ -72,6 +77,8 @@ Historical files are useful evidence, but they do not override the active roadma
   eval boundaries, and roadmap.
 - `docs/agentic-orchestration-improvement-review.md` - post-feedback orchestration analysis, options,
   and final priority order.
+- `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` - implementation plan for
+  one bounded recovery cycle after a learner stumbles.
 - `docs/production-roadmap.md` - longer-term production hardening roadmap.
 
 ### Foundation And Retrieval
@@ -96,6 +103,8 @@ Historical files are useful evidence, but they do not override the active roadma
 - `docs/build-learnings.md` - reusable build lessons, newest first.
 - `docs/post-v1-eval-provenance-learning.md` - beginner-friendly explanation of the post-v1 eval
   provenance changes, measured result, and PR #53 review follow-ups.
+- `docs/pr54-bounded-turn2-recovery-learning.md` - beginner-friendly explanation of the bounded Turn-2
+  recovery plan, why it uses one specialist, and why it avoids premature LangGraph/multi-agent scope.
 - `docs/teach-loop-status.md` - detailed teach-loop verification history.
 - `docs/open-decisions-handoff.md` - resolved early handoff, historical.
 - `docs/agent-concepts-from-genacademy-coach.md` - learning notes that explain agent concepts through

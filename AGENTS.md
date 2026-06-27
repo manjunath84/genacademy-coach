@@ -126,6 +126,12 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - [ ] Reviewed by a different model / fresh context (gate #2).
 - [ ] No guardrail (§3) violated; held-out test set untouched (gate #4).
 - [ ] Specs/docs updated if scope or architecture moved.
+- [ ] Learning captured when the PR changes agent behavior, architecture, eval methodology, privacy
+  posture, or workflow. Use `docs/build-learnings.md` for the reusable principle; create a standalone
+  beginner-friendly note under `docs/` when the concept needs explanation; link it from
+  `docs/INDEX.md`. Skip this for mechanical fixes, typo-only docs, dependency churn, and tiny test-only
+  changes unless there is a new lesson. If standalone PR notes start to clutter `docs/`, move them into
+  a dedicated learning subfolder and update `docs/INDEX.md`.
 
 ## 7. Map of the project's own docs
 
@@ -144,6 +150,8 @@ and the guardrails in this file win.
 - `docs/build-learnings.md` — non-obvious build decisions + build-in-public log (format: belief → finding
   → principle, newest first). Read before planning: the log captures the *surprise*, `decisions.md`
   captures the *settled choice*.
+- PR learning notes live in `docs/` when a PR introduces a concept worth teaching to a future beginner.
+  Keep `docs/INDEX.md` linked so new AI sessions can discover them without being told.
 - UI/demo evidence lives in the relevant plan/status docs (especially `docs/architecture-diagrams.md`,
   `docs/teach-loop-status.md`, and UI/demo plans under `docs/superpowers/plans/`). Keep
   provider-backed/corpus-bearing captures out of git unless reviewed for the intended audience.
