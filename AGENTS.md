@@ -130,7 +130,8 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   posture, or workflow. Use `docs/build-learnings.md` for the reusable principle; create a standalone
   beginner-friendly note under `docs/` when the concept needs explanation; link it from
   `docs/INDEX.md`. Skip this for mechanical fixes, typo-only docs, dependency churn, and tiny test-only
-  changes unless there is a new lesson.
+  changes unless there is a new lesson. If standalone PR notes start to clutter `docs/`, move them into
+  a dedicated learning subfolder and update `docs/INDEX.md`.
 
 ## 7. Map of the project's own docs
 

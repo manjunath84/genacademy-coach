@@ -157,6 +157,15 @@ Expected:
 - Record `metrics.citation_f1`, `metrics.task_completion.pass_rate`,
   `metrics.refusal.precision`, `metrics.refusal.recall`, `metrics.retrieval_recall_at_5`,
   `metrics.latency_p95_ms`, `metrics.case_latency_p95_ms`, and `metrics.cost_usd`.
+- Record the acceptance bars for the after-run:
+  - `metrics.refusal.recall` must not decrease.
+  - `metrics.citation_f1` must not decrease.
+  - `metrics.case_latency_p95_ms` should stay within `1.25x` the Task 0 baseline unless the owner
+    explicitly accepts the latency tradeoff.
+  - `metrics.cost_usd` should stay within `1.35x` the Task 0 baseline unless the owner explicitly
+    accepts the cost tradeoff.
+  - Each recovery-triggered case should add no more than the planned two provider calls: one diagnosis
+    call and one smaller-check generation call.
 
 If provider credentials or the local index are unavailable, stop and record the blocker. Do not replace
 this with the frozen `test` split.
@@ -728,6 +737,10 @@ Also import `RetrievedSpan` from `teach_types`.
 
 - [ ] **Step 4: Preserve the raw learner answer only in call scope**
 
+`answer_grade` already threads through `respond`, `_invoke_agent`, and `_enforce_grounding`. This step
+only adds `learner_answer_for_recovery` alongside that existing grade path; do not add a second
+`answer_grade` flow.
+
 Change `respond`:
 
 ```python
@@ -850,7 +863,13 @@ Add these methods to `CoachSession` before `_enforce_grounding`:
 
 - [ ] **Step 6: Call recovery before generic wrong-answer fallback**
 
-At the start of `_enforce_grounding`, before the existing wrong-answer fallback block, add:
+At the start of `_enforce_grounding`, before the existing block that begins with this comment:
+
+```python
+        # A wrong answer with citeable evidence must re-explain, even if the model tries to stop.
+```
+
+add:
 
 ```python
         recovery_response = self._try_bounded_recovery(
@@ -1026,6 +1045,7 @@ Extend `test_score_golden_case_emits_redacted_metric_row`:
     assert row["recovery_used"] is True
     assert row["recovery_error_type"] == "missing_concept"
     assert row["recovery_provenance_span_id"] is None
+    assert row["recovery_success"] is True
 ```
 
 Run:
@@ -1052,6 +1072,11 @@ Add to the row:
             recovery_diagnosis.error_type if recovery_diagnosis is not None else None
         ),
         "recovery_provenance_span_id": provenance_by_role.get("recovery", {}).get("span_id"),
+        "recovery_success": (
+            bool(getattr(session.runtime, "recovery_used", False))
+            and grade_correct
+            and final_action == case.expected_next_action
+        ),
 ```
 
 - [ ] **Step 6: Run eval-runner tests**
@@ -1060,6 +1085,57 @@ Run:
 
 ```bash
 uv run pytest -q tests/test_eval_runner.py
+```
+
+Expected: pass.
+
+- [ ] **Step 7: Add recovery-scoped aggregate metrics**
+
+In `src/genacademy_coach/eval_runner.py`, add this helper near `_sum_int_dicts`:
+
+```python
+def _percentile(values: list[float], q: float) -> float | None:
+    if not values:
+        return None
+    sorted_values = sorted(values)
+    if len(sorted_values) == 1:
+        return sorted_values[0]
+    index = max(0, min(len(sorted_values) - 1, math.ceil(q * len(sorted_values)) - 1))
+    return sorted_values[index]
+```
+
+Add this import:
+
+```python
+import math
+```
+
+Then in `run_golden_eval`, after `metrics = aggregate(rows, price_table=price_table)`, add:
+
+```python
+    recovery_rows = [row for row in rows if row.get("recovery_used")]
+    recovery_success_n = sum(1 for row in recovery_rows if row.get("recovery_success"))
+    metrics["recovery"] = {
+        "triggered_n": len(recovery_rows),
+        "success_n": recovery_success_n,
+        "success_rate": (
+            recovery_success_n / len(recovery_rows) if recovery_rows else None
+        ),
+        "case_latency_p95_ms_when_triggered": _percentile(
+            [float(row.get("case_latency_ms") or 0.0) for row in recovery_rows],
+            0.95,
+        ),
+    }
+```
+
+Do not pull in a new dependency for this.
+
+Extend `tests/test_eval_runner.py::test_run_golden_eval_writes_payload_with_metrics` or the nearest
+existing run-level test to assert:
+
+```python
+    assert payload["metrics"]["recovery"]["triggered_n"] >= 0
+    assert "success_rate" in payload["metrics"]["recovery"]
 ```
 
 Expected: pass.
@@ -1116,6 +1192,9 @@ Expected:
 
 - A local ignored file appears under `eval/runs/`.
 - Rows include `recovery_used`, `recovery_error_type`, and `recovery_provenance_span_id`.
+- `metrics.recovery.triggered_n`, `metrics.recovery.success_n`, and
+  `metrics.recovery.success_rate` are present. `success_rate` may be `null` when no golden case
+  triggers recovery.
 - No frozen `test` split rows are used.
 
 Compare against Task 0:
@@ -1127,8 +1206,12 @@ Compare against Task 0:
 - `metrics.retrieval_recall_at_5`
 - `metrics.case_latency_p95_ms`
 - `metrics.cost_usd`
+- `metrics.recovery.triggered_n`
+- `metrics.recovery.success_rate`
 
-Stop and report if refusal recall regresses or citation F1 regresses. Do not hide a latency/cost jump;
+Stop and report if refusal recall regresses or citation F1 regresses. Also stop and report if
+`metrics.case_latency_p95_ms` exceeds `1.25x` the Task 0 baseline or `metrics.cost_usd` exceeds `1.35x`
+the Task 0 baseline unless the owner explicitly accepts the tradeoff. Do not hide a latency/cost jump;
 recovery adds model calls, so the measured cost is part of the result.
 
 - [ ] **Step 4: Run guardrail scan**
@@ -1160,8 +1243,12 @@ Expected:
 - The smaller recovery check uses the same citation ID as the recovery span.
 - `TeachRuntime.provenance["recovery"]` records safe metadata only.
 - Trace and eval rows expose recovery metadata without raw learner answer, tutor prose, or span text.
+- Recovery eval output includes a recovery-scoped efficacy signal: trigger count, success count, and
+  success rate. A no-regression run is not enough to claim the recovery path helped.
 - Existing task completion, citation F1, refusal recall, and retrieval recall do not regress in the
   golden before/after.
+- Golden after-run case latency p95 stays within `1.25x` baseline and total cost stays within `1.35x`
+  baseline unless the owner explicitly accepts the tradeoff.
 - No frozen `test` split use.
 - No direct `langgraph.*` imports.
 
@@ -1173,5 +1260,9 @@ Expected:
   already have deterministic owners.
 - Do not add memory to recovery in this slice. Memory would make recovery evals path-dependent.
 - Do not use direct LangGraph for this slice. The workflow remains synchronous and bounded.
+- The diagnoser receives the raw learner answer inside the live provider call because that is the
+  current teach-loop norm and improves diagnosis precision. If privacy minimization becomes stricter,
+  a follow-up can diagnose from `matched_keywords`, `missing_keywords`, and the cited span only, trading
+  some error-type precision for less raw-text egress.
 - If cheap semantic grading has not landed, recovery may fire on literal-keyword false negatives.
   Treat that as a known dependency risk, not proof the recovery loop is bad.

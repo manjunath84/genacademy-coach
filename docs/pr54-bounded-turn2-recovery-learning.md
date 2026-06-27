@@ -119,6 +119,17 @@ The roadmap now says:
 4. Cheap concept-aware grading should happen before recovery implementation.
 5. Bounded Turn-2 recovery is planned and reviewable.
 
+The design review found no blocking issues. It did ask the plan to prove recovery helped, not merely
+that recovery avoided regressions. The plan now requires recovery-scoped metrics:
+
+```text
+recovery triggered count
+recovery success count
+recovery success rate
+```
+
+It also sets explicit latency and cost tripwires, because recovery adds model calls.
+
 ## Why False Refusal And Grading Are Gates
 
 The plan says recovery implementation should wait until two risks are handled or explicitly accepted.
@@ -192,4 +203,3 @@ answer.
 
 Small, bounded specialization is stronger than a large multi-agent diagram when the eval only supports
 one new specialist.
-
