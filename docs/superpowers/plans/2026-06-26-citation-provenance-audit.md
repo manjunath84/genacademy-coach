@@ -176,18 +176,30 @@ new product behavior. Do not compare old-label baseline to new-label product run
 
 ## Implementation Plan After Approval
 
+### Implementation Progress - 2026-06-26
+
+- Added `scripts/audit_citation_provenance.py`, a public-safe audit CLI that reads a redacted golden
+  run artifact and emits review buckets, source-family/type signals, counts, and heuristic ceilings.
+- Added focused tests in `tests/test_audit_citation_provenance.py`.
+- Generated `docs/citation-provenance-audit-current-main-r3-20260624.json` from the local
+  `current-main-full-langsmith-r3` run. The source run remains local/ignored; the committed audit output
+  contains only IDs, aggregate labels, buckets, counts, and scores.
+- The automated audit intentionally leaves `citation_miss_category` as `null`; final taxonomy labels
+  still require human/source review before any relabeling or product comparison.
+
 ### Task 1: Prepare Audit Inputs
 
-- [ ] Identify the current golden run artifacts that can be inspected locally.
-- [ ] Confirm no frozen `test` split files are used.
-- [ ] Confirm audit output can be generated with case IDs, citation IDs/source types, roles, and scores
+- [x] Identify the current golden run artifacts that can be inspected locally.
+- [x] Confirm no frozen `test` split files are used.
+- [x] Confirm audit output can be generated with case IDs, citation IDs/source types, roles, and scores
       only.
 
 ### Task 2: Produce Citation-Miss Taxonomy
 
 - [ ] Classify each citation miss using the taxonomy above.
-- [ ] Count misses by category, source type, and scenario type.
-- [ ] Estimate reachable citation-F1 ceiling after removing label/sibling ambiguity.
+- [x] Count misses by automated review bucket, expected source type, and scenario type.
+- [x] Estimate heuristic reachable citation-F1 ceiling after removing exact-extra and same-source-family
+      ambiguity.
 
 ### Task 3: Decide Label Handling
 
