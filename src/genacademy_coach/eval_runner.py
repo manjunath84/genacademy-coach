@@ -109,6 +109,33 @@ def _refusal_reason_code(response: Any) -> str | None:
     return REFUSAL_REASON_CODES.get(str(response.observation), "agent_refusal")
 
 
+def _grade_summary(runtime: Any) -> dict[str, Any]:
+    grade = getattr(runtime, "last_grade", None)
+    if grade is None:
+        return {
+            "grade_scorer_version": None,
+            "grade_literal_match_count": 0,
+            "grade_semantic_match_count": 0,
+            "grade_missing_keyword_count": 0,
+            "grade_semantic_decisive": False,
+        }
+    modes = dict(getattr(grade, "matched_keyword_modes", {}) or {})
+    semantic_match_count = sum(
+        1 for mode in modes.values() if mode == "semantic_alias"
+    )
+    return {
+        "grade_scorer_version": getattr(grade, "scorer_version", None),
+        "grade_literal_match_count": sum(
+            1 for mode in modes.values() if mode == "literal"
+        ),
+        "grade_semantic_match_count": semantic_match_count,
+        "grade_missing_keyword_count": len(getattr(grade, "missing_keywords", []) or []),
+        "grade_semantic_decisive": bool(
+            getattr(grade, "correct", False) and semantic_match_count
+        ),
+    }
+
+
 def _manifest_version(eval_dir: Path) -> str | None:
     manifest_path = eval_dir / "golden" / "golden_manifest.json"
     if not manifest_path.exists():
@@ -265,6 +292,7 @@ def score_golden_case(
         getattr(session.runtime, "last_grade", None)
         and session.runtime.last_grade.correct
     )
+    grade_summary = _grade_summary(session.runtime)
     boundary_grade_citation_id = (
         session.runtime.last_grade.citation_id
         if getattr(session.runtime, "last_grade", None) is not None
@@ -337,6 +365,7 @@ def score_golden_case(
         "model_id": _model_id(foundation),
         "task_completion_pass": task_completion_pass,
         "grade_correct": grade_correct,
+        **grade_summary,
         "citation_precision": citation_precision,
         "citation_recall": citation_recall,
         "citation_f1": citation_f1,

@@ -5,6 +5,7 @@ import re
 from genacademy_rag.core.types import Chunk, Citation, RetrievedChunk
 from genacademy_rag.eval.faithfulness_eval import citation_grounding_score
 
+from genacademy_coach.semantic_grading import SCORER_VERSION, keyword_match_mode
 from genacademy_coach.teach_types import CheckItem, EvidenceBand, RetrievedSpan, UnderstandingGrade
 
 WORD_RE = re.compile(r"[a-z0-9]+")
@@ -55,15 +56,25 @@ def require_citeable_spans(
 
 
 def grade_understanding(answer: str, item: CheckItem) -> UnderstandingGrade:
-    matched = [keyword for keyword in item.expected_keywords if keyword_present(answer, keyword)]
-    missing = [
-        keyword for keyword in item.expected_keywords if not keyword_present(answer, keyword)
-    ]
+    matched: list[str] = []
+    missing: list[str] = []
+    modes: dict[str, str] = {}
+
+    for keyword in item.expected_keywords:
+        mode = keyword_match_mode(answer, keyword)
+        if mode is None:
+            missing.append(keyword)
+        else:
+            matched.append(keyword)
+            modes[keyword] = mode
+
     return UnderstandingGrade(
         correct=not missing,
         matched_keywords=matched,
         missing_keywords=missing,
         citation_id=item.citation_id,
+        scorer_version=SCORER_VERSION,
+        matched_keyword_modes=modes,
     )
 
 

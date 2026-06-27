@@ -25,6 +25,7 @@ Strategy = Literal[
     "refusal",
     "summary",
 ]
+KeywordMatchMode = Literal["literal", "semantic_alias"]
 
 
 class TokenUsage(BaseModel):
@@ -84,6 +85,12 @@ class UnderstandingGrade(BaseModel):
     matched_keywords: list[str]
     missing_keywords: list[str]
     citation_id: str
+    scorer_version: str = "concept-v1"
+    matched_keyword_modes: dict[str, KeywordMatchMode] = Field(default_factory=dict)
+
+    @property
+    def missing_keyword_count(self) -> int:
+        return len(self.missing_keywords)
 
 
 class LearnerProfile(BaseModel):

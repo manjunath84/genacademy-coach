@@ -654,6 +654,44 @@ def test_session_grades_current_check_answer_before_agent_decides(tmp_path):
     assert '"correct":true' in agent.messages[0][0]["content"]
 
 
+def test_session_treats_semantic_synonym_answer_as_correct(tmp_path):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention highlights relevant context. [note/attention::0]",
+            observation="learner answered correctly using equivalent wording",
+            next_action="advance",
+            strategy="summary",
+            citation_ids=["note/attention::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(previous_strategies=["analogy"]),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.current_check = CheckItem(
+        question="What does attention help with?",
+        expected_answer="It helps focus on relevant context.",
+        expected_keywords=["focus", "relevant context"],
+        citation_id="note/attention::0",
+    )
+
+    result = session.respond("It helps pay attention to important context.")
+
+    assert result.profile.last_grade_correct is True
+    assert session.runtime.last_grade is not None
+    assert session.runtime.last_grade.scorer_version == "concept-v1"
+    assert session.runtime.last_grade.matched_keyword_modes == {
+        "focus": "semantic_alias",
+        "relevant context": "semantic_alias",
+    }
+    assert result.response.next_action == "advance"
+
+
 def test_session_preserves_boundary_grade_when_agent_switches_check_in_turn(tmp_path):
     class SwitchingCheckAgent:
         def __init__(self):
