@@ -62,6 +62,8 @@ This plan is product behavior work. Do not start it until reviewed and approved.
   - Add role-keyed provenance storage and helper methods to `TeachRuntime`.
   - Replace citation-id-only preferred check helper with deterministic span selection.
   - Enforce preferred check-span selection inside `generate_check_item_for_span`.
+- Modify `src/genacademy_coach/teach_agent.py`
+  - Update prompt text so the model knows the runtime enforces preferred check-span selection.
 - Modify `src/genacademy_coach/teach_session.py`
   - Record `final` provenance for finalized cited responses.
   - Include runtime provenance in trace rows.
@@ -103,6 +105,37 @@ provenance: dict[ProvenanceRole, ProvenanceRecord] = Field(default_factory=dict)
 Committed traces still must not include raw learner text, tutor prose, retrieved span text, private URLs,
 or secrets. The provenance record contains IDs and source metadata only.
 
+Each role stores one primary span. For multi-citation final responses, `final` records the first
+retrieved citation used by the finalized answer; the full citation list remains in
+`predicted_citation_ids` and `response.citation_ids`. This is intentional for the first slice: one
+primary span per role is enough to debug provenance drift without changing the scorer or widening trace
+payloads.
+
+## Task 0: Capture Pre-Change Golden Metrics
+
+**Files:**
+- No source changes.
+
+- [ ] **Step 1: Run current local golden baseline before product code changes**
+
+Run this before implementing Tasks 1-6:
+
+```bash
+uv run python scripts/run_golden_eval.py \
+  --tag provenance-before \
+  --run-id provenance-before
+```
+
+Expected:
+
+- A local ignored file appears under `eval/runs/`.
+- No frozen `test` split rows are used.
+- Record the output path, `metrics.citation_f1`, `metrics.task_completion.pass_rate`,
+  `metrics.refusal.precision`, and `metrics.refusal.recall` in the PR body or implementation handoff.
+
+If provider credentials or the local index are unavailable, stop and record the blocker before coding.
+Do not silently replace this with the frozen `test` split or a synthetic-only run.
+
 ## Task 1: Add Provenance Types
 
 **Files:**
@@ -117,7 +150,7 @@ Add to `tests/test_teach_types.py`:
 from genacademy_coach.teach_types import ProvenanceRecord, TraceTurn
 
 
-def test_provenance_record_is_public_safe_metadata():
+def test_provenance_record_serializes_safe_metadata_only():
     record = ProvenanceRecord(
         role="check",
         span_id="slide/week2-session1::3",
@@ -299,6 +332,7 @@ Expected: pass.
 ## Task 3: Enforce Deterministic Check-Span Selection
 
 **Files:**
+- Modify: `src/genacademy_coach/teach_agent.py`
 - Modify: `src/genacademy_coach/teach_tools.py`
 - Modify: `tests/test_teach_tools.py`
 
@@ -405,7 +439,9 @@ Update `_retrieval_rows`:
 
 - [ ] **Step 4: Enforce preferred span in check generation**
 
-Inside `generate_check_item_for_span`, keep unknown-ID rejection, then select the preferred span:
+Inside `generate_check_item_for_span`, keep unknown-ID rejection, then select the preferred span. This
+means the `citation_id` parameter remains a validation gate proving the agent requested a retrieved
+span, while Python still enforces the preferred citeable span for the generated check:
 
 ```python
             span_by_id = {span.citation_id: span for span in runtime.last_spans}
@@ -439,12 +475,34 @@ Inside `generate_check_item_for_span`, keep unknown-ID rejection, then select th
             return runtime.current_check.model_dump_json()
 ```
 
-- [ ] **Step 5: Run teach-tools tests**
+- [ ] **Step 5: Update tool documentation and agent prompt**
+
+In `src/genacademy_coach/teach_tools.py`, update the tool docstring:
+
+```python
+    @tool
+    def generate_check_item_for_span(citation_id: str) -> str:
+        """Generate a check for the runtime-preferred retrieved span.
+
+        The citation_id must be a retrieved span ID, but the runtime enforces check-span
+        selection in this order: slide, handout, first citeable span.
+        """
+```
+
+In `src/genacademy_coach/teach_agent.py`, update the check-span instruction so it no longer implies
+the model has final authority over span choice:
+
+```python
+- When calling generate_check_item_for_span, pass a retrieved citation_id. The runtime will enforce
+  the preferred check span in this order: slide, handout, then first citeable span.
+```
+
+- [ ] **Step 6: Run teach-tools and agent prompt tests**
 
 Run:
 
 ```bash
-uv run pytest -q tests/test_teach_tools.py
+uv run pytest -q tests/test_teach_tools.py tests/test_teach_agent.py
 ```
 
 Expected: pass.
@@ -777,19 +835,32 @@ Expected:
   sources are available.
 - Memory leak checker reports no raw memory leaks.
 
-- [ ] **Step 3: Run one local golden smoke only if credentials/index are available**
+- [ ] **Step 3: Run post-change local golden eval and compare against Task 0**
 
 Run:
 
 ```bash
-uv run python scripts/run_golden_eval.py --tag provenance-smoke --run-id provenance-smoke --limit 3
+uv run python scripts/run_golden_eval.py \
+  --tag provenance-after \
+  --run-id provenance-after
 ```
 
 Expected:
 
 - A local ignored file appears under `eval/runs/`.
 - Rows include `provenance_by_role`, `check_provenance_span_id`, and `final_provenance_span_id`.
+- No frozen `test` split rows are used.
+- Compare against the Task 0 `provenance-before` run:
+  - `metrics.citation_f1`
+  - `metrics.task_completion.pass_rate`
+  - `metrics.refusal.precision`
+  - `metrics.refusal.recall`
+- Report whether citation F1 improved and whether task completion or refusal safety regressed.
 - Do not commit the generated `eval/runs/` file.
+
+If provider credentials or the local index are unavailable, report that the golden before/after could
+not be run and do not claim measured product improvement. Unit tests alone are not enough to call this
+product-behavior slice done.
 
 - [ ] **Step 4: Review for guardrails**
 
@@ -815,6 +886,8 @@ Expected:
 - Trace rows include redacted role-keyed provenance.
 - Eval rows include new per-role provenance IDs while preserving old fields.
 - Existing tests and privacy leak checks pass.
+- Local golden before/after is reported, or an explicit provider/index blocker is recorded without
+  claiming product improvement.
 - No frozen `test` split use.
 - No direct `langgraph.*` imports.
 
@@ -825,4 +898,5 @@ Expected:
 - Do not delete legacy eval fields in this slice; dashboards and audit tools may still depend on them.
 - If deterministic check-span enforcement causes a task-completion regression, stop and report before
   adding fallback complexity. The intended change is narrow and reversible.
-
+- Task 6 stays in this slice to keep the audit tool provenance-aware, but it must remain a read-only
+  projection change. If it starts changing scoring or labels, split it into a follow-up PR.
