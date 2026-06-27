@@ -26,6 +26,8 @@ For post-Week-4 work, start with:
 - `docs/agentic-orchestration-improvement-review.md` - measured diagnosis and orchestration options.
 - `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md` - next approved slice: audit
   citation misses before product behavior changes.
+- `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md` - proposed next product-behavior slice:
+  role-keyed provenance plus deterministic check-span selection.
 - `docs/citation-provenance-audit-current-main-r3-20260624.json` - public-safe audit output with
   review buckets, source-family signals, and heuristic citation-F1 ceilings.
 - `docs/week4-eval-progress-handoff.md` - detailed eval history, remaining failures, and warnings.
@@ -42,7 +44,7 @@ Use this table to avoid opening the whole docs folder blindly.
 |---|---|
 | New feature or architecture change | `AGENTS.md`, `specs/mission.md`, `specs/tech-stack.md`, `specs/roadmap.md`, `docs/decisions.md` |
 | Teach-loop behavior | `docs/teach-loop-status.md`, `docs/teach-loop-threshold-calibration.md`, `docs/week4-eval-progress-handoff.md` |
-| Citation, provenance, or eval failures | `docs/week4-eval-plan.md`, `docs/week4-eval-progress-handoff.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`, `docs/citation-provenance-audit-current-main-r3-20260624.json` |
+| Citation, provenance, or eval failures | `docs/week4-eval-plan.md`, `docs/week4-eval-progress-handoff.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`, `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md`, `docs/citation-provenance-audit-current-main-r3-20260624.json` |
 | Retrieval/index changes | `docs/genacademy-rag-foundation.md`, `docs/foundation-adapter-spec.md`, `docs/teach-loop-retrieval-triage.md`, `specs/tech-stack.md` |
 | UI/demo changes | `docs/architecture-diagrams.md`, `docs/teach-loop-status.md`, relevant UI/demo plans in `docs/superpowers/plans/` |
 | Deployment | `docs/hugging-face-deployment-plan.md`, `docs/production-roadmap.md` |
