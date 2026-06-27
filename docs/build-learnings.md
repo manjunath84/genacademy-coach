@@ -18,7 +18,10 @@ completion lift in the next golden eval run.
 **What I found:** the `concept-v1` scorer added versioned metadata, literal/semantic match counts, and
 false-positive-direction tests, but the post-change golden run had `grade_semantic_match_count = 0`.
 That means the implementation is safer and more observable, but the current golden set did not actually
-exercise synonym-based grading wins.
+exercise synonym-based grading wins. A follow-up deterministic eval-harness proof uses a synthetic
+cloud-safe case with a controlled check to show the aggregate path can report
+`grade_semantic_decisive_count = 1`; the live golden dataset still needs a non-brittle targeted case if
+we want provider-backed evidence of the same behavior.
 
 **Principle:** when improving an evaluator, ship two kinds of proof: safety/regression proof on the
 existing suite, and targeted behavior proof that exercises the new capability. Aggregate pass rate alone

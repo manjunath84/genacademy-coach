@@ -624,3 +624,124 @@ def test_run_golden_eval_uses_run_id_and_records_dataset_metadata(
     assert result["golden_cases_sha256"]
     assert result["rows"][0]["final_trace_path"].endswith("golden-baseline-r1-happy_001.jsonl")
     assert Path(result["output_path"]).exists()
+
+
+def test_run_golden_eval_reports_semantic_decisive_synonym_case(
+    tmp_path,
+    monkeypatch,
+):
+    from genacademy_coach import eval_runner
+
+    settings = SimpleNamespace(
+        eval_dir=tmp_path / "eval",
+        trace_dir=tmp_path / "traces",
+        review_queue_path=tmp_path / "review_queue.jsonl",
+        stop_threshold=0.40,
+        confirm_threshold=0.85,
+        max_teach_turns=4,
+    )
+    monkeypatch.setattr(eval_runner, "_scenario_index", lambda _settings: {})
+    span = RetrievedSpan(
+        chunk_id="note/attention::0",
+        doc_id="note/attention",
+        text="Attention highlights relevant context.",
+        score=0.91,
+        title="attention.md",
+        source_type="note",
+    )
+    check = CheckItem(
+        question="What does attention help the model do?",
+        expected_answer="It helps focus on relevant context.",
+        expected_keywords=["focus", "relevant context"],
+        citation_id=span.citation_id,
+    )
+
+    class SemanticFoundation:
+        provider = object()
+
+        def retrieve(self, query):
+            return [
+                {
+                    "chunk_id": span.chunk_id,
+                    "doc_id": span.doc_id,
+                    "text": span.text,
+                    "score": span.score,
+                    "title": span.title,
+                    "source_type": span.source_type,
+                    "page_or_section": span.page_or_section,
+                }
+            ]
+
+    def session_factory(**kwargs):
+        agent = StaticAgentPort(
+            CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="retrieved span",
+                next_action="drill",
+                strategy="analogy",
+                citation_ids=[span.citation_id],
+                check_question=check.question,
+            ),
+            CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="learner missed the attention check",
+                next_action="re_explain_differently",
+                strategy="contrastive_example",
+                citation_ids=[span.citation_id],
+            ),
+            CoachAgentResponse(
+                learner_message="Attention highlights relevant context. [note/attention::0]",
+                observation="learner answered with equivalent wording",
+                next_action="advance",
+                strategy="summary",
+                citation_ids=[span.citation_id],
+            ),
+        )
+        session = CoachSession(**kwargs, agent_port=agent)
+        session.runtime.last_spans = [span]
+        session.runtime.current_check = check
+        return session
+
+    case = GoldenCase(
+        case_id="semantic_synonym_001",
+        query_type="happy",
+        concept="attention",
+        expected_citation_span_id=span.citation_id,
+        expected_next_action="advance",
+        expected_tools=[],
+        refusal_expected=False,
+        split="synthetic",
+        cloud_safe=True,
+        cloud_safe_reason="synthetic scorer proof with no private text",
+        user_query="What does attention help the model do?",
+        initial_wrong_answer="It stores context in memory.",
+        expected_answer="It helps pay attention to important context.",
+        expected_check_keywords=["focus", "relevant context"],
+    )
+
+    result = run_golden_eval(
+        settings=settings,
+        foundation=SemanticFoundation(),
+        cases=[case],
+        tag="semantic-proof",
+        run_id="semantic-proof-r1",
+        price_table=PriceTable(prices={}),
+        session_factory=session_factory,
+    )
+
+    row = result["rows"][0]
+    assert row["task_completion_pass"] is True
+    assert row["grade_correct"] is True
+    assert row["grade_scorer_version"] == "concept-v1"
+    assert row["grade_literal_match_count"] == 0
+    assert row["grade_semantic_match_count"] == 2
+    assert row["grade_missing_keyword_count"] == 0
+    assert row["grade_semantic_decisive"] is True
+    assert "matched_keywords" not in row
+    assert "missing_keywords" not in row
+    assert "matched_keyword_modes" not in row
+    assert result["metrics"]["grade_scorer_versions"] == {"concept-v1": 1}
+    assert result["metrics"]["grade_semantic_match_count"] == 2
+    assert result["metrics"]["grade_semantic_decisive_count"] == 1
+    assert result["metrics"]["task_completion"]["pass_rate"] == 1.0
+    assert Path(result["output_path"]).exists()
