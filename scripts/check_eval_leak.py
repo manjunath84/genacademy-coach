@@ -11,6 +11,7 @@ SCAN_GLOBS = [
     "AGENTS.md",
     "README.md",
     "docs/**/*.md",
+    "docs/**/*.json",
     "specs/**/*.md",
     "src/**/*.py",
     "scripts/**/*.py",

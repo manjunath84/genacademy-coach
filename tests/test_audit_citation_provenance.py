@@ -95,6 +95,21 @@ def test_audit_output_omits_private_text_fields():
     assert "answer_text" not in rendered
 
 
+def test_public_safe_backstop_rejects_forbidden_keys_and_private_urls():
+    module = load_audit_module()
+
+    for value in (
+        {"trace_id": "abc123"},
+        {"nested": [{"u": "https://smith.langchain.com/o/project/r/run"}]},
+    ):
+        try:
+            module._assert_public_safe(value)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"expected audit backstop to reject {value!r}")
+
+
 def test_refuses_frozen_test_rows():
     module = load_audit_module()
     payload = {"rows": [row(case_id="test_case", split="test")]}
@@ -107,7 +122,7 @@ def test_refuses_frozen_test_rows():
         raise AssertionError("audit must reject frozen test rows")
 
 
-def test_false_refusal_bucket():
+def test_refused_no_final_citation_bucket():
     module = load_audit_module()
     payload = {
         "rows": [
@@ -122,6 +137,44 @@ def test_false_refusal_bucket():
 
     audit = module.build_audit(payload, source_path=Path("run.json"))
 
+    assert audit["review_bucket_counts"] == {"refused_no_final_citation": 1}
+
+
+def test_remaining_review_buckets():
+    module = load_audit_module()
+    payload = {
+        "rows": [
+            row(
+                case_id="other-source",
+                predicted_citation_ids=["handout/week2::1"],
+                retrieved_citation_ids=["slide/week2-session1::3", "handout/week2::1"],
+            ),
+            row(
+                case_id="ranked-only",
+                predicted_citation_ids=["transcript/week2::1"],
+                retrieved_citation_ids=["transcript/week2::1"],
+                retrieval_recall_at_5=True,
+            ),
+            row(
+                case_id="not-retrieved",
+                predicted_citation_ids=["transcript/week2::1"],
+                retrieved_citation_ids=["transcript/week2::1"],
+                retrieval_recall_at_5=False,
+            ),
+            row(
+                case_id="other",
+                expected_citation_span_id=None,
+                predicted_citation_ids=["transcript/week2::1"],
+                retrieved_citation_ids=["transcript/week2::1"],
+            ),
+        ],
+    }
+
+    audit = module.build_audit(payload, source_path=Path("run.json"))
+
     assert audit["review_bucket_counts"] == {
-        "false_refusal_or_missing_final_citation": 1
+        "expected_missing_from_final_trace_but_seen_in_ranked_retrieval": 1,
+        "expected_not_in_final_retrieved": 1,
+        "expected_retrieved_predicted_other_source": 1,
+        "other_citation_mismatch": 1,
     }

@@ -70,7 +70,7 @@ def review_bucket(row: dict[str, Any]) -> str:
     if expected_id and expected_id in predicted_set and len(predicted_set) > 1:
         return "expected_exact_plus_extra_citations"
     if not predicted_set and row.get("actual_next_action") == "refuse_escalate":
-        return "false_refusal_or_missing_final_citation"
+        return "refused_no_final_citation"
     if expected_id and expected_id in retrieved_set and expected_family in predicted_families:
         return "expected_retrieved_predicted_same_source_family"
     if expected_id and expected_id in retrieved_set and predicted_set:
