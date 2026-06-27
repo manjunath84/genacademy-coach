@@ -10,6 +10,23 @@
 
 ---
 
+## 2026-06-26 — Context awareness is a routing problem, not a bigger-prompt problem
+
+**What I believed:** making future AI sessions more context-aware might mean putting more project
+structure directly into `AGENTS.md`.
+
+**What I found:** `AGENTS.md` is strongest when it stays the constitution: guardrails, gates, privacy
+rules, and source-of-truth ordering. If it also tries to summarize every useful doc, new sessions get a
+longer prompt but not necessarily a better route through the repo. The better move is a lightweight
+`docs/INDEX.md` that tells agents what to read for each task while leaving the actual rules in the
+canonical files.
+
+**Principle:** do not solve onboarding by stuffing every fact into the first prompt. Give new agents a
+small, explicit map: what is authoritative, what is historical, what is private, and which files match
+which task. A map keeps context discoverable without turning the constitution into a junk drawer.
+
+---
+
 ## 2026-06-18 — Trace status can look like broken controls if it is not labeled
 
 **What I believed:** once the Teach trace card showed `advance`, `confirm`, score, strategy, citations,

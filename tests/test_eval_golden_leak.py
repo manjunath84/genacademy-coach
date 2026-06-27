@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def load_leak_module():
@@ -129,3 +130,15 @@ def test_clean_golden_passes(tmp_path):
     )
     module = load_leak_module()
     assert module.scan_golden_cases(p, test_needles={"SECRET_ID"}, test_phrases={}) == []
+
+
+def test_committed_scan_texts_include_docs_json(tmp_path):
+    module = load_leak_module()
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    json_path = docs_dir / "public-audit.json"
+    json_path.write_text('{"case_id": "happy_001"}', encoding="utf-8")
+
+    scanned = dict(module.iter_committed_scan_texts(SimpleNamespace(repo_root=tmp_path)))
+
+    assert json_path in scanned

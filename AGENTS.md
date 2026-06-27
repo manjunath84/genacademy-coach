@@ -129,6 +129,11 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 
 ## 7. Map of the project's own docs
 
+For context-aware onboarding, read **`docs/INDEX.md` immediately after this file**. It is the routing
+map for task-specific docs and historical handoffs. It does **not** override this working agreement,
+`specs/`, or `docs/decisions.md`; if files disagree, the source-of-truth hierarchy in `docs/INDEX.md`
+and the guardrails in this file win.
+
 - `specs/mission.md` — why · audience · in/out of scope.
 - `specs/tech-stack.md` — the stack + binding guardrails + what's deferred and when it's earned.
 - `specs/roadmap.md` — Thursday MVP → pull-ins → north star; MUST vs SHOULD; risk caps.
@@ -139,8 +144,8 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - `docs/build-learnings.md` — non-obvious build decisions + build-in-public log (format: belief → finding
   → principle, newest first). Read before planning: the log captures the *surprise*, `decisions.md`
   captures the *settled choice*.
-- `docs/ui-screenshot-inventory.md` — committed UI baselines and approved demo-topic function captures for
-  visual refinements. Use this before asking future agents to compare Gradio layout changes, and keep
+- UI/demo evidence lives in the relevant plan/status docs (especially `docs/architecture-diagrams.md`,
+  `docs/teach-loop-status.md`, and UI/demo plans under `docs/superpowers/plans/`). Keep
   provider-backed/corpus-bearing captures out of git unless reviewed for the intended audience.
 - *Brainstorm archive (Week-3 planning folder, historical):* the full decision log (D1–D52), the project
   board, the option scorecards, and the improvements ledger — the long-form trail behind

@@ -1,0 +1,662 @@
+{
+  "citation_miss_rows": 14,
+  "current_teachable_citation_f1_mean": 0.5777777777777777,
+  "golden_cases_sha256": "06d2a4d025ae801ae03ce8a5fd921c088cf573518eabd20e5466162bc687b30a",
+  "golden_manifest_version": "2026-06-24-plan1",
+  "heuristic_exact_or_extra_ceiling_f1": 0.6,
+  "heuristic_same_source_family_ceiling_f1": 0.7333333333333333,
+  "miss_expected_source_type_counts": {
+    "slide": 13,
+    "transcript": 1
+  },
+  "miss_query_type_counts": {
+    "edge": 3,
+    "happy": 8,
+    "known_failure": 3
+  },
+  "n_rows": 40,
+  "notes": [
+    "Rows are public-safe review candidates, not final human citation labels.",
+    "citation_miss_category is intentionally null until a reviewer inspects support.",
+    "Heuristic ceilings are not product deltas; they estimate label/source-family ambiguity."
+  ],
+  "review_bucket_counts": {
+    "expected_exact_plus_extra_citations": 2,
+    "expected_missing_from_final_trace_but_seen_in_ranked_retrieval": 3,
+    "expected_retrieved_predicted_other_source": 3,
+    "expected_retrieved_predicted_same_source_family": 3,
+    "refused_no_final_citation": 3
+  },
+  "rows": [
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": false,
+      "answered_check_id": "transcript/week2-session1-1d0aa3ac7720::63",
+      "boundary_grade_citation_id": "transcript/week2-session1-1d0aa3ac7720::63",
+      "case_id": "happy_003",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.4624022841453552,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::0",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": false,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "transcript/week2-session1-1d0aa3ac7720::63",
+      "predicted_citation_ids": [
+        "transcript/week2-session1-1d0aa3ac7720::20"
+      ],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [
+        "transcript/week2-session1-1d0aa3ac7720"
+      ],
+      "predicted_source_types": [
+        "transcript"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "transcript/week2-session1-1d0aa3ac7720::20"
+      ],
+      "retrieved_source_types": [
+        "transcript"
+      ],
+      "review_bucket": "expected_missing_from_final_trace_but_seen_in_ranked_retrieval",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week2-session1-3a6fbdf0e0ac::3",
+      "boundary_grade_citation_id": "slide/week2-session1-3a6fbdf0e0ac::3",
+      "case_id": "happy_004",
+      "citation_f1": 0.6666666666666666,
+      "citation_miss_category": null,
+      "citation_precision": 0.5,
+      "citation_recall": 1.0,
+      "cloud_safe": false,
+      "decision_source": "agent",
+      "evidence_band": "confirm",
+      "evidence_score": 0.6192907691001892,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::3",
+      "expected_exact_predicted": true,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "slide/week2-session1-3a6fbdf0e0ac::3",
+      "predicted_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::3",
+        "handout/lesson6-agentic-field-guide-33f30829f3cb::10"
+      ],
+      "predicted_same_source_family": true,
+      "predicted_source_families": [
+        "handout/lesson6-agentic-field-guide-33f30829f3cb",
+        "slide/week2-session1-3a6fbdf0e0ac"
+      ],
+      "predicted_source_types": [
+        "handout",
+        "slide"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::3",
+        "slide/week2-session2-d537807f1691::16",
+        "slide/week2-session2-d537807f1691::0",
+        "handout/lesson6-agentic-field-guide-33f30829f3cb::10"
+      ],
+      "retrieved_source_types": [
+        "handout",
+        "slide"
+      ],
+      "review_bucket": "expected_exact_plus_extra_citations",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": false,
+      "answered_check_id": "slide/week2-session1-3a6fbdf0e0ac::23",
+      "boundary_grade_citation_id": "slide/week2-session1-3a6fbdf0e0ac::23",
+      "case_id": "happy_005",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.5599729418754578,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::0",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "slide/week2-session1-3a6fbdf0e0ac::2",
+      "predicted_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::2"
+      ],
+      "predicted_same_source_family": true,
+      "predicted_source_families": [
+        "slide/week2-session1-3a6fbdf0e0ac"
+      ],
+      "predicted_source_types": [
+        "slide"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::0",
+        "slide/week2-session1-3a6fbdf0e0ac::2",
+        "transcript/week2-session1-1d0aa3ac7720::11"
+      ],
+      "retrieved_source_types": [
+        "slide",
+        "transcript"
+      ],
+      "review_bucket": "expected_retrieved_predicted_same_source_family",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week1-deck3-read-later-2e4469001335::1",
+      "boundary_grade_citation_id": "slide/week1-deck3-read-later-2e4469001335::1",
+      "case_id": "happy_007",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.5520383715629578,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::12",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "handout/week1-glossary-d56e73b419a2::5",
+      "predicted_citation_ids": [
+        "handout/week1-glossary-d56e73b419a2::5"
+      ],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [
+        "handout/week1-glossary-d56e73b419a2"
+      ],
+      "predicted_source_types": [
+        "handout"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week1-deck3-read-later-2e4469001335::1",
+        "slide/week2-session1-3a6fbdf0e0ac::12",
+        "handout/week1-glossary-d56e73b419a2::5",
+        "handout/week2-glossary-0fa1c94f2b73::4"
+      ],
+      "retrieved_source_types": [
+        "handout",
+        "slide"
+      ],
+      "review_bucket": "expected_retrieved_predicted_other_source",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week2-session1-3a6fbdf0e0ac::16",
+      "boundary_grade_citation_id": "slide/week2-session1-3a6fbdf0e0ac::16",
+      "case_id": "happy_009",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.6627041697502136,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::7",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": false,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "slide/week2-session1-3a6fbdf0e0ac::16",
+      "predicted_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::16"
+      ],
+      "predicted_same_source_family": true,
+      "predicted_source_families": [
+        "slide/week2-session1-3a6fbdf0e0ac"
+      ],
+      "predicted_source_types": [
+        "slide"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::16",
+        "slide/week2-session1-3a6fbdf0e0ac::10",
+        "slide/week2-session1-3a6fbdf0e0ac::25"
+      ],
+      "retrieved_source_types": [
+        "slide"
+      ],
+      "review_bucket": "expected_missing_from_final_trace_but_seen_in_ranked_retrieval",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week2-session1-3a6fbdf0e0ac::18",
+      "boundary_grade_citation_id": "slide/week2-session1-3a6fbdf0e0ac::18",
+      "case_id": "happy_010",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.6349266171455383,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::10",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "slide/week2-session1-3a6fbdf0e0ac::18",
+      "predicted_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::18"
+      ],
+      "predicted_same_source_family": true,
+      "predicted_source_families": [
+        "slide/week2-session1-3a6fbdf0e0ac"
+      ],
+      "predicted_source_types": [
+        "slide"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::17",
+        "slide/week2-session1-3a6fbdf0e0ac::18",
+        "slide/week2-session1-3a6fbdf0e0ac::10",
+        "slide/week2-session1-3a6fbdf0e0ac::19",
+        "transcript/week2-session1-1d0aa3ac7720::60"
+      ],
+      "retrieved_source_types": [
+        "slide",
+        "transcript"
+      ],
+      "review_bucket": "expected_retrieved_predicted_same_source_family",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week2-session1-3a6fbdf0e0ac::26",
+      "boundary_grade_citation_id": "slide/week2-session1-3a6fbdf0e0ac::26",
+      "case_id": "happy_011",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.6178603172302246,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::16",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "slide/week2-session1-3a6fbdf0e0ac::10",
+      "predicted_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::10"
+      ],
+      "predicted_same_source_family": true,
+      "predicted_source_families": [
+        "slide/week2-session1-3a6fbdf0e0ac"
+      ],
+      "predicted_source_types": [
+        "slide"
+      ],
+      "query_type": "happy",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week2-session1-3a6fbdf0e0ac::16",
+        "slide/week2-session1-3a6fbdf0e0ac::18",
+        "slide/week2-session1-3a6fbdf0e0ac::26",
+        "slide/week2-session1-3a6fbdf0e0ac::10",
+        "handout/agent-memory-800d12087d1b::10"
+      ],
+      "retrieved_source_types": [
+        "handout",
+        "slide"
+      ],
+      "review_bucket": "expected_retrieved_predicted_same_source_family",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "refuse_escalate",
+      "anchor_present_in_final_retrieved": false,
+      "answered_check_id": null,
+      "boundary_grade_citation_id": null,
+      "case_id": "happy_014",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "agent",
+      "evidence_band": "confirm",
+      "evidence_score": 0.4044485092163086,
+      "expected_citation_span_id": "slide/week1-deck3-read-later-2e4469001335::15",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": false,
+      "expected_source_family": "slide/week1-deck3-read-later-2e4469001335",
+      "expected_source_type": "slide",
+      "faithfulness_ok": null,
+      "post_final_check_id": null,
+      "predicted_citation_ids": [],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [],
+      "predicted_source_types": [],
+      "query_type": "happy",
+      "refusal_reason_code": "agent_refusal",
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "note/lesson8-multimodal-d11c7bb2f611::20"
+      ],
+      "retrieved_source_types": [
+        "note"
+      ],
+      "review_bucket": "refused_no_final_citation",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "refuse_escalate",
+      "anchor_present_in_final_retrieved": false,
+      "answered_check_id": null,
+      "boundary_grade_citation_id": null,
+      "case_id": "edge_002",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "agent",
+      "evidence_band": "confirm",
+      "evidence_score": 0.45269423723220825,
+      "expected_citation_span_id": "slide/week2-session1-3a6fbdf0e0ac::11",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": false,
+      "expected_source_family": "slide/week2-session1-3a6fbdf0e0ac",
+      "expected_source_type": "slide",
+      "faithfulness_ok": null,
+      "post_final_check_id": null,
+      "predicted_citation_ids": [],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [],
+      "predicted_source_types": [],
+      "query_type": "edge",
+      "refusal_reason_code": "agent_refusal",
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "transcript/week1-session1-8e797c4de0e5::92"
+      ],
+      "retrieved_source_types": [
+        "transcript"
+      ],
+      "review_bucket": "refused_no_final_citation",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week1-session1-82cf85861f9f::16",
+      "boundary_grade_citation_id": "slide/week1-session1-82cf85861f9f::16",
+      "case_id": "edge_003",
+      "citation_f1": 0.6666666666666666,
+      "citation_miss_category": null,
+      "citation_precision": 0.5,
+      "citation_recall": 1.0,
+      "cloud_safe": false,
+      "decision_source": "agent",
+      "evidence_band": "confirm",
+      "evidence_score": 0.7423024773597717,
+      "expected_citation_span_id": "slide/week1-session1-82cf85861f9f::16",
+      "expected_exact_predicted": true,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week1-session1-82cf85861f9f",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "handout/agent-memory-800d12087d1b::3",
+      "predicted_citation_ids": [
+        "handout/agent-memory-800d12087d1b::3",
+        "slide/week1-session1-82cf85861f9f::16"
+      ],
+      "predicted_same_source_family": true,
+      "predicted_source_families": [
+        "handout/agent-memory-800d12087d1b",
+        "slide/week1-session1-82cf85861f9f"
+      ],
+      "predicted_source_types": [
+        "handout",
+        "slide"
+      ],
+      "query_type": "edge",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week1-session1-82cf85861f9f::16",
+        "slide/week2-session1-3a6fbdf0e0ac::1",
+        "handout/agent-memory-800d12087d1b::3",
+        "handout/agent-memory-800d12087d1b::4",
+        "handout/token-usage-best-practices-9868647d4fa6::15"
+      ],
+      "retrieved_source_types": [
+        "handout",
+        "slide"
+      ],
+      "review_bucket": "expected_exact_plus_extra_citations",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "transcript/week3-session2-4d0a3a1cc734::88",
+      "boundary_grade_citation_id": "transcript/week3-session2-4d0a3a1cc734::88",
+      "case_id": "edge_009",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.6676898002624512,
+      "expected_citation_span_id": "transcript/week3-session2-4d0a3a1cc734::88",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "transcript/week3-session2-4d0a3a1cc734",
+      "expected_source_type": "transcript",
+      "faithfulness_ok": true,
+      "post_final_check_id": "transcript/week3-session2-4d0a3a1cc734::89",
+      "predicted_citation_ids": [
+        "transcript/week1-session2-2a3dcaaa04d4::144"
+      ],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [
+        "transcript/week1-session2-2a3dcaaa04d4"
+      ],
+      "predicted_source_types": [
+        "transcript"
+      ],
+      "query_type": "edge",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "transcript/week3-session2-4d0a3a1cc734::88",
+        "transcript/week1-session2-2a3dcaaa04d4::144",
+        "transcript/week3-session2-4d0a3a1cc734::23",
+        "transcript/week3-session2-4d0a3a1cc734::89",
+        "transcript/week3-session2-4d0a3a1cc734::16"
+      ],
+      "retrieved_source_types": [
+        "transcript"
+      ],
+      "review_bucket": "expected_retrieved_predicted_other_source",
+      "split": "dev"
+    },
+    {
+      "actual_next_action": "refuse_escalate",
+      "anchor_present_in_final_retrieved": false,
+      "answered_check_id": null,
+      "boundary_grade_citation_id": null,
+      "case_id": "known_failure_001",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "agent",
+      "evidence_band": "stop",
+      "evidence_score": 0.0,
+      "expected_citation_span_id": "slide/week2-session2-d537807f1691::14",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": false,
+      "expected_source_family": "slide/week2-session2-d537807f1691",
+      "expected_source_type": "slide",
+      "faithfulness_ok": null,
+      "post_final_check_id": null,
+      "predicted_citation_ids": [],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [],
+      "predicted_source_types": [],
+      "query_type": "known_failure",
+      "refusal_reason_code": "agent_refusal",
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [],
+      "retrieved_source_types": [],
+      "review_bucket": "refused_no_final_citation",
+      "split": "seed"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "transcript/week1-session1-8e797c4de0e5::114",
+      "boundary_grade_citation_id": "transcript/week1-session1-8e797c4de0e5::114",
+      "case_id": "known_failure_004",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.6558647751808167,
+      "expected_citation_span_id": "slide/week1-session1-82cf85861f9f::33",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": false,
+      "expected_source_family": "slide/week1-session1-82cf85861f9f",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "handout/agent-memory-800d12087d1b::13",
+      "predicted_citation_ids": [
+        "handout/agent-memory-800d12087d1b::13"
+      ],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [
+        "handout/agent-memory-800d12087d1b"
+      ],
+      "predicted_source_types": [
+        "handout"
+      ],
+      "query_type": "known_failure",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "handout/agent-memory-800d12087d1b::13",
+        "handout/wispr-flow-ethan-carlson-0a3e2c72e6e4::5",
+        "handout/wispr-flow-ethan-carlson-0a3e2c72e6e4::4",
+        "transcript/week1-session1-8e797c4de0e5::114"
+      ],
+      "retrieved_source_types": [
+        "handout",
+        "transcript"
+      ],
+      "review_bucket": "expected_missing_from_final_trace_but_seen_in_ranked_retrieval",
+      "split": "dev"
+    },
+    {
+      "actual_next_action": "advance",
+      "anchor_present_in_final_retrieved": true,
+      "answered_check_id": "slide/week1-session2-060ed7b31d38::15",
+      "boundary_grade_citation_id": "slide/week1-session2-060ed7b31d38::15",
+      "case_id": "known_failure_005",
+      "citation_f1": 0.0,
+      "citation_miss_category": null,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cloud_safe": false,
+      "decision_source": "python safety gate",
+      "evidence_band": "confirm",
+      "evidence_score": 0.5578609704971313,
+      "expected_citation_span_id": "slide/week1-session2-060ed7b31d38::15",
+      "expected_exact_predicted": false,
+      "expected_exact_retrieved": true,
+      "expected_source_family": "slide/week1-session2-060ed7b31d38",
+      "expected_source_type": "slide",
+      "faithfulness_ok": true,
+      "post_final_check_id": "transcript/week1-session2-2a3dcaaa04d4::130",
+      "predicted_citation_ids": [
+        "transcript/week1-session2-2a3dcaaa04d4::130"
+      ],
+      "predicted_same_source_family": false,
+      "predicted_source_families": [
+        "transcript/week1-session2-2a3dcaaa04d4"
+      ],
+      "predicted_source_types": [
+        "transcript"
+      ],
+      "query_type": "known_failure",
+      "refusal_reason_code": null,
+      "retrieval_recall_at_5": true,
+      "retrieved_citation_ids": [
+        "slide/week1-session2-060ed7b31d38::15",
+        "transcript/week1-session2-2a3dcaaa04d4::130"
+      ],
+      "retrieved_source_types": [
+        "slide",
+        "transcript"
+      ],
+      "review_bucket": "expected_retrieved_predicted_other_source",
+      "split": "dev"
+    }
+  ],
+  "schema_version": 1,
+  "source_run_file": "golden-current-main-full-langsmith-current-main-full-langsmith-r3-20260624.json",
+  "source_run_id": "current-main-full-langsmith-r3",
+  "source_run_tag": "current-main-full-langsmith",
+  "teachable_rows": 30,
+  "test_rows": 0
+}
