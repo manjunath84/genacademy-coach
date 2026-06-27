@@ -70,8 +70,10 @@ agent.
 
 - Modify `src/genacademy_coach/teach_types.py`
   - Add scorer metadata to `UnderstandingGrade`.
+- Create `src/genacademy_coach/semantic_grading.py`
+  - Keep the curated alias map and match helper separate from grounding primitives.
 - Modify `src/genacademy_coach/grounding.py`
-  - Add deterministic alias matching and return scorer metadata.
+  - Call the semantic match helper and return scorer metadata.
 - Modify `src/genacademy_coach/eval_runner.py`
   - Project redacted grade metadata into golden eval rows.
 - Modify `src/genacademy_coach/eval_metrics.py`
@@ -122,16 +124,25 @@ attention to" without giving the model authority to decide correctness from prio
   - "pays attention to important context" covers expected keywords `focus` and `relevant context`.
   - "stores context in memory" does not cover `focus`.
   - A partial answer still fails when one expected keyword remains missing.
+  - An alias-only answer that omits another expected concept still fails.
 - `UnderstandingGrade.scorer_version` is present and stable.
 - Eval rows include grade scorer metadata and counts only:
   - `grade_scorer_version`
   - `grade_literal_match_count`
   - `grade_semantic_match_count`
   - `grade_missing_keyword_count`
+  - `grade_semantic_decisive`
 - Eval rows do not include raw learner answer, generated tutor prose, retrieved span text, or raw
   matched alias text.
 - Golden/dev eval is reported as a new scorer run, not as a replacement for prior v1 metrics.
-- Refusal recall and citation F1 must not regress in the post-change dev/golden run.
+- Refusal recall, refusal precision, and citation F1 must not regress in the post-change dev/golden run.
+- No known-failure or adversarial case that currently fails/refuses may become newly graded correct or
+  advance under `concept-v1`.
+- Every case whose `task_completion_pass` flips from `False` to `True` between the before/after runs is
+  inspected by `case_id`; each flip must be a genuine synonym match, not an alias firing on an unrelated
+  answer.
+- A task-completion rise is acceptable only when attributable to true-positive synonym matches. A rise
+  driven by false positives is a regression, not a win.
 - Held-out `test` split remains unused.
 
 ## Task 0: Gate The Slice Before Code
@@ -260,7 +271,8 @@ uv run pytest -q \
   tests/test_grounding.py::test_grade_understanding_reports_scorer_version_and_match_modes
 ```
 
-Expected: fail until `grade_understanding` populates `matched_keyword_modes`.
+Expected: still fail until Task 2 wires the semantic matcher into `grade_understanding`. This is an
+intentional red step, not a Task 1 regression.
 
 ## Task 2: Add Deterministic Semantic Alias Matching
 
@@ -311,6 +323,22 @@ def test_grade_understanding_keeps_partial_semantic_answers_incorrect():
     assert grade.matched_keyword_modes == {}
 
 
+def test_grade_understanding_rejects_alias_without_all_expected_concepts():
+    item = CheckItem(
+        question="What does attention help the model do?",
+        expected_answer="It helps focus on relevant context.",
+        expected_keywords=["focus", "relevant context"],
+        citation_id="note/attention::0",
+    )
+
+    grade = grade_understanding("It pays attention to random details.", item)
+
+    assert grade.correct is False
+    assert grade.matched_keywords == ["focus"]
+    assert grade.missing_keywords == ["relevant context"]
+    assert grade.matched_keyword_modes == {"focus": "semantic_alias"}
+
+
 def test_grade_understanding_allows_literal_and_semantic_mix():
     item = CheckItem(
         question="What does an agent harness control?",
@@ -339,6 +367,7 @@ Run:
 uv run pytest -q \
   tests/test_grounding.py::test_grade_understanding_accepts_curated_semantic_aliases \
   tests/test_grounding.py::test_grade_understanding_keeps_partial_semantic_answers_incorrect \
+  tests/test_grounding.py::test_grade_understanding_rejects_alias_without_all_expected_concepts \
   tests/test_grounding.py::test_grade_understanding_allows_literal_and_semantic_mix
 ```
 
@@ -346,86 +375,79 @@ Expected: semantic-alias tests fail with the current keyword-only grader.
 
 - [ ] **Step 3: Add the deterministic alias map and match helper**
 
-In `src/genacademy_coach/grounding.py`, add after `CITATION_MARKER_RE`:
+Create `src/genacademy_coach/semantic_grading.py`:
 
 ```python
+from __future__ import annotations
+
+import re
+
 SCORER_VERSION = "concept-v1"
+WORD_RE = re.compile(r"[a-z0-9]+")
 
 SEMANTIC_KEYWORD_ALIASES: dict[str, tuple[str, ...]] = {
     "focus": (
         "focus",
         "pay attention to",
         "pays attention to",
-        "prioritize",
-        "prioritizes",
-        "highlight",
-        "highlights",
     ),
     "relevant context": (
         "relevant context",
         "important context",
-        "context that matters",
-        "useful context",
-        "related information",
     ),
     "context": (
         "context",
         "surrounding information",
-        "related information",
-        "information around it",
     ),
     "tools": (
         "tools",
         "external tools",
-        "tool calls",
-        "act outside the model",
-        "actions outside the model",
     ),
     "guardrails": (
         "guardrails",
         "safety boundaries",
-        "safety rules",
-        "constraints",
-        "boundaries",
-    ),
-    "verification": (
-        "verification",
-        "verify",
-        "checks",
-        "tests",
-        "validation",
-        "validate",
-    ),
-    "recovery": (
-        "recovery",
-        "recover",
-        "fallback",
-        "repair",
-        "retry",
     ),
 }
+
+
+def normalized_phrase(text: str) -> str:
+    return " ".join(WORD_RE.findall(text.lower()))
+
+
+def phrase_present(answer: str, phrase: str) -> bool:
+    normalized_answer = f" {normalized_phrase(answer)} "
+    normalized = normalized_phrase(phrase)
+    return bool(normalized) and f" {normalized} " in normalized_answer
 ```
 
-Add after `keyword_present`:
+Add after `phrase_present`:
 
 ```python
 def keyword_match_mode(answer: str, keyword: str) -> str | None:
-    if keyword_present(answer, keyword):
+    if phrase_present(answer, keyword):
         return "literal"
 
     normalized_keyword = normalized_phrase(keyword)
     for alias in SEMANTIC_KEYWORD_ALIASES.get(normalized_keyword, ()):
-        if alias != normalized_keyword and keyword_present(answer, alias):
+        if alias != normalized_keyword and phrase_present(answer, alias):
             return "semantic_alias"
     return None
 ```
 
 Implementation note: keep the map small. Add aliases only when a unit test proves a real false negative
-and a reviewer can understand why the alias does not make unrelated answers correct.
+and a reviewer can understand why the alias does not make unrelated answers correct. Do not add broad
+global aliases such as `tests`, `checks`, `retry`, `fallback`, `constraints`, or `boundaries` without a
+false-positive-direction test.
 
 - [ ] **Step 4: Update `grade_understanding` to use the helper**
 
-Replace `grade_understanding` in `src/genacademy_coach/grounding.py` with:
+In `src/genacademy_coach/grounding.py`, import the matcher:
+
+```python
+from genacademy_coach.semantic_grading import SCORER_VERSION, keyword_match_mode
+```
+
+Then replace `grade_understanding` with:
 
 ```python
 def grade_understanding(answer: str, item: CheckItem) -> UnderstandingGrade:
@@ -536,8 +558,10 @@ In `tests/test_eval_runner.py`, extend
     assert row["grade_literal_match_count"] == 1
     assert row["grade_semantic_match_count"] == 0
     assert row["grade_missing_keyword_count"] == 0
+    assert row["grade_semantic_decisive"] is False
     assert "matched_keywords" not in row
     assert "missing_keywords" not in row
+    assert "matched_keyword_modes" not in row
 ```
 
 Also update `FakeSession.respond` so its grade includes match modes:
@@ -576,17 +600,22 @@ def _grade_summary(runtime: Any) -> dict[str, Any]:
             "grade_literal_match_count": 0,
             "grade_semantic_match_count": 0,
             "grade_missing_keyword_count": 0,
+            "grade_semantic_decisive": False,
         }
     modes = dict(getattr(grade, "matched_keyword_modes", {}) or {})
+    semantic_match_count = sum(
+        1 for mode in modes.values() if mode == "semantic_alias"
+    )
     return {
         "grade_scorer_version": getattr(grade, "scorer_version", None),
         "grade_literal_match_count": sum(
             1 for mode in modes.values() if mode == "literal"
         ),
-        "grade_semantic_match_count": sum(
-            1 for mode in modes.values() if mode == "semantic_alias"
-        ),
+        "grade_semantic_match_count": semantic_match_count,
         "grade_missing_keyword_count": len(getattr(grade, "missing_keywords", []) or []),
+        "grade_semantic_decisive": bool(
+            getattr(grade, "correct", False) and semantic_match_count
+        ),
     }
 ```
 
@@ -642,6 +671,7 @@ def test_aggregate_reports_grade_scorer_metadata():
                 "grade_literal_match_count": 1,
                 "grade_semantic_match_count": 1,
                 "grade_missing_keyword_count": 0,
+                "grade_semantic_decisive": True,
             },
             {
                 "case_id": "b",
@@ -655,6 +685,7 @@ def test_aggregate_reports_grade_scorer_metadata():
                 "grade_literal_match_count": 0,
                 "grade_semantic_match_count": 0,
                 "grade_missing_keyword_count": 2,
+                "grade_semantic_decisive": False,
             },
         ],
         price_table=PriceTable(prices={}),
@@ -664,6 +695,7 @@ def test_aggregate_reports_grade_scorer_metadata():
     assert out["grade_literal_match_count"] == 1
     assert out["grade_semantic_match_count"] == 1
     assert out["grade_missing_keyword_count"] == 2
+    assert out["grade_semantic_decisive_count"] == 1
 ```
 
 - [ ] **Step 2: Run the aggregate test and verify failure**
@@ -695,6 +727,9 @@ In `src/genacademy_coach/eval_metrics.py::aggregate`, add before the final retur
     grade_missing_keyword_count = sum(
         int(row.get("grade_missing_keyword_count") or 0) for row in rows
     )
+    grade_semantic_decisive_count = sum(
+        1 for row in rows if row.get("grade_semantic_decisive") is True
+    )
 ```
 
 Add these keys to the returned dict near the existing task/citation/tool metrics:
@@ -704,6 +739,7 @@ Add these keys to the returned dict near the existing task/citation/tool metrics
         "grade_literal_match_count": grade_literal_match_count,
         "grade_semantic_match_count": grade_semantic_match_count,
         "grade_missing_keyword_count": grade_missing_keyword_count,
+        "grade_semantic_decisive_count": grade_semantic_decisive_count,
 ```
 
 - [ ] **Step 4: Run metric tests**
@@ -769,9 +805,19 @@ Expected:
 - The run contains `metrics.grade_scorer_versions` with `concept-v1`.
 - Compare against the Task 0 baseline:
   - `metrics.refusal.recall` must not decrease.
+  - `metrics.refusal.precision` must not decrease.
   - `metrics.citation_f1` must not decrease.
-  - `metrics.task_completion.pass_rate` should improve or stay flat.
+  - `metrics.task_completion.pass_rate` may improve only when the lifted cases are genuine synonym
+    corrections.
   - `metrics.grade_semantic_match_count` should be visible when semantic aliases are used.
+  - `metrics.grade_semantic_decisive_count` should identify how many correct grades depended on a
+    semantic alias.
+- Compare rows by `case_id`:
+  - inspect every `task_completion_pass` flip from `False` to `True`
+  - inspect every `grade_correct` flip from `False` to `True`
+  - reject the change if any known-failure or adversarial case newly advances because an alias matched
+    unrelated wording
+  - record the inspected flip case IDs in the PR description without raw learner text
 
 If provider credentials or the local index are unavailable, include the exact blocker in the PR
 description and rely on unit coverage for the local branch.
@@ -784,6 +830,9 @@ Include:
 This changes the deterministic scorer version from the keyword-only behavior to `concept-v1`.
 It does not rewrite prior Week-4 v1 metrics. Any new eval result should be reported as a new scorer
 run with the scorer version visible in `metrics.grade_scorer_versions`.
+
+Any before/after pass-rate lift was inspected by `case_id`. The accepted lifts were genuine synonym
+matches, not false-positive alias matches. No known-failure or adversarial case newly advanced.
 ```
 
 ## Review Checklist
@@ -795,5 +844,7 @@ run with the scorer version visible in `metrics.grade_scorer_versions`.
   alias text committed.
 - [ ] Existing exact-match behavior still works.
 - [ ] Semantic aliases are deterministic, small, and unit tested.
+- [ ] Semantic aliases have false-positive-direction tests before they are added.
+- [ ] Any `False -> True` grade or task-completion flip is inspected by `case_id`.
 - [ ] Eval output exposes scorer version and counts so future comparisons are not ambiguous.
 - [ ] Turn-2 recovery remains unimplemented until this plan and the false-refusal slice are reviewed.
