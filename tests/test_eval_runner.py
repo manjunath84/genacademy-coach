@@ -128,6 +128,7 @@ class FakeSession:
             matched_keywords=["generated keyword"] if correct else [],
             missing_keywords=[] if correct else ["generated keyword"],
             citation_id="note::0",
+            matched_keyword_modes={"generated keyword": "literal"} if correct else {},
         )
         response = CoachAgentResponse(
             learner_message="Attention focuses context. [note::0]",
@@ -270,6 +271,14 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
     assert row["answered_check_id"] == "note::0"
     assert row["post_final_check_id"] == "note::0"
     assert row["boundary_grade_citation_id"] == "note::0"
+    assert row["grade_scorer_version"] == "concept-v1"
+    assert row["grade_literal_match_count"] == 1
+    assert row["grade_semantic_match_count"] == 0
+    assert row["grade_missing_keyword_count"] == 0
+    assert row["grade_semantic_decisive"] is False
+    assert "matched_keywords" not in row
+    assert "missing_keywords" not in row
+    assert "matched_keyword_modes" not in row
     assert row["anchor_present_in_final_retrieved"] is True
     assert row["teaching_provenance_span_id"] == "note::0"
     assert row["check_provenance_span_id"] == "note::0"

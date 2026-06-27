@@ -10,6 +10,22 @@
 
 ---
 
+## 2026-06-27 — A scorer upgrade is not proven by green aggregates alone
+
+**What I believed:** adding deterministic semantic aliases would likely show up directly as a task
+completion lift in the next golden eval run.
+
+**What I found:** the `concept-v1` scorer added versioned metadata, literal/semantic match counts, and
+false-positive-direction tests, but the post-change golden run had `grade_semantic_match_count = 0`.
+That means the implementation is safer and more observable, but the current golden set did not actually
+exercise synonym-based grading wins.
+
+**Principle:** when improving an evaluator, ship two kinds of proof: safety/regression proof on the
+existing suite, and targeted behavior proof that exercises the new capability. Aggregate pass rate alone
+cannot show whether the new scorer logic fired.
+
+---
+
 ## 2026-06-27 — Agent specialization should name the missing cognition, not multiply roles
 
 **What I believed:** the Week-3 "limited agent specialization" feedback might require a visibly larger

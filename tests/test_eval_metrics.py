@@ -141,6 +141,48 @@ def test_aggregate_computes_p95_across_turns():
     }
 
 
+def test_aggregate_reports_grade_scorer_metadata():
+    out = aggregate(
+        [
+            {
+                "case_id": "a",
+                "query_type": "happy",
+                "refusal_expected": False,
+                "task_completion_pass": True,
+                "citation_f1": 1.0,
+                "tool_f1": 1.0,
+                "turn_latencies_ms": [],
+                "grade_scorer_version": "concept-v1",
+                "grade_literal_match_count": 1,
+                "grade_semantic_match_count": 1,
+                "grade_missing_keyword_count": 0,
+                "grade_semantic_decisive": True,
+            },
+            {
+                "case_id": "b",
+                "query_type": "happy",
+                "refusal_expected": False,
+                "task_completion_pass": False,
+                "citation_f1": 0.0,
+                "tool_f1": 1.0,
+                "turn_latencies_ms": [],
+                "grade_scorer_version": "concept-v1",
+                "grade_literal_match_count": 0,
+                "grade_semantic_match_count": 0,
+                "grade_missing_keyword_count": 2,
+                "grade_semantic_decisive": False,
+            },
+        ],
+        price_table=PriceTable(prices={}),
+    )
+
+    assert out["grade_scorer_versions"] == {"concept-v1": 2}
+    assert out["grade_literal_match_count"] == 1
+    assert out["grade_semantic_match_count"] == 1
+    assert out["grade_missing_keyword_count"] == 2
+    assert out["grade_semantic_decisive_count"] == 1
+
+
 def test_aggregate_repeated_tool_count_uses_within_turn_counts():
     rows = [
         {

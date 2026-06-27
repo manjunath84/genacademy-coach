@@ -167,6 +167,23 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         )
         for row in rows
     )
+    grade_scorer_versions = Counter(
+        str(row.get("grade_scorer_version"))
+        for row in rows
+        if row.get("grade_scorer_version")
+    )
+    grade_literal_match_count = sum(
+        int(row.get("grade_literal_match_count") or 0) for row in rows
+    )
+    grade_semantic_match_count = sum(
+        int(row.get("grade_semantic_match_count") or 0) for row in rows
+    )
+    grade_missing_keyword_count = sum(
+        int(row.get("grade_missing_keyword_count") or 0) for row in rows
+    )
+    grade_semantic_decisive_count = sum(
+        1 for row in rows if row.get("grade_semantic_decisive") is True
+    )
 
     citation_precision = [
         float(row["citation_precision"]) for row in teachable if "citation_precision" in row
@@ -209,6 +226,11 @@ def aggregate(rows: list[dict[str, Any]], *, price_table: PriceTable) -> dict[st
         "tool": {"f1": _mean(tool_f1)},
         "tool_f1": _mean(tool_f1),
         "retrieval_recall_at_5": _mean(retrieval),
+        "grade_scorer_versions": dict(sorted(grade_scorer_versions.items())),
+        "grade_literal_match_count": grade_literal_match_count,
+        "grade_semantic_match_count": grade_semantic_match_count,
+        "grade_missing_keyword_count": grade_missing_keyword_count,
+        "grade_semantic_decisive_count": grade_semantic_decisive_count,
         "refusal": _prf_dict(
             refusal_counts["tp"],
             refusal_counts["fp"],
