@@ -48,7 +48,7 @@ Use this table to avoid opening the whole docs folder blindly.
 | Retrieval/index changes | `docs/genacademy-rag-foundation.md`, `docs/foundation-adapter-spec.md`, `docs/teach-loop-retrieval-triage.md`, `specs/tech-stack.md` |
 | UI/demo changes | `docs/architecture-diagrams.md`, `docs/teach-loop-status.md`, relevant UI/demo plans in `docs/superpowers/plans/` |
 | Deployment | `docs/hugging-face-deployment-plan.md`, `docs/production-roadmap.md` |
-| Learning/write-up material | `docs/build-learnings.md`, `docs/agent-concepts-from-genacademy-coach.md`, `docs/agentic-orchestration-improvement-review.md` |
+| Learning/write-up material | `docs/build-learnings.md`, `docs/agent-concepts-from-genacademy-coach.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/post-v1-eval-provenance-learning.md` |
 
 ## Source-Of-Truth Hierarchy
 
@@ -94,6 +94,8 @@ Historical files are useful evidence, but they do not override the active roadma
 ### Build History And Learning
 
 - `docs/build-learnings.md` - reusable build lessons, newest first.
+- `docs/post-v1-eval-provenance-learning.md` - beginner-friendly explanation of the post-v1 eval
+  provenance changes, measured result, and PR #53 review follow-ups.
 - `docs/teach-loop-status.md` - detailed teach-loop verification history.
 - `docs/open-decisions-handoff.md` - resolved early handoff, historical.
 - `docs/agent-concepts-from-genacademy-coach.md` - learning notes that explain agent concepts through
