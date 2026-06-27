@@ -88,6 +88,13 @@ def audit_row(row: dict[str, Any]) -> dict[str, Any]:
     retrieved_ids = _nonempty_strings(row.get("retrieved_citation_ids"))
     expected_family = citation_source_family(expected_id)
     predicted_families = set(_source_families(predicted_ids))
+    provenance_by_role = row.get("provenance_by_role") or {}
+    check_provenance = (
+        provenance_by_role.get("check", {}) if isinstance(provenance_by_role, dict) else {}
+    )
+    final_provenance = (
+        provenance_by_role.get("final", {}) if isinstance(provenance_by_role, dict) else {}
+    )
 
     return {
         "case_id": str(row.get("case_id") or ""),
@@ -105,6 +112,8 @@ def audit_row(row: dict[str, Any]) -> dict[str, Any]:
         "answered_check_id": row.get("answered_check_id"),
         "post_final_check_id": row.get("post_final_check_id"),
         "boundary_grade_citation_id": row.get("boundary_grade_citation_id"),
+        "check_provenance_span_id": check_provenance.get("span_id"),
+        "final_provenance_span_id": final_provenance.get("span_id"),
         "anchor_present_in_final_retrieved": bool(row.get("anchor_present_in_final_retrieved")),
         "expected_exact_predicted": bool(expected_id and expected_id in set(predicted_ids)),
         "expected_exact_retrieved": bool(expected_id and expected_id in set(retrieved_ids)),

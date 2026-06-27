@@ -19,6 +19,7 @@ from genacademy_coach.teach_session import (
 from genacademy_coach.teach_types import (
     CheckItem,
     CoachAgentResponse,
+    ProvenanceRecord,
     RetrievedSpan,
     TokenUsage,
     TraceTurn,
@@ -55,6 +56,29 @@ class FakeSession:
                 missing_keywords=[],
                 citation_id="note::0",
             ),
+            provenance={
+                "teaching": ProvenanceRecord(
+                    role="teaching",
+                    span_id="note::0",
+                    source_type="note",
+                    selected_at="retrieve_course_corpus",
+                    selection_reason="first_citeable_retrieved",
+                ),
+                "check": ProvenanceRecord(
+                    role="check",
+                    span_id="note::0",
+                    source_type="note",
+                    selected_at="generate_check_item",
+                    selection_reason="first_citeable",
+                ),
+                "final": ProvenanceRecord(
+                    role="final",
+                    span_id="note::0",
+                    source_type="note",
+                    selected_at="write_result",
+                    selection_reason="first_final_citation",
+                ),
+            },
             tool_calls=[],
         )
 
@@ -247,6 +271,16 @@ def test_score_golden_case_emits_redacted_metric_row(fake_settings, fake_foundat
     assert row["post_final_check_id"] == "note::0"
     assert row["boundary_grade_citation_id"] == "note::0"
     assert row["anchor_present_in_final_retrieved"] is True
+    assert row["teaching_provenance_span_id"] == "note::0"
+    assert row["check_provenance_span_id"] == "note::0"
+    assert row["final_provenance_span_id"] == "note::0"
+    assert row["provenance_by_role"]["check"] == {
+        "role": "check",
+        "span_id": "note::0",
+        "source_type": "note",
+        "selected_at": "generate_check_item",
+        "selection_reason": "first_citeable",
+    }
     assert row["decision_source"] == "agent"
     assert row["refusal_reason_code"] is None
     assert "golden-happy_001" in row["final_trace_path"]

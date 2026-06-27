@@ -23,6 +23,8 @@ from genacademy_coach.teach_types import (
     CheckItem,
     EvidenceBand,
     LearnerProfile,
+    ProvenanceRecord,
+    ProvenanceRole,
     RetrievedSpan,
     UnderstandingGrade,
 )
@@ -49,6 +51,7 @@ class TeachRuntime:
     turn_retrieval_had_citeable: bool = False
     retrieval_cache_hits: int = 0
     escalation_queued: bool = False
+    provenance: dict[ProvenanceRole, ProvenanceRecord] = field(default_factory=dict)
 
     def record_tool(self, name: str) -> None:
         self.tool_calls.append(name)
@@ -76,6 +79,22 @@ class TeachRuntime:
             confirm_threshold=self.confirm_threshold,
         )
 
+    def record_provenance(
+        self,
+        *,
+        role: ProvenanceRole,
+        span: RetrievedSpan,
+        selected_at: str,
+        selection_reason: str,
+    ) -> None:
+        self.provenance[role] = ProvenanceRecord(
+            role=role,
+            span_id=span.citation_id,
+            source_type=span.source_type,
+            selected_at=selected_at,
+            selection_reason=selection_reason,
+        )
+
 
 def _span_from_row(row: dict[str, Any]) -> RetrievedSpan:
     return RetrievedSpan(
@@ -89,18 +108,23 @@ def _span_from_row(row: dict[str, Any]) -> RetrievedSpan:
     )
 
 
-def _preferred_check_citation_id(spans: list[RetrievedSpan]) -> str | None:
+def _preferred_check_span(spans: list[RetrievedSpan]) -> tuple[RetrievedSpan | None, str]:
     for span in spans:
         if span.source_type == "slide":
-            return span.citation_id
+            return span, "preferred_slide"
     for span in spans:
         if span.source_type == "handout":
-            return span.citation_id
-    return spans[0].citation_id if spans else None
+            return span, "preferred_handout"
+    if spans:
+        return spans[0], "first_citeable"
+    return None, "no_citeable_span"
 
 
 def _retrieval_rows(runtime: TeachRuntime, spans: list[RetrievedSpan]) -> list[dict[str, Any]]:
-    preferred_check_id = _preferred_check_citation_id(spans)
+    preferred_check_span, _ = _preferred_check_span(spans)
+    preferred_check_id = (
+        preferred_check_span.citation_id if preferred_check_span is not None else None
+    )
     return [
         {
             "citation_id": span.citation_id,
@@ -134,6 +158,12 @@ def build_teach_tools(runtime: TeachRuntime):
             )
             if citeable_spans:
                 runtime.last_spans = citeable_spans
+                runtime.record_provenance(
+                    role="teaching",
+                    span=citeable_spans[0],
+                    selected_at="retrieve_course_corpus",
+                    selection_reason="first_citeable_retrieved",
+                )
                 runtime.turn_retrieval_had_citeable = True
             return json.dumps(_retrieval_rows(runtime, citeable_spans), sort_keys=True)
         finally:
@@ -144,7 +174,11 @@ def build_teach_tools(runtime: TeachRuntime):
 
     @tool
     def generate_check_item_for_span(citation_id: str) -> str:
-        """Generate a short grounded check question for a retrieved citation ID."""
+        """Generate a check for the runtime-preferred retrieved span.
+
+        The citation_id must be a retrieved span ID, but the runtime enforces check-span
+        selection in this order: slide, handout, first citeable span.
+        """
         # The eval taxonomy records the stable product-level bucket name here;
         # the registered LangChain tool remains generate_check_item_for_span.
         tool_name = "generate_check_item"
@@ -154,14 +188,29 @@ def build_teach_tools(runtime: TeachRuntime):
             span_by_id = {span.citation_id: span for span in runtime.last_spans}
             if citation_id not in span_by_id:
                 return json.dumps({"error": f"unknown citation_id: {citation_id}"})
+            selected_span, selection_reason = _preferred_check_span(runtime.last_spans)
+            if selected_span is None:
+                return json.dumps({"error": "no citeable span available"})
             if (
                 runtime.current_check is not None
-                and runtime.current_check.citation_id == citation_id
+                and runtime.current_check.citation_id == selected_span.citation_id
             ):
+                runtime.record_provenance(
+                    role="check",
+                    span=selected_span,
+                    selected_at="generate_check_item",
+                    selection_reason=selection_reason,
+                )
                 return runtime.current_check.model_dump_json()
             runtime.current_check = generate_check_item(
                 runtime.foundation.provider,
-                span_by_id[citation_id],
+                selected_span,
+            )
+            runtime.record_provenance(
+                role="check",
+                span=selected_span,
+                selected_at="generate_check_item",
+                selection_reason=selection_reason,
             )
             runtime.grade_locked = False
             return runtime.current_check.model_dump_json()

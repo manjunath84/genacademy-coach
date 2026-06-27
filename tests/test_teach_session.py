@@ -168,6 +168,42 @@ def test_session_trace_records_redacted_tool_observability_and_resets_turn(tmp_p
     assert session.runtime.retrieval_cache_hits == 0
 
 
+def test_session_trace_records_role_keyed_provenance(tmp_path):
+    agent = StaticAgentPort(
+        CoachAgentResponse(
+            learner_message="Attention highlights relevant context. [note/attention::0]",
+            observation="retrieved a citeable attention span",
+            next_action="advance",
+            strategy="summary",
+            citation_ids=["note/attention::0"],
+        )
+    )
+    session = CoachSession(
+        session_id="abc",
+        topic="attention",
+        settings=FakeSettings(tmp_path),
+        foundation=FakeFoundation(),
+        profile=LearnerProfile(),
+        agent_port=agent,
+    )
+    session.runtime.last_spans = [cited_span()]
+    session.runtime.record_provenance(
+        role="teaching",
+        span=cited_span(),
+        selected_at="retrieve_course_corpus",
+        selection_reason="first_citeable_retrieved",
+    )
+
+    result = session.start()
+
+    rows = load_trace(Path(result.trace_path))
+    assert rows[0].provenance["teaching"].span_id == "note/attention::0"
+    assert rows[0].provenance["final"].span_id == "note/attention::0"
+    serialized = Path(result.trace_path).read_text(encoding="utf-8")
+    assert "Attention highlights relevant context." not in serialized
+    assert "learner_message" not in serialized
+
+
 def test_teach_trace_contains_hashes_and_no_raw_private_text(tmp_path):
     private_topic = "PRIVATE RAW TOPIC"
     private_answer = "PRIVATE LEARNER ANSWER"

@@ -4,6 +4,7 @@ from genacademy_coach.teach_types import (
     CheckItem,
     CoachAgentResponse,
     LearnerProfile,
+    ProvenanceRecord,
     RetrievedSpan,
     TokenUsage,
     TraceTurn,
@@ -97,6 +98,50 @@ def test_token_usage_defaults_zero():
     assert TokenUsage().input_tokens == 0 and TokenUsage().total_tokens == 0
 
 
+def test_provenance_record_serializes_safe_metadata_only():
+    record = ProvenanceRecord(
+        role="check",
+        span_id="slide/week2-session1::3",
+        source_type="slide",
+        selected_at="generate_check_item",
+        selection_reason="preferred_slide",
+    )
+
+    assert record.model_dump() == {
+        "role": "check",
+        "span_id": "slide/week2-session1::3",
+        "source_type": "slide",
+        "selected_at": "generate_check_item",
+        "selection_reason": "preferred_slide",
+    }
+
+
+def test_trace_turn_accepts_role_keyed_provenance():
+    turn = TraceTurn(
+        session_id="s",
+        turn=1,
+        topic_hash="topic-hash",
+        learner_input_hash="input-hash",
+        next_action="drill",
+        strategy="analogy",
+        evidence_score=0.91,
+        evidence_band="proceed",
+        retrieved_citation_ids=["slide/week2-session1::3"],
+        tool_calls=[],
+        provenance={
+            "check": ProvenanceRecord(
+                role="check",
+                span_id="slide/week2-session1::3",
+                source_type="slide",
+                selected_at="generate_check_item",
+                selection_reason="preferred_slide",
+            )
+        },
+    )
+
+    assert turn.provenance["check"].span_id == "slide/week2-session1::3"
+
+
 def test_trace_turn_token_latency_defaults():
     t = TraceTurn(
         session_id="s",
@@ -116,3 +161,4 @@ def test_trace_turn_token_latency_defaults():
     assert t.retrieval_cache_hits == 0
     assert t.tool_latencies_ms == {}
     assert t.tool_call_counts == {}
+    assert t.provenance == {}
