@@ -276,6 +276,10 @@ def score_golden_case(
         else None
     )
     final_retrieved_ids = list(final_trace.retrieved_citation_ids) if final_trace else []
+    provenance_by_role = {
+        role: record.model_dump()
+        for role, record in getattr(session.runtime, "provenance", {}).items()
+    }
     if refusal == "infra_error":
         task_completion_pass = None
     else:
@@ -303,6 +307,12 @@ def score_golden_case(
         "anchor_present_in_final_retrieved": bool(
             answered_check_id and answered_check_id in final_retrieved_ids
         ),
+        "provenance_by_role": provenance_by_role,
+        "teaching_provenance_span_id": (
+            provenance_by_role.get("teaching", {}).get("span_id")
+        ),
+        "check_provenance_span_id": provenance_by_role.get("check", {}).get("span_id"),
+        "final_provenance_span_id": provenance_by_role.get("final", {}).get("span_id"),
         "decision_source": final.response._decision_source,
         "refusal_reason_code": _refusal_reason_code(final.response),
         "final_trace_path": _trace_path_label(settings, final.trace_path),

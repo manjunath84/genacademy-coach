@@ -153,8 +153,39 @@ def test_retrieve_tool_records_last_spans(tmp_path):
     assert rows[0]["evidence_band"] == "proceed"
     assert rows[0]["preferred_for_check"] is True
     assert active_runtime.last_spans[0].score == 0.91
+    assert active_runtime.provenance["teaching"].span_id == "note/attention::0"
+    assert active_runtime.provenance["teaching"].selection_reason == (
+        "first_citeable_retrieved"
+    )
     assert active_runtime.tool_call_counts == {"retrieve_course_corpus": 1}
     assert active_runtime.tool_latencies_ms["retrieve_course_corpus"] >= 0.0
+
+
+def test_runtime_records_role_keyed_provenance(tmp_path):
+    active_runtime = runtime(tmp_path)
+    span = RetrievedSpan(
+        chunk_id="slide/attention::1",
+        doc_id="slide/attention",
+        text="Attention highlights relevant context.",
+        score=0.91,
+        title="attention.pdf",
+        source_type="slide",
+        page_or_section="1",
+    )
+
+    active_runtime.record_provenance(
+        role="check",
+        span=span,
+        selected_at="generate_check_item",
+        selection_reason="preferred_slide",
+    )
+
+    record = active_runtime.provenance["check"]
+    assert record.role == "check"
+    assert record.span_id == "slide/attention::1"
+    assert record.source_type == "slide"
+    assert record.selected_at == "generate_check_item"
+    assert record.selection_reason == "preferred_slide"
 
 
 def test_retrieve_tool_marks_slide_or_handout_as_preferred_check_span(tmp_path):
@@ -321,6 +352,66 @@ def test_generate_check_unlocks_stale_boundary_grade(tmp_path, monkeypatch):
     assert active_runtime.tool_latencies_ms["generate_check_item"] >= 0.0
 
 
+def test_generate_check_uses_preferred_slide_even_when_agent_requests_note(
+    tmp_path,
+    monkeypatch,
+):
+    active_runtime = runtime(tmp_path)
+    active_runtime.last_spans = [
+        RetrievedSpan(
+            chunk_id="note/attention::0",
+            doc_id="note/attention",
+            text="Attention focuses relevant context.",
+            score=0.95,
+            title="attention.md",
+            source_type="note",
+        ),
+        RetrievedSpan(
+            chunk_id="handout/attention::2",
+            doc_id="handout/attention",
+            text="Attention helps select relevant context.",
+            score=0.93,
+            title="attention.pdf",
+            source_type="handout",
+            page_or_section="2",
+        ),
+        RetrievedSpan(
+            chunk_id="slide/attention::1",
+            doc_id="slide/attention",
+            text="Attention highlights the relevant context window.",
+            score=0.91,
+            title="attention.pdf",
+            source_type="slide",
+            page_or_section="1",
+        ),
+    ]
+
+    def fake_generate_check_item(_provider, span):
+        return CheckItem(
+            question="What does attention highlight?",
+            expected_answer="Attention highlights the relevant context window.",
+            expected_keywords=["relevant context"],
+            citation_id=span.citation_id,
+        )
+
+    monkeypatch.setattr(
+        "genacademy_coach.teach_tools.generate_check_item",
+        fake_generate_check_item,
+    )
+    generate_tool = next(
+        tool for tool in build_teach_tools(active_runtime)
+        if tool.name == "generate_check_item_for_span"
+    )
+
+    generated = json.loads(generate_tool.invoke({"citation_id": "note/attention::0"}))
+
+    assert generated["citation_id"] == "slide/attention::1"
+    assert active_runtime.current_check is not None
+    assert active_runtime.current_check.citation_id == "slide/attention::1"
+    assert active_runtime.provenance["check"].span_id == "slide/attention::1"
+    assert active_runtime.provenance["check"].selection_reason == "preferred_slide"
+
+
 def test_generate_check_reuses_current_check_for_same_citation_without_provider_call(
     tmp_path,
     monkeypatch,
@@ -360,6 +451,7 @@ def test_generate_check_reuses_current_check_for_same_citation_without_provider_
 
     assert generated["citation_id"] == "note/attention::0"
     assert active_runtime.grade_locked is True
+    assert active_runtime.provenance["check"].span_id == "note/attention::0"
     assert active_runtime.tool_call_counts == {"generate_check_item": 1}
 
 

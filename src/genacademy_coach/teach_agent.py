@@ -35,9 +35,8 @@ Rules:
 - Call retrieve_course_corpus at most once per turn unless the first result has no citeable spans.
 - Call generate_check_item_for_span at most once per turn unless the tool returns an explicit error.
 - Call escalate_to_mentor at most once per turn, then return refuse_escalate immediately.
-- When choosing a span for generate_check_item_for_span, prefer a retrieved row with
-  preferred_for_check=true. If several spans seem relevant, prefer slide or handout rows over
-  glossary, note, or transcript fallback rows.
+- When calling generate_check_item_for_span, pass a retrieved citation_id. The runtime will enforce
+  the preferred check span in this order: slide, handout, then first citeable span.
 - Treat tool-returned retrieval scores as the only evidence score. Do not return confidence.
 - Choose next_action at runtime from: advance, re_explain_differently, drill, refuse_escalate, stop.
 - When grade_understanding returns correct=false, choose re_explain_differently with a strategy that

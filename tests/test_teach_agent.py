@@ -25,8 +25,8 @@ def test_system_prompt_requires_grounding_and_trace_action():
     assert "do not return confidence" in SYSTEM_PROMPT.lower()
     assert "correct=false" in SYSTEM_PROMPT
     assert "[citation_id]" in SYSTEM_PROMPT
-    assert "preferred_for_check=true" in SYSTEM_PROMPT
-    assert "prefer slide or handout" in SYSTEM_PROMPT.lower()
+    assert "runtime will enforce" in SYSTEM_PROMPT.lower()
+    assert "slide, handout, then first citeable span" in SYSTEM_PROMPT.lower()
     assert "retrieve_course_corpus at most once" in SYSTEM_PROMPT
     assert "generate_check_item_for_span at most once" in SYSTEM_PROMPT
     assert "escalate_to_mentor at most once" in SYSTEM_PROMPT

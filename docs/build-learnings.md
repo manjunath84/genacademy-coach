@@ -10,6 +10,24 @@
 
 ---
 
+## 2026-06-27 — Citation failures become fixable when evidence roles are explicit
+
+**What I believed:** after v1 eval, the main citation problem might be retrieval quality: if the final
+answer cited the wrong thing, maybe the retriever simply failed to find the right span.
+
+**What I found:** retrieval recall stayed healthy, but the agent still needed clearer evidence handoffs
+between teaching, check generation, and final answering. Recording role-keyed provenance made those
+handoffs visible, and enforcing check-span selection in Python moved one important choice out of model
+preference and into deterministic code. Citation F1 improved from `0.45` to `0.6333` while task
+completion, refusal precision/recall, and retrieval recall stayed flat.
+
+**Principle:** when an agent has several evidence-dependent steps, track provenance by role. Do not
+debug only the final citation. Make the chain visible: retrieved span -> teaching span -> check span ->
+final cited span. Let the model decide the teaching flow, but let code enforce safety-critical source
+selection.
+
+---
+
 ## 2026-06-26 — Context awareness is a routing problem, not a bigger-prompt problem
 
 **What I believed:** making future AI sessions more context-aware might mean putting more project

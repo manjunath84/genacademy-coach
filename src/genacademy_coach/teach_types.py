@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 EvidenceBand = Literal["stop", "confirm", "proceed"]
 DecisionSource = Literal["agent", "python safety gate"]
+ProvenanceRole = Literal["teaching", "check", "final", "recovery"]
 NextAction = Literal[
     "advance",
     "re_explain_differently",
@@ -30,6 +31,14 @@ class TokenUsage(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
+
+
+class ProvenanceRecord(BaseModel):
+    role: ProvenanceRole
+    span_id: str
+    source_type: str
+    selected_at: str
+    selection_reason: str
 
 
 class RetrievedSpan(BaseModel):
@@ -124,6 +133,7 @@ class TraceTurn(BaseModel):
     retrieval_cache_hits: int = 0
     tool_latencies_ms: dict[str, float] = Field(default_factory=dict)
     tool_call_counts: dict[str, int] = Field(default_factory=dict)
+    provenance: dict[ProvenanceRole, ProvenanceRecord] = Field(default_factory=dict)
 
 
 class TeachSessionResult(BaseModel):

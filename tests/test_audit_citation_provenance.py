@@ -178,3 +178,31 @@ def test_remaining_review_buckets():
         "expected_retrieved_predicted_other_source": 1,
         "other_citation_mismatch": 1,
     }
+
+
+def test_audit_row_includes_optional_role_provenance_ids():
+    module = load_audit_module()
+
+    audited = module.audit_row(
+        row(
+            provenance_by_role={
+                "check": {
+                    "role": "check",
+                    "span_id": "slide/week2-session1::3",
+                    "source_type": "slide",
+                    "selected_at": "generate_check_item",
+                    "selection_reason": "preferred_slide",
+                },
+                "final": {
+                    "role": "final",
+                    "span_id": "slide/week2-session1::4",
+                    "source_type": "slide",
+                    "selected_at": "write_result",
+                    "selection_reason": "first_final_citation",
+                },
+            }
+        )
+    )
+
+    assert audited["check_provenance_span_id"] == "slide/week2-session1::3"
+    assert audited["final_provenance_span_id"] == "slide/week2-session1::4"

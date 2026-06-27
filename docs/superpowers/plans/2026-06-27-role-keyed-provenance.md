@@ -896,6 +896,14 @@ Expected:
 - This plan intentionally does not change citation scoring. It only makes evidence selection explicit
   and auditable.
 - Do not delete legacy eval fields in this slice; dashboards and audit tools may still depend on them.
+- PR #53 implements `TeachRuntime.provenance` as best-known provenance for the current session/case.
+  Trace rows snapshot that current best-known map, so a later turn may carry an earlier turn's
+  teaching/check provenance if no new span is selected. This is intentional for the first
+  implementation slice because eval row projection reads the runtime's final known role map. If exact
+  per-turn provenance becomes important, reset provenance at turn start and keep eval projection
+  behavior explicit.
+- `final_provenance_span_id` records the first retrieved citation used by the finalized answer. The
+  full final citation set remains in `predicted_citation_ids` and `response.citation_ids`.
 - If deterministic check-span enforcement causes a task-completion regression, stop and report before
   adding fallback complexity. The intended change is narrow and reversible.
 - Task 6 stays in this slice to keep the audit tool provenance-aware, but it must remain a read-only

@@ -285,6 +285,7 @@ class CoachSession:
         usage: TokenUsage | None = None,
     ) -> TeachSessionResult:
         usage = usage or TokenUsage()
+        self._record_final_provenance(response)
         cited_spans = [
             span for span in self.runtime.last_spans if span.citation_id in response.citation_ids
         ]
@@ -320,6 +321,7 @@ class CoachSession:
                 agent_latency_ms=self.runtime.agent_latency_ms,
                 agent_attempts=self.runtime.agent_attempts,
                 retrieval_cache_hits=self.runtime.retrieval_cache_hits,
+                provenance=dict(self.runtime.provenance),
             )
         )
         self._last_response = response
@@ -333,6 +335,22 @@ class CoachSession:
             response=response,
             trace_path=str(trace_path),
         )
+
+    def _record_final_provenance(self, response: CoachAgentResponse) -> None:
+        if response.next_action in {"refuse_escalate", "stop"}:
+            return
+        retrieved_by_id = {span.citation_id: span for span in self.runtime.last_spans}
+        for citation_id in response.citation_ids:
+            span = retrieved_by_id.get(citation_id)
+            if span is None:
+                continue
+            self.runtime.record_provenance(
+                role="final",
+                span=span,
+                selected_at="write_result",
+                selection_reason="first_final_citation",
+            )
+            return
 
     def finish(self) -> None:
         if not self._should_write_memory():
