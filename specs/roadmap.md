@@ -12,35 +12,37 @@ roadmap preserves the current direction but makes "reliable" measurable before m
 added: baseline + reliability bar, deterministic decision safety, the FastAPI/HTMX service boundary,
 provider resilience, stable corpus references, and datastore/deployment seams.
 
-## Active priority: Post-eval citation provenance and refusal precision
+## Active priority: Post-eval refusal precision, grading, and bounded recovery
 
 Week-4 evaluation changed the next build order. Retrieval recall is healthy, refusal recall remains the
-load-bearing guardrail, and the remaining quality work is mostly post-retrieval behavior: citation
-selection/provenance, false-refusal precision on teachable borderline cases, then bounded Turn-2
+load-bearing guardrail, and the remaining quality work is mostly post-retrieval behavior:
+false-refusal precision on teachable borderline cases, cheap concept-aware grading, then bounded Turn-2
 recovery specialization. The reasoning is captured in
 [`docs/agentic-orchestration-improvement-review.md`](../docs/agentic-orchestration-improvement-review.md);
-the first scoped plan is
-[`docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`](../docs/superpowers/plans/2026-06-26-citation-provenance-audit.md).
+the completed provenance learning note is
+[`docs/post-v1-eval-provenance-learning.md`](../docs/post-v1-eval-provenance-learning.md).
 
-The immediate priority is **not** adding more agents or direct LangGraph. It is to prove how much of the
-citation gap is real product failure versus sibling-span/label ambiguity, then design role-keyed
-provenance and deterministic check-span selection without moving eval goalposts.
+The immediate priority is **not** adding more agents or direct LangGraph. It is to keep the grounded
+core stable while improving the next weak decisions: when to salvage teachable CONFIRM-band cases, how
+to avoid literal keyword grading false negatives, and how to run one bounded recovery cycle after a real
+stumble.
 
 Current priority stack:
 
-1. **Citation label audit** — classify citation misses as real miss, acceptable sibling span, label
-   error, or ambiguous source-family match. If labels change, freeze a labeled-v2 golden set and rerun
-   the baseline before reporting product deltas.
-2. **Role-keyed provenance + deterministic check-span policy** — capture `role -> span_id` when
-   evidence is selected; prefer slide, then handout, then first citeable span unless the audit proves a
-   better policy.
-3. **CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
+1. **Done: citation label audit** — citation misses were classified in the public-safe audit map without
+   moving scorer goalposts.
+2. **Done: role-keyed provenance + deterministic check-span policy** — PR #53 captures
+   `role -> span_id` when evidence is selected and enforces slide, then handout, then first citeable span
+   for checks. Citation F1 improved from `0.45` to `0.6333` without task-completion or refusal-safety
+   regression.
+3. **Next: CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
    CONFIRM-band evidence where the model refused anyway. STOP remains untouched; refusal recall is the
    tripwire.
 4. **Cheap semantic grading** — add deterministic synonym/concept coverage before Turn-2 recovery so
    literal keyword false negatives do not pollute recovery metrics.
 5. **Bounded Turn-2 recovery** — one-cycle diagnose → strategy map → grounded re-teach → same-span
-   smaller check. No memory dependency and no six-agent split.
+   smaller check. No memory dependency and no six-agent split. The plan is
+   [`docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md`](../docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md).
 6. **Mock interview and explicit LangGraph decision** — mock interview remains a future pull-in, but
    direct LangGraph is earned only by durable resume, real HITL interrupt/resume, or persisted multi-mode
    routing.
@@ -114,10 +116,10 @@ stable corpus references, and datastore/deployment seams.
 
 ### In Progress
 
-- **Citation provenance and roadmap reprioritization.** The next planning slice audits citation misses,
-  defines role-keyed provenance, and locks reporting rules so label deltas, scorer-version deltas, and
-  product deltas stay separate. This is the gate before Turn-2 recovery or any explicit orchestration
-  expansion.
+- **False-refusal, grading, and bounded recovery planning.** Citation provenance is merged, so the
+  next work is the narrow CONFIRM-band false-refusal policy, cheap concept-aware grading, and the bounded
+  Turn-2 recovery plan. The recovery plan is reviewable now, but its implementation should wait until
+  the prerequisite gates are completed or explicitly accepted as risks.
 - **Public-safe deployment decision.** Decide whether to keep the Space as an empty-corpus deployment
   shell or seed a small approved public-safe corpus/index into the Coach-specific Pinecone namespace.
   Do not upload private course material to a public deployment. Owner-approved private LangSmith eval
@@ -128,8 +130,9 @@ stable corpus references, and datastore/deployment seams.
 
 ### Pending
 
-- Review and approve `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md` before any
-  provenance or eval-audit implementation work.
+- Review and approve
+  `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` before any Turn-2 recovery
+  implementation work.
 - Keep the held-out `test` split unused until final evaluation/reporting.
 - Re-run `pytest`, `ruff`, `check_eval_leak.py`, and the dev eval before any public release milestone.
 - If a public-safe corpus subset is approved, ingest it separately from the private collection and
