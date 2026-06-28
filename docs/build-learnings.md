@@ -10,6 +10,23 @@
 
 ---
 
+## 2026-06-28 — Deterministic is a floor, not a religion
+
+**What I believed:** keeping grading and refusal deterministic was the safest way to preserve the
+"grounded or refuse" promise.
+
+**What I found:** answerability and learner grading are different decisions. Hard refusal floors should
+stay deterministic: no citeable evidence or below STOP means refuse. But open-ended learner answers can
+outgrow literal keyword/synonym scoring; a future model grader may be appropriate if it is
+evidence-bound, rubric-bound, scorer-versioned, privacy-approved, and earned by labeled dev cases that
+expose deterministic plus embedding scorer failures.
+
+**Principle:** keep deterministic safety floors, then choose the narrowest reliable scorer for the
+answer type. A model may compare retrieved evidence to an answer when the evals earn that rung; it must
+not replace retrieved evidence with model self-confidence.
+
+---
+
 ## 2026-06-27 — A scorer upgrade is not proven by green aggregates alone
 
 **What I believed:** adding deterministic semantic aliases would likely show up directly as a task

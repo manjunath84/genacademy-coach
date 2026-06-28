@@ -53,16 +53,17 @@ authored from the notes.
 required MVP dependency; NotebookLM exports as test data. NotebookLM or "Quiz Yourself" items may be
 dev/seed only.
 
-### AD-6 - Grading: Deterministic Gate, LLM Judge as Audit
-**Decision.** The deterministic grounded grader is the pass/fail gate. The inherited Week-2 LLM judge is
-available only as a secondary faithfulness audit.
+### AD-6 - Grading: Deterministic MVP Gate, Evidence-Bound Ladder Deferred
+**Decision.** The current MVP pass/fail gate is the deterministic grounded grader. The inherited Week-2
+LLM judge is available only as a secondary faithfulness audit, not as the active pass/fail gate.
 **Why.** The MVP needs repeatable grading and a clear "won't bluff" boundary. Using the inherited judge
-as audit avoids throwing away Week-2 infrastructure while keeping pass/fail deterministic.
+as audit avoids throwing away Week-2 infrastructure while keeping the current scorer reproducible.
 **Evolution path.** Open-answer teach checks may become more semantic through deterministic concept
-groups, supported synonyms, and optional embedding similarity against the cited expected answer/source
-span. Any such grader change must be scorer-versioned and re-evaluated; an LLM judge can audit or
-tie-break ambiguous cases only after data-egress approval.
-**Rejected.** LLM self-ratings or LLM-judge pass/fail for the teach-loop MVP.
+groups, supported synonyms, optional embedding similarity against the cited expected answer/source span,
+and eventually evidence-bound model grading when earned by labeled eval evidence. Any scorer change must
+be scorer-versioned and re-evaluated. AD-13 governs when a model verifier or model grader may influence
+behavior.
+**Rejected.** LLM self-ratings or immediate LLM-judge pass/fail for the teach-loop MVP.
 
 ### AD-7 - Agenticity Proof: Model-Chosen Action + Strategy
 **Decision.** The `create_agent` loop must emit structured `next_action` and `strategy` values chosen
@@ -131,3 +132,40 @@ review and observability surface.
 raw traces or private source files; uploading secrets; sending the frozen `test` split through any
 third-party tracer or judge; sending seed/dev raw text to RAGAS or an LLM judge without a separate
 judge-egress decision; accidental auto-tracing outside the named eval project.
+
+### AD-13 - Evidence-Bound Verification and Grading Ladder
+**Decision.** Separate answerability/refusal from learner-understanding grading, and use the narrowest
+reliable scorer for each decision. Deterministic floors remain non-overridable. Evidence-bound model
+verification or grading is deferred until evals show the deterministic path is insufficient, data egress
+is approved, and the new scorer/verifier is versioned and re-evaluated.
+
+**Answerability/refusal.** The tutor answers only from retrieved, citeable evidence. Below the STOP
+threshold, or with no citeable span, it refuses and queues for review. Refusal recall on
+negative-control/adversarial cases stays a hard tripwire: any change that lowers it is reverted. The
+CONFIRM-band false-refusal slice must first use a deterministic conjunction: CONFIRM band, citation
+resolves, span is on topic, and the case is not adversarial. A future evidence-bound sufficiency
+verifier may be added only as an advisory input inside that conjunction, only after the deterministic
+slice leaves a measured residual false-refusal gap. It judges retrieved spans only, cites span IDs, never
+uses model priors, never operates below STOP, and never converts a deterministic refusal into teaching by
+its own authority.
+
+**Learner grading.** Closed-form and short conceptual checks use deterministic scoring first: exact
+matching, keyword/concept groups, supported synonyms, and optional embedding similarity against the cited
+expected answer or source span. A genuinely open-ended conceptual answer may use an evidence-bound,
+rubric-bound model grader only after deterministic plus embedding scoring is shown insufficient on a
+labeled dev disagreement set that covers false negatives, false positives, negation, and parroting. A
+model grader may correct deterministic misses only when the answer is entailed by cited course evidence;
+the rubric alone is not enough to advance the learner.
+
+**Why.** "Deterministic forever" is too blunt for open-ended tutoring, but "the model thinks it is
+correct" is not a safety story. This ladder keeps the grounded/refusal promise while leaving a measured
+path to semantic judgment when the answer type earns it.
+
+**Data and eval rules.** Any model verifier or grader is data egress unless it runs locally. It needs a
+recorded egress approval, seed/dev cloud-safe scope unless separately approved, no frozen `test` split,
+redacted committed artifacts, scorer/verifier versioning, and before/after evals reported as new runs.
+
+**Rejected.** A single all-purpose model judge for both answerability and grading; model self-confidence
+as a gate; model verification below STOP; model grading before a labeled insufficiency set exists;
+sending the frozen `test` split to a judge; treating CRAG, Self-RAG, or explicit graph vocabulary as a
+reason to add model layers before the evals earn them.

@@ -1,11 +1,12 @@
 # Roadmap
 
-Status updated: 2026-06-26.
+Status updated: 2026-06-28.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
-course facts still come from retrieved citations, grading remains deterministic, and the held-out `test`
-split remains unused until final evaluation/reporting.
+course facts still come from retrieved citations, the current grading gate remains deterministic while
+future open-ended grading follows the evidence-bound ladder in `docs/decisions.md` AD-13, and the
+held-out `test` split remains unused until final evaluation/reporting.
 
 Production hardening is tracked in [`docs/production-roadmap.md`](../docs/production-roadmap.md). That
 roadmap preserves the current direction but makes "reliable" measurable before more product surface is
@@ -16,16 +17,17 @@ provider resilience, stable corpus references, and datastore/deployment seams.
 
 Week-4 evaluation changed the next build order. Retrieval recall is healthy, refusal recall remains the
 load-bearing guardrail, and the remaining quality work is mostly post-retrieval behavior:
-false-refusal precision on teachable borderline cases, cheap concept-aware grading, then bounded Turn-2
-recovery specialization. The reasoning is captured in
+false-refusal precision on teachable borderline cases, then bounded Turn-2 recovery specialization. The
+first cheap concept-aware grading slice has landed; future embedding/model-assisted grading remains
+deferred behind measured insufficiency and AD-13. The reasoning is captured in
 [`docs/agentic-orchestration-improvement-review.md`](../docs/agentic-orchestration-improvement-review.md);
 the completed provenance learning note is
 [`docs/post-v1-eval-provenance-learning.md`](../docs/post-v1-eval-provenance-learning.md).
 
 The immediate priority is **not** adding more agents or direct LangGraph. It is to keep the grounded
-core stable while improving the next weak decisions: how to avoid literal keyword grading false
-negatives, when to salvage teachable CONFIRM-band cases, and how to run one bounded recovery cycle after
-a real stumble.
+core stable while improving the next weak decisions: when to salvage teachable CONFIRM-band cases, how
+to run one bounded recovery cycle after a real stumble, and how to keep future grading upgrades
+evidence-bound instead of model-self-confident.
 
 Current priority stack:
 
@@ -35,10 +37,11 @@ Current priority stack:
    `role -> span_id` when evidence is selected and enforces slide, then handout, then first citeable span
    for checks. Citation F1 improved from `0.45` to `0.6333` without task-completion or refusal-safety
    regression.
-3. **Next: cheap semantic grading** — add deterministic synonym/concept coverage before Turn-2
-   recovery so literal keyword false negatives do not pollute recovery metrics. The plan is
+3. **Done: cheap semantic grading + eval-harness proof** — deterministic synonym/concept coverage is
+   scorer-versioned as `concept-v1`, and a synthetic cloud-safe proof shows the eval aggregate can
+   surface semantic-decisive grading. The plan is
    [`docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md`](../docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md).
-4. **CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
+4. **Next: CONFIRM-band false-refusal precision** — improve only cases with resolved, on-topic, citeable
    CONFIRM-band evidence where the model refused anyway. STOP remains untouched; refusal recall is the
    tripwire.
 5. **Bounded Turn-2 recovery** — one-cycle diagnose → strategy map → grounded re-teach → same-span
@@ -167,10 +170,10 @@ This list is future-only; shipped pull-ins stay in Done. Near-term quality work 
 surfaces. Items that also appear in the active priority stack are listed here because they are planned
 but not implemented; the active stack above is the binding order for the next slices.
 
-1. **Semantic check-answer grading, cheap slice first** — keep Python as the pass/fail gate, but evolve
-   open-answer checks from literal keyword matching to deterministic synonym/concept coverage before
-   Turn-2 recovery. Optional embedding similarity and any LLM-judge audit are later scorer-versioned
-   changes, behind data-egress approval where applicable.
+1. **Grader evolution beyond the cheap semantic slice** — keep the current deterministic scorer as the
+   MVP gate, but allow future open-answer checks to move from keyword/synonym coverage to embedding
+   similarity and, only if earned, evidence-bound model grading. Each step is scorer-versioned,
+   re-evaluated, and governed by AD-13 plus data-egress approval where applicable.
 2. **Bounded Turn-2 recovery specialization** — a one-cycle, grounded recovery path after a learner
    stumbles: diagnose error type, map to a strategy, re-teach from a selected recovery span, and ask a
    smaller same-span check. Memory does not influence this path until memory-hardening has its own eval.
@@ -216,8 +219,9 @@ material.
   raw user IDs/emails, learner answers, generated tutor text, private corpus/eval text, retrieved spans,
   quiz prompts/options/rationales, or uncited course claims.
 - **Grader evolution.** The Week-4 v1 metrics are tied to the current deterministic scorer. Any semantic
-  grading, embedding-similarity, or LLM-judge change must be separately versioned, re-evaluated on the
-  same golden set, and reported as a new result, not retrofitted onto the submitted baseline.
+  grading, embedding-similarity, evidence-bound model grader, or answerability verifier change must be
+  separately versioned, re-evaluated, and reported as a new result, not retrofitted onto the submitted
+  baseline. Model-assisted rungs also need the AD-13 eval and egress gates.
 - **Demo artifact privacy.** Local/private demo trace cards may show decision basis and labeled
   action/band status, but raw trace JSON, generated screenshots, generated DOCX packets, secrets, and
   unreviewed corpus-bearing captures stay in ignored local paths such as `localdocs/` or `tmp/`.
@@ -231,5 +235,5 @@ CONFIRM-band false-refusal precision — comes before this cut list. It is not o
 
 voice -> explicit LangGraph -> GraphRAG -> flashcards -> multimodal -> admin upload ->
 track-aware retrieval -> caching/model tiering -> memory hardening -> mock interview ->
-Turn-2 recovery -> semantic grading -> **never the grounded teach loop** -> **never the refusal / eval /
-trace path**.
+model-assisted grading/verifier -> Turn-2 recovery -> **never the grounded teach loop** -> **never the
+refusal / eval / trace path**.
