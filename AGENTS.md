@@ -50,10 +50,19 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
 - **Grounded or it refuses.** The tutor only teaches/asks/grades what it can cite from a retrieved span.
   Low retrieval confidence → "I can't find this in the course materials" + escalate. It does **not**
   answer from model priors. The refusal path is load-bearing, not decorative.
-- **Confidence is a real signal, never an LLM self-rating.** Refuse/STOP is driven by retrieval
+- **Answerability is evidence-bound, never model-self-confident.** Refuse/STOP is driven by retrieval
   similarity score + a citation-present check. The current calibrated MVP bands are STOP < 0.40 ·
   CONFIRM 0.40–0.85 · PROCEED > 0.85; recalibrate against the actual index before changing them (see
-  `specs/tech-stack.md` and `docs/teach-loop-threshold-calibration.md`).
+  `specs/tech-stack.md` and `docs/teach-loop-threshold-calibration.md`). Below STOP or with no citeable
+  span, refusal is deterministic and non-overridable. A future CONFIRM-band model verifier may only be
+  evidence-bound and advisory inside the reviewed conjunction in `docs/decisions.md` AD-13; it must
+  judge retrieved spans, not its own confidence.
+- **Grading uses the narrowest reliable scorer.** Closed-form and short conceptual checks use the
+  deterministic grounded scorer first. Open-ended conceptual grading may become evidence-bound and
+  model-assisted only after deterministic plus embedding scoring is measured insufficient on labeled
+  dev cases, data egress is approved, and the scorer is versioned and re-evaluated. A model grader must
+  be rubric-bound, citation-bound, and governed by AD-13; it is not an immediate replacement for the
+  current MVP gate.
 - **Citations captured at retrieval, never reconstructed.** Every claim carries its source
   (`week · title · timestamp` / `chunk_index`). An answer that cites a source it didn't retrieve is a
   correctness bug.

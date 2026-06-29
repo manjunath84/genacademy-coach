@@ -15,7 +15,7 @@ through clean metadata and adapter seams.
 | Corpus | **Local owned corpus in `corpus/`** | `notes/`, `slides/`, `handouts/`, and `transcripts/` are the indexable sources; `eval-questions/` is never indexed. Content stays local/gitignored. |
 | Auth | **Gradio `launch(auth=...)` + Week-2 SQLite user store** | Cohort member/admin login is enforced at the web boundary. Admin account creation reuses the Week-2 bcrypt/password table; core tutor logic stays framework-free. |
 | State | **Within-session profile + optional episodic memory** | `style`, `track_lens`, optional `bridge_from`, `known[]`, `struggled[]`, coverage, and turn budget stay in session. Mem0-backed cross-session memory is off by default and stores only safe learner-state hashes/counts. |
-| Grading | **Deterministic grounded gate** | The MVP pass/fail decision uses normalized answer matching plus citation-resolves checks. The inherited LLM judge is a secondary faithfulness audit, not the gate. |
+| Grading | **Narrowest reliable scorer; deterministic MVP gate** | The current pass/fail decision uses normalized answer matching, semantic aliases, and citation-resolves checks. Open-ended model-assisted grading is deferred behind AD-13's evidence-bound ladder: labeled insufficiency evidence, egress approval, scorer versioning, and re-evaluation. |
 | Trace | **Local JSON trace + CLI pretty print + allow-listed UI cards; private LangSmith eval traces by owner approval** | The local artifact remains the reproducible agenticity proof. The Gradio demo renders safe decision-basis/status cards from allow-listed metadata. LangSmith is adopted for Week-4 evaluation in a private project; seed/dev golden eval runs may be uploaded with raw inputs/outputs only when explicitly owner-approved and documented. The frozen `test` split, secrets, public screenshots, and committed raw traces remain forbidden (see `docs/decisions.md` AD-12 and `docs/week4-eval-plan.md`). Custom HTML is deferred. |
 | Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
 | Build tooling | **Codex / Claude Code with gates** | Builder and reviewer are different models or contexts; no code until the implementation plan is approved. |
@@ -41,8 +41,13 @@ through clean metadata and adapter seams.
 ## Binding Guardrails (Review-Blockers)
 
 - **Grounded-or-refuse.** The tutor only teaches/asks/grades what it can cite from retrieved spans.
-- **Real confidence signal.** Refuse/STOP is driven by retrieval score plus citation-present checks,
-  never an LLM self-rating. Confidence calibration is measured by `source_type` for the MVP.
+- **Evidence-bound answerability.** Refuse/STOP is driven by retrieval score plus citation-present
+  checks, never an LLM self-rating. Below STOP or with no citeable span, refusal is deterministic.
+  CONFIRM-band model verification is deferred and may only become an advisory, cited-span-only input
+  inside the AD-13 conjunction after deterministic false-refusal work is measured insufficient.
+- **Narrowest reliable grader.** Closed-form and short conceptual checks use deterministic scoring
+  first. Evidence-bound model grading for open-ended answers is a future AD-13 rung, not the active MVP
+  gate.
 - **Citations captured at retrieval.** Never reconstruct a citation after generation.
 - **Agenticity = runtime decisioning shown in a trace.** Python enforces safety; the model chooses
   `advance`, `re_explain_differently`, `drill`, `refuse_escalate`, or `stop` plus a strategy.

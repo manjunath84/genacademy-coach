@@ -244,7 +244,8 @@ Move the lightweight semantic layer earlier:
 Keep heavier grading later:
 
 - embedding similarity
-- LLM judge as offline audit or tie-break
+- evidence-bound model grading or LLM judge as offline audit/tie-break, only after AD-13 eval and
+  egress gates are met
 
 ### 5. Bounded Turn-2 Recovery Loop
 
@@ -390,6 +391,7 @@ Those belong in a separate memory-hardening slice with retention, consent, and e
 | Role-keyed provenance | Per-role citation F1 improves, overall F1 improves, latency stays flat, retrieval recall@5 and refusal recall do not regress. |
 | CONFIRM-band false-refusal fix | False-refusal rate drops on a new borderline subset, refusal precision improves, refusal recall remains 1.000. |
 | Synonym/concept grading | New scorer version reported separately, agreement/regression checked against existing deterministic scorer. |
+| Evidence-bound verifier/grader | Deferred until deterministic/embedding paths leave a labeled residual gap; requires AD-13 scorer/verifier versioning, egress approval, redacted artifacts, and no frozen `test` split. |
 | Turn-2 recovery | Recovery success improves versus the current single-shot re-explain on the same scenarios; grounded citation preserved; recovery latency stays under a declared ceiling. |
 | Mock interview | Separate plan and privacy review before build; explicit LangGraph only if durable state or HITL is required. |
 | Memory hardening | Separate eval with seeded memory states, retention policy, and privacy review. |

@@ -26,8 +26,8 @@ For post-Week-4 work, start with:
 - `docs/agentic-orchestration-improvement-review.md` - measured diagnosis and orchestration options.
 - `docs/post-v1-eval-provenance-learning.md` - beginner-friendly explanation of the merged provenance
   changes and PR #53 review follow-ups.
-- `docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md` - active plan for deterministic
-  concept-aware grading before bounded recovery implementation.
+- `docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md` - completed plan for
+  deterministic concept-aware grading before bounded recovery implementation.
 - `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` - reviewable plan for the
   bounded Turn-2 recovery slice, with prerequisite gates for false-refusal precision and cheap grading.
 - `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md` - completed citation-miss audit plan.
@@ -39,8 +39,9 @@ For post-Week-4 work, start with:
 - `docs/week4-eval-dashboard-data.json` - redacted dashboard metrics used for trend evidence.
 
 The current architectural stance is conservative: keep the grounded core, improve false-refusal
-precision and grading, then add one bounded recovery specialist before considering broader multi-agent
-orchestration or explicit LangGraph graphs.
+precision next, then add one bounded recovery specialist before considering broader multi-agent
+orchestration or explicit LangGraph graphs. AD-13 records the future evidence-bound verifier/grader
+ladder, but those model-assisted rungs are deferred until eval evidence and egress gates earn them.
 
 ## Task Routing
 
@@ -51,7 +52,7 @@ Use this table to avoid opening the whole docs folder blindly.
 | New feature or architecture change | `AGENTS.md`, `specs/mission.md`, `specs/tech-stack.md`, `specs/roadmap.md`, `docs/decisions.md` |
 | Teach-loop behavior | `docs/teach-loop-status.md`, `docs/teach-loop-threshold-calibration.md`, `docs/week4-eval-progress-handoff.md` |
 | Citation, provenance, or eval failures | `docs/week4-eval-plan.md`, `docs/week4-eval-progress-handoff.md`, `docs/agentic-orchestration-improvement-review.md`, `docs/post-v1-eval-provenance-learning.md`, `docs/superpowers/plans/2026-06-26-citation-provenance-audit.md`, `docs/superpowers/plans/2026-06-27-role-keyed-provenance.md`, `docs/citation-provenance-audit-current-main-r3-20260624.json` |
-| Semantic grading or Turn-2 recovery planning | `docs/agentic-orchestration-improvement-review.md`, `specs/roadmap.md`, `docs/post-v1-eval-provenance-learning.md`, `docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md`, `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` |
+| Semantic grading, AD-13, or Turn-2 recovery planning | `docs/decisions.md`, `docs/agentic-orchestration-improvement-review.md`, `specs/roadmap.md`, `docs/build-learnings.md`, `docs/post-v1-eval-provenance-learning.md`, `docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md`, `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` |
 | Retrieval/index changes | `docs/genacademy-rag-foundation.md`, `docs/foundation-adapter-spec.md`, `docs/teach-loop-retrieval-triage.md`, `specs/tech-stack.md` |
 | UI/demo changes | `docs/architecture-diagrams.md`, `docs/teach-loop-status.md`, relevant UI/demo plans in `docs/superpowers/plans/` |
 | Deployment | `docs/hugging-face-deployment-plan.md`, `docs/production-roadmap.md` |
@@ -73,14 +74,14 @@ Historical files are useful evidence, but they do not override the active roadma
 
 ### Architecture And Decisions
 
-- `docs/decisions.md` - architecture decision records AD-1 through AD-12.
+- `docs/decisions.md` - architecture decision records AD-1 through AD-13.
 - `docs/architecture.md` - trust boundary and adapter overview.
 - `docs/architecture-diagrams.md` - Mermaid diagrams for product surface, runtime, state, failure paths,
   eval boundaries, and roadmap.
 - `docs/agentic-orchestration-improvement-review.md` - post-feedback orchestration analysis, options,
   and final priority order.
 - `docs/superpowers/plans/2026-06-27-semantic-check-answer-grading.md` - implementation plan for the
-  deterministic semantic grading prerequisite before recovery.
+  completed deterministic semantic grading prerequisite before recovery.
 - `docs/superpowers/plans/2026-06-27-bounded-turn2-recovery-orchestration.md` - implementation plan for
   one bounded recovery cycle after a learner stumbles.
 - `docs/production-roadmap.md` - longer-term production hardening roadmap.
