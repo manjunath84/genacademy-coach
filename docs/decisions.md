@@ -161,9 +161,10 @@ the rubric alone is not enough to advance the learner.
 correct" is not a safety story. This ladder keeps the grounded/refusal promise while leaving a measured
 path to semantic judgment when the answer type earns it.
 
-**Data and eval rules.** Any model verifier or grader is data egress unless it runs locally. It needs a
-recorded egress approval, seed/dev cloud-safe scope unless separately approved, no frozen `test` split,
-redacted committed artifacts, scorer/verifier versioning, and before/after evals reported as new runs.
+**Data and eval rules.** External model verifier or grader use is data egress and requires recorded
+egress approval plus seed/dev cloud-safe scope unless separately approved. Every model verifier or
+grader, local or external, must exclude the frozen `test` split, keep committed artifacts redacted, use
+scorer/verifier versioning, and report before/after evals as new runs.
 
 **Rejected.** A single all-purpose model judge for both answerability and grading; model self-confidence
 as a gate; model verification below STOP; model grading before a labeled insufficiency set exists;

@@ -1,6 +1,6 @@
 # Roadmap
 
-Status updated: 2026-06-28.
+Status updated: 2026-06-29.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
@@ -235,5 +235,4 @@ CONFIRM-band false-refusal precision — comes before this cut list. It is not o
 
 voice -> explicit LangGraph -> GraphRAG -> flashcards -> multimodal -> admin upload ->
 track-aware retrieval -> caching/model tiering -> memory hardening -> mock interview ->
-model-assisted grading/verifier -> Turn-2 recovery -> **never the grounded teach loop** -> **never the
-refusal / eval / trace path**.
+Turn-2 recovery -> **never the grounded teach loop** -> **never the refusal / eval / trace path**.

@@ -10,7 +10,7 @@
 
 ---
 
-## 2026-06-28 — Deterministic is a floor, not a religion
+## 2026-06-29 — Deterministic is a floor, not a religion
 
 **What I believed:** keeping grading and refusal deterministic was the safest way to preserve the
 "grounded or refuse" promise.
