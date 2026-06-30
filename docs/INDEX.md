@@ -23,6 +23,13 @@ commit or quote `localdocs/` content unless the owner explicitly asks.
 
 For post-Week-4 work, start with:
 
+- `docs/coach-v2-week1-prd.md` - draft PRD/planning record for Coach v2: Week-1 corpus-first rollout,
+  default cross-lane synthesis, optional filters, GitHub source acquisition, and staged voice/current-docs
+  and cohort-ops roadmap.
+- `docs/coach-v2-redesign-second-review.md` - second adversarial review after cohort-ops and Week-1
+  corpus direction; identifies lane-starvation as the key Slice-0 retrieval risk.
+- `docs/coach-v2-redesign-adversarial-review.md` - first adversarial review of the v2 corpus-filter,
+  voice, and current-docs plan.
 - `docs/agentic-orchestration-improvement-review.md` - measured diagnosis and orchestration options.
 - `docs/post-v1-eval-provenance-learning.md` - beginner-friendly explanation of the merged provenance
   changes and PR #53 review follow-ups.
@@ -76,6 +83,9 @@ Historical files are useful evidence, but they do not override the active roadma
 
 - `docs/decisions.md` - architecture decision records AD-1 through AD-13.
 - `docs/architecture.md` - trust boundary and adapter overview.
+- `docs/coach-v2-week1-prd.md` - draft PRD/planning record for the Week-1-first Coach v2 direction.
+- `docs/coach-v2-redesign-second-review.md` - second-pass adversarial review for Coach v2.
+- `docs/coach-v2-redesign-adversarial-review.md` - first-pass adversarial review for Coach v2.
 - `docs/architecture-diagrams.md` - Mermaid diagrams for product surface, runtime, state, failure paths,
   eval boundaries, and roadmap.
 - `docs/agentic-orchestration-improvement-review.md` - post-feedback orchestration analysis, options,
