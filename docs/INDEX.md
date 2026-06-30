@@ -26,6 +26,9 @@ For post-Week-4 work, start with:
 - `docs/coach-v2-week1-prd.md` - draft PRD/planning record for Coach v2: Week-1 corpus-first rollout,
   default cross-lane synthesis, optional filters, GitHub source acquisition, and staged voice/current-docs
   and cohort-ops roadmap.
+- `docs/coach-v2-tutor-workspace-review.md` - adversarial review of the tutor workspace / companion
+  context-pane direction; treats the pane as a grounded provenance projection and defers the full
+  workspace UI beyond Slice 0.
 - `docs/coach-v2-redesign-second-review.md` - second adversarial review after cohort-ops and Week-1
   corpus direction; identifies lane-starvation as the key Slice-0 retrieval risk.
 - `docs/coach-v2-redesign-adversarial-review.md` - first adversarial review of the v2 corpus-filter,
@@ -84,6 +87,8 @@ Historical files are useful evidence, but they do not override the active roadma
 - `docs/decisions.md` - architecture decision records AD-1 through AD-13.
 - `docs/architecture.md` - trust boundary and adapter overview.
 - `docs/coach-v2-week1-prd.md` - draft PRD/planning record for the Week-1-first Coach v2 direction.
+- `docs/coach-v2-tutor-workspace-review.md` - design/product review for the v2 tutor workspace context
+  pane.
 - `docs/coach-v2-redesign-second-review.md` - second-pass adversarial review for Coach v2.
 - `docs/coach-v2-redesign-adversarial-review.md` - first-pass adversarial review for Coach v2.
 - `docs/architecture-diagrams.md` - Mermaid diagrams for product surface, runtime, state, failure paths,

@@ -20,6 +20,25 @@ through clean metadata and adapter seams.
 | Eval | **Hard-split real chat questions** | Held-out test comes from live student chat questions in `corpus/eval-questions/`. Optional NotebookLM or "Quiz Yourself" material may become dev/seed only. |
 | Build tooling | **Codex / Claude Code with gates** | Builder and reviewer are different models or contexts; no code until the implementation plan is approved. |
 
+## Frontend Boundary
+
+The near-term learner and admin surfaces remain **Gradio-native**. Gradio is the shipped thin view for
+Teach, Quiz, Skill-Gap, auth/admin, trace cards, and the first Coach v2 evidence-card/context-pane proof.
+Use Gradio to validate retrieval behavior and user workflow before changing the web edge.
+
+**FastAPI + HTMX is the production target, not an immediate rewrite.** Introduce it only after a
+UI-neutral application service layer exists and the current Gradio app calls that layer through typed
+DTOs. The migration trigger is product need: route-level security tests, better session/resume behavior,
+admin workflows, progress/SSE streaming, production accessibility control, or deployment constraints
+that Gradio cannot satisfy cleanly.
+
+Review blockers:
+
+- no FastAPI, HTMX, template, or route imports inside the core;
+- no custom HTML or frontend migration inside Slice 0;
+- no FastAPI/HTMX edge before the service boundary has tests;
+- no duplicate UI logic: Gradio and any future FastAPI/HTMX surface call the same services.
+
 ## Handout Alignment
 
 - **Agentic system, not one-shot RAG:** the model observes retrieval, grading, learner response, and

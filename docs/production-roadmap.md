@@ -61,6 +61,10 @@ never silently advance the learner. The decision step runs at temperature `0`.
 
 ## Target Architecture
 
+This target is not a near-term rewrite of the current Gradio app. Gradio remains the validation UI until
+Phase 2 creates UI-neutral services and typed DTOs. FastAPI + HTMX starts in Phase 3 as the production web
+edge over those services, not as a parallel implementation of tutor logic.
+
 ```text
 Browser
   -> FastAPI + HTMX web edge
@@ -139,13 +143,15 @@ invalid agent decision, and rate/cost limit reached.
 ### Phase 2 - Application Service Boundary And Concurrency Model
 
 - Add UI-neutral services and typed DTOs for Teach, Quiz, Skill-Gap, auth/admin, review queue, and
-  memory status.
+  memory status, plus the Coach v2 context-pane payload.
 - Make Gradio call those services before FastAPI is introduced.
 - Document the sync/threadpool/worker boundary.
 - Keep web-framework imports out of the core.
 
 ### Phase 3 - FastAPI/HTMX Edge, Validation, Security Gates
 
+- Start only after Phase 2 service-boundary tests pass; do not duplicate tutor, retrieval, grading, or
+  context-pane logic in route handlers.
 - Add FastAPI only under the web edge package.
 - Use sync route handlers for blocking Coach calls by default.
 - Add input validation and scope gates before expensive calls.

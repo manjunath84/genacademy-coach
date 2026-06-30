@@ -101,6 +101,65 @@ unless a later eval proves track-aware retrieval improves correctness without ha
 Future onboarding questions such as learner role or industry can personalize examples and practice
 framing later, but should not change facts, citations, or retrieval scope.
 
+### Tutor Workspace UI Direction
+
+The v2 tutor experience should feel like a learning workspace, not only a chat box. Use the external
+AI-tutor screenshots discussed during planning as directional reference only; do not copy their layout,
+branding, typography, or visual assets.
+
+The useful pattern to borrow is:
+
+- a conversational tutor pane that explains, checks understanding, and asks clarifying questions when the
+  learner's request is ambiguous;
+- a companion context pane that shows the most relevant grounded course artifact for the current turn;
+- a lightweight progress or notes area that helps the learner orient themselves without overwhelming the
+  tutor flow.
+
+For GenAcademy Coach, the companion context pane must be a projection of the same grounded retrieval and
+role-keyed provenance that produced the tutor response. It must not run a second query, introduce a new
+span, or generate a second answerability decision that can disagree with the tutor pane.
+
+The agent's allowed UI decision is narrow: choose how to render already-cited evidence, or ask a
+clarifying question when the question is ambiguous but still appears to be in-corpus. Below STOP or with
+no citeable span, the tutor refuses and escalates; it does not ask for a rephrase to bypass the refusal
+floor.
+
+For the later full workspace slice, the companion pane can render already-cited evidence like this:
+
+- if a matching slide exists, show the relevant slide or slide-derived visual context;
+- if the handout is the stronger evidence, show the relevant handout excerpt or summary card;
+- if the live transcript contains the clearest explanation, show the transcript-backed explanation lane;
+- if multiple lanes are useful, show a compact source switcher rather than crowding the screen;
+- if the topic is ambiguous but in-corpus, ask a clarifying question before filling the context pane with
+  low-confidence material.
+
+This right-side pane must remain evidence-bound. It should not become decorative content generated from
+model priors. The panel title, source label, citation, and lane should make clear whether the visible
+context came from slides, handouts, transcripts, or approved Q&A. In Slice 0, this means the system emits
+the per-turn context-pane data contract and may render only a minimal read-only evidence card. Slide
+images, source switchers, summary cards, and richer two-pane workspace behavior are deferred to a
+separately reviewed UI slice. Any later summary card must pass the same grounding checks as the tutor
+answer; otherwise the pane should show an extractive span, not a generated summary.
+
+### Frontend Boundary
+
+Keep the next Coach v2 slices Gradio-native. Slice 0 and the first minimal evidence-card UI should prove
+the corpus, retrieval, citation, refusal, and context-pane data contract without a frontend migration.
+Do not introduce FastAPI, HTMX, or custom HTML as part of Slice 0.
+
+FastAPI + HTMX remains the preferred production web edge, but only after the application service
+boundary is in place. The sequence is:
+
+1. define UI-neutral service methods and typed DTOs for Teach, Quiz, Skill-Gap, auth/admin, review queue,
+   memory status, and the context-pane payload;
+2. make the existing Gradio surface call those services;
+3. add FastAPI + HTMX under the web edge when the product needs stronger route-level tests, session
+   resume, progress/SSE behavior, admin flows, and production accessibility control.
+
+The core rule does not change: retrieval, grading, tutor decisions, learner profile, traces, and corpus
+selection stay framework-free. Gradio and any future FastAPI/HTMX surface are thin views over the same
+services.
+
 ## Slice 0 Scope
 
 Slice 0 is learner retrieval only: no admin UI, no voice, no current-docs/web, no admin upload.
@@ -116,9 +175,14 @@ Required outcomes:
 5. Optional filters are strict when active.
 6. Answers show per-lane citations.
 7. Missing lanes are omitted or labeled as not found.
-8. Confidence bands are recalibrated for the new Week-1 corpus version.
-9. Dev eval is rerun and recorded as a new corpus-version result.
-10. Frozen held-out eval data remains untouched and unindexed.
+8. Slice 0 emits, per turn, the cited lane(s), citation IDs, privacy-safe display labels, extractive
+   excerpts, and grounding posture needed to render a future context pane.
+9. Optionally, Slice 0 may render a minimal read-only evidence card for the primary cited teaching span;
+   it must not include a source switcher, slide images, generated summaries, or an independent panel
+   retrieval.
+10. Confidence bands are recalibrated for the new Week-1 corpus version.
+11. Dev eval is rerun and recorded as a new corpus-version result.
+12. Frozen held-out eval data remains untouched and unindexed.
 
 ## Technical Risks To Solve First
 
@@ -137,6 +201,13 @@ recalibration, and dev eval run.
 
 Synthesizing across slides, transcripts, and handouts increases the risk of blending claims. Every shown
 lane needs its own citations and tests that verify claims resolve to the correct lane.
+
+### Panel-Tutor Divergence
+
+The companion context pane can undermine grounding if it runs a second retrieval, shows content the tutor
+did not cite, or generates a visual/summary from model priors. The panel must render only spans already
+present in the current turn's provenance map. Clarifying questions are allowed only for
+ambiguous-but-in-corpus cases; out-of-corpus or below-STOP questions must still refuse and escalate.
 
 ### Filter Leakage (Top-Span Injection)
 
@@ -266,9 +337,11 @@ Before code, update or create the following:
   acquisition.
 - `specs/roadmap.md`: add Slice 0 through Slice 6 sequence.
 - `docs/decisions.md`: add ADs for source-lane synthesis, current-docs/web, voice, voice cloning,
-  guest/private metadata, cohort ops, and corpus-versioning.
+  guest/private metadata, cohort ops, corpus-versioning, and the companion context pane as a grounded
+  provenance projection.
 - `docs/foundation-adapter-spec.md`: describe the retriever/filter/lane-selection delta.
-- `corpus/README.md`: document approved source layout, private GitHub URL handling, and manifest rules.
+- `corpus/README.md`: document approved source layout, private GitHub URL handling, manifest rules, and
+  privacy-safe display labels that decouple UI labels from raw filenames.
 
 ## Acceptance Criteria For Slice 0 Plan
 
@@ -279,6 +352,8 @@ An implementation plan for Slice 0 is ready only when it includes:
 - retrieval filter and source-lane selection design;
 - refusal behavior for filtered-empty cases;
 - per-lane citation behavior;
+- per-turn companion context-pane data contract for already-cited slide/handout/transcript/Q&A evidence;
+- panel-provenance consistency tests, with the full agentic context pane deferred to a separate UI slice;
 - eval/leak/recalibration commands;
 - privacy checks for source URLs and corpus material;
 - a separate reviewer step before build.
