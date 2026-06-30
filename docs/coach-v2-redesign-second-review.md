@@ -1,7 +1,5 @@
 # GenAcademy Coach V2 — Second-Pass Adversarial Review (cohort-ops added)
 
-> **Destination:** to be saved as `docs/coach-v2-redesign-second-review.md` after approval (plan mode
-> currently restricts writes to this plan file).
 > **Context.** Second independent pass over the v2 redesign after new **cohort-operations / admin**
 > requirements and a clarified **default no-filter, cross-lane synthesis** behavior were added. Prior
 > evidence: `docs/coach-v2-redesign-adversarial-review.md` (first pass). Per the

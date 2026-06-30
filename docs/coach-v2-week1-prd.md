@@ -138,7 +138,21 @@ recalibration, and dev eval run.
 Synthesizing across slides, transcripts, and handouts increases the risk of blending claims. Every shown
 lane needs its own citations and tests that verify claims resolve to the correct lane.
 
+### Filter Leakage (Top-Span Injection)
+
+When an optional filter is active, selection must not re-admit a non-matching span. Current selection
+force-injects the single highest-scored span even when it fails the active facet filter, so a narrowed
+("slides-only", "Week-1-only") answer can still surface an off-lane or off-week chunk. The top-span
+injection must become filter-aware, with a test asserting that no returned or cited span carries a
+non-matching facet. See `docs/coach-v2-redesign-adversarial-review.md` (B1).
+
 ## Later Roadmap
+
+> **Sequencing.** This Slice 0–6 order is the *internal* v2 sequence. It sits **after** the in-flight
+> roadmap work that `specs/roadmap.md` still marks as binding-next — CONFIRM-band false-refusal
+> precision (#4) and bounded Turn-2 recovery (#5). v2 is not scheduled ahead of that work unless the
+> owner explicitly reprioritizes, in which case `specs/roadmap.md` must record the change. Both
+> adversarial reviews flag this; the two roadmaps must not disagree about what is next.
 
 1. **Slice 0 - Week-1 learner retrieval:** notes excluded, manifest metadata, cross-lane synthesis,
    optional filters, recalibration, dev eval.

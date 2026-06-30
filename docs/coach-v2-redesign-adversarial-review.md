@@ -114,7 +114,7 @@ or history to Tavily/Context7 is data egress equivalent in seriousness to the La
 - **Cost/latency caps become real.** Web + voice bill per call on a deployed Space; per-user cost caps
   (already a roadmap pull-in) move from "later" to "before cohort enablement."
 - **Over-engineering risk (the MVP-vs-scale trade).** A full filter UI (resource × week × session ×
-  guest) over a corpus of *dozens* of files (`corpus/*`: 8 slides, 14 handouts, 9 transcripts) is heavier
+  guest) over a corpus of *dozens* of files (`corpus/*`: slides, handouts, and transcripts) is heavier
   than the corpus warrants. Start with the two facets that earn their keep (resource-type, week).
 
 ---
