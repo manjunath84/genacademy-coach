@@ -141,6 +141,25 @@ images, source switchers, summary cards, and richer two-pane workspace behavior 
 separately reviewed UI slice. Any later summary card must pass the same grounding checks as the tutor
 answer; otherwise the pane should show an extractive span, not a generated summary.
 
+### Frontend Boundary
+
+Keep the next Coach v2 slices Gradio-native. Slice 0 and the first minimal evidence-card UI should prove
+the corpus, retrieval, citation, refusal, and context-pane data contract without a frontend migration.
+Do not introduce FastAPI, HTMX, or custom HTML as part of Slice 0.
+
+FastAPI + HTMX remains the preferred production web edge, but only after the application service
+boundary is in place. The sequence is:
+
+1. define UI-neutral service methods and typed DTOs for Teach, Quiz, Skill-Gap, auth/admin, review queue,
+   memory status, and the context-pane payload;
+2. make the existing Gradio surface call those services;
+3. add FastAPI + HTMX under the web edge when the product needs stronger route-level tests, session
+   resume, progress/SSE behavior, admin flows, and production accessibility control.
+
+The core rule does not change: retrieval, grading, tutor decisions, learner profile, traces, and corpus
+selection stay framework-free. Gradio and any future FastAPI/HTMX surface are thin views over the same
+services.
+
 ## Slice 0 Scope
 
 Slice 0 is learner retrieval only: no admin UI, no voice, no current-docs/web, no admin upload.
