@@ -102,7 +102,10 @@ card, next-step suggestions) is fully designed, adversarially reviewed by a seco
 Phase-1 build is next — on the current index, text-first, with a curated Week-1 demo path (the
 Week-1-only corpus substrate is its own later phase). Later phases (each gated): agentic panel
 curation → opt-in current-docs lookup (separate, clearly-labeled lane) → voice in/out → consent-gated
-tutor voice → admin ingestion with eval-contamination checks → cohort auth → learner progress view.
+tutor voice → admin ingestion with eval-contamination checks → cohort auth → learner progress view →
+a **Personal Coach** phase: mock-interview studio (multi-agent interviewer / evaluator / coach),
+gap-driven flash cards + mastery levels, and a personalized, learner-editable study planner
+(placement assessment → skill-gap map → a time-budget-honest plan: *feasible or flag*).
 
 ---
 
