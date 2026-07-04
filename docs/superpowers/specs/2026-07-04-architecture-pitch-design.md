@@ -42,21 +42,25 @@ One learner turn, three horizontal bands plus a refusal branch and a next-turn l
 for the one-pager (rendering follows the mockup theme):
 
 **Band 1 — deterministic intake (system's call; model cannot override):**
-1. One source-prioritized retrieval (slides/handouts lead; week/session/source filters strict —
-   never silently widened).
-2. Evidence score → band: STOP < 0.40 · CONFIRM 0.40–0.85 · PROCEED > 0.85.
-3. Citations captured at retrieval, role-keyed — never reconstructed from the answer.
+1. One source-prioritized retrieval — slides/handouts lead via source-priority ordering (shipped).
+   Strict week/session/source filters ("never silently widened") are a PRD/Phase-1 requirement and
+   carry the build-slice tag on the one-pager.
+2. Evidence score → band: STOP < 0.40 · CONFIRM 0.40–0.85 · PROCEED > 0.85 (shipped).
+3. Citations captured at retrieval — never reconstructed from the answer (shipped); role-keying
+   per answer part arrives with the panel (Phase-1).
 
 **Band 2 — teaching brain (agent's call; every choice logged per turn):**
 4. Teaching move: explain / step-by-step / clarify / quiz / re-explain / refuse+escalate.
 5. Explanation lens: low-code / code-heavy / bridge.
 6. Grounded check-question generated from a cited span.
 
-**Band 3 — deterministic projection (always runs):**
-7. Panel = projection of the *same* retrieval: cited spans by lane + the real slide image
-   (answer and evidence can never disagree — no second search).
-8. Next-step chips, corpus-anchored only ("never suggest what you'd refuse").
-9. Trace + eval capture → the dashboard numbers.
+**Band 3 — deterministic projection:**
+7. *(Phase-1 build slice — design merged, not built)* Panel = projection of the *same* retrieval:
+   cited spans by lane + the real slide image (answer and evidence can never disagree — no second
+   search).
+8. *(Phase-1 build slice)* Next-step chips, corpus-anchored only ("never suggest what you'd
+   refuse").
+9. *(shipped)* Trace + eval capture → the dashboard numbers.
 
 **Refusal branch (from the STOP band):** refuse + mentor escalation + recovery chips routing back
 into the corpus. Caption: "refusal is a feature with its own metric, not an error page."
@@ -66,7 +70,10 @@ the agent *observes* that and may choose re-explain-differently (analogy / simpl
 contrastive). This loop is the autonomy evidence: same question, different learners, different paths.
 
 Module mapping shown as small print per band (grounding.py · teach_agent.py · semantic_grading.py ·
-escalation.py · trace.py) — signals "this diagram is the code, not aspiration."
+escalation.py · trace.py). Bands 1–2, the refusal branch, and trace/eval capture map to shipped
+modules; the panel, chips, and strict filters carry a visible build-slice tag. The one-pager uses
+a two-state legend (● shipped · ◐ Phase-1 build slice) — the handout's three-state honesty, in
+diagram form.
 
 ## 4. Narrative modules
 
@@ -82,8 +89,9 @@ Four beats, escalating:
    which check-question to ask; across turns it adapts via the session profile.
 2. **Why that's autonomy, not workflow:** the path is chosen at runtime from observations
    (grade results, struggle signals), not from a fixed script.
-3. **The receipt:** every choice is logged per turn; the demo's "behind this answer" disclosure
-   shows the actual decision (trajectory eval scores the *chosen action*, not just the prose).
+3. **The receipt:** every choice is logged per turn; today's shipped UI shows it as decision-trace
+   cards, and the Phase-1 workspace renames it to the "behind this answer" disclosure (trajectory
+   eval scores the *chosen action*, not just the prose).
 4. **The scale-out:** the Personal Coach direction is the same sandwich at multi-agent scale —
    interviewer / evaluator / coach / curriculum-planner agents behind a deterministic
    orchestrator; the study planner is "LLM proposes, deterministic scheduler validates and
@@ -98,8 +106,9 @@ Structure: dataset → evaluator types → bars → deltas → honesty beats.
   use, chosen action, citation) · human review.
 - Pass bars fixed at design time, never reverse-engineered.
 - **Honesty beat 1 (disclosed misses):** refusal precision 0.833 → 0.791 and task completion
-  94.7% → 93.3% moved the wrong way; both published with cause analysis (over-conservative
-  refusals — the dominant remaining failure mode, 3 cases, all named on the dashboard).
+  94.7% (infra-excluded baseline, 36/38) → 93.3% (current mean, all 40 cases) moved the wrong
+  way; both published with cause analysis (over-conservative refusals — the dominant remaining
+  failure mode, 3 cases, all named on the dashboard).
 - **Honesty beat 2 (the rejected lever):** a broad citation-fallback was predicted to gain
   +0.10–0.20 citation F1; measured −0.044 *and* −5.2pp task completion → **not shipped**.
   Line: "the eval was our debugger."
@@ -115,8 +124,8 @@ evals before release."
 
 ### Q&A ammo sheet (10-minute cut / prep, one line each)
 - *Why not fine-tune?* Corpus changes weekly; retrieval + citations give provenance fine-tuning
-  can't; a 30B open model (Qwen3-30B via Nebius) plus strong scaffolding beats a bigger model
-  with no receipts.
+  can't. Design choice: a 30B open model (Qwen3-30B via Nebius) with strong deterministic
+  scaffolding — the receipts are the point, not model size.
 - *How do you know citations are real?* Captured at retrieval, role-keyed; faithfulness measured
   as F1; the panel renders only cited spans.
 - *Isn't refusal recall 1.000 just refusing everything?* That's why refusal *precision* is
@@ -126,8 +135,9 @@ evals before release."
 - *Why multi-agent for the Personal Coach?* Interviewer, evaluator, and coach have genuinely
   conflicting objectives in one prompt; role separation under a deterministic orchestrator is the
   same sandwich pattern.
-- *Cost/latency?* ~$0.14 and ~22s p95 per full eval case; turn p95 8.28s against a 12s bar;
-  five production monitoring signals with alert thresholds already defined.
+- *Cost/latency?* ~$0.14 per full 40-case eval run (current reference, runs 2/3 only — baseline
+  cost not comparable, pricing env was unset); case p95 ~21.96s; turn p95 8.28s against a 12s
+  bar; five production monitoring signals with alert thresholds already defined.
 
 ## 5. Numbers policy (hard rule)
 
