@@ -96,16 +96,23 @@ turn p95 latency · cost per run. Baseline → post-improvement delta reported h
 improvement already public: citation F1 0.45 → 0.6333 with no refusal-safety regression). Current
 values live on the project's public eval dashboard.
 
-**Status & scope.** The grounded engine is built and evaluated (teach loop, quiz, skill-gap diagnosis,
-escalation, tracing, eval harness + public dashboard). The Tutor Workspace (context panel, slide-image
-card, next-step suggestions) is fully designed, adversarially reviewed by a second model, and merged;
-Phase-1 build is next — on the current index, text-first, with a curated Week-1 demo path (the
-Week-1-only corpus substrate is its own later phase). Later phases (each gated): agentic panel
-curation → opt-in current-docs lookup (separate, clearly-labeled lane) → voice in/out → consent-gated
-tutor voice → admin ingestion with eval-contamination checks → cohort auth → learner progress view →
-a **Personal Coach** phase: mock-interview studio (multi-agent interviewer / evaluator / coach),
-gap-driven flash cards + mastery levels, and a personalized, learner-editable study planner
-(placement assessment → skill-gap map → a time-budget-honest plan: *feasible or flag*).
+**The full system — one design, built in slices.**
+
+**Built & evaluated:** the grounded engine — teach loop, quiz, skill-gap diagnosis, escalation,
+tracing, eval harness + public dashboard.
+
+**In build this week for the demo:** the Tutor Workspace — context panel with real slide images and
+next-step suggestions (design merged after independent second-model review; runs on the current
+index, text-first, with a curated Week-1 demo path).
+
+**Designed, slotting into the same grounded core:** agentic panel curation · current-docs lookup
+(opt-in, separately cited lane) · voice in/out + consent-gated tutor voice · admin ingestion with
+eval-contamination checks · cohort access · progress analytics · and the **Personal Coach** —
+mock-interview studio (multi-agent interviewer / evaluator / coach), gap-driven flash cards + mastery
+levels, and a learner-editable study planner (placement assessment → skill-gap map → a
+time-budget-honest plan: *feasible or flag*).
+
+Every layer ships through the same gates: grounded-or-refuse, privacy review, evals before release.
 
 ---
 
