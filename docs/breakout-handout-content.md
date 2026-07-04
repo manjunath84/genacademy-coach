@@ -63,8 +63,8 @@ course evidence, shows the exact source beside every answer in a split-pane **Tu
 **refuses and routes to a mentor when it can't ground the answer.** Agentic in how it teaches;
 deterministic in grounding. One grounded core, scoped to grow into the full platform: voice tutoring,
 current-docs awareness, controlled content ingestion, cohort access, progress analytics, and a
-**Personal Coach** (mock-interview studio, gap-driven flash cards + mastery levels, and a personalized
-study planner).
+**Personal Coach** (mock-interview studio with MCQ placement, gap-driven flash cards + quiz drills,
+mastery levels, and a personalized study planner).
 
 **The demo moment.** Ask *"What is LangChain and why use it instead of calling an LLM API directly?"*
 → plain-English tutor answer with citations → the right panel shows the actual course slide (real
@@ -111,9 +111,10 @@ index, text-first, with a curated Week-1 demo path).
 **Scoped, slotting into the same grounded core:** agentic panel curation · current-docs lookup
 (opt-in, separately cited lane) · voice in/out + consent-gated tutor voice · admin ingestion with
 eval-contamination checks · cohort access · progress analytics · and the **Personal Coach direction**
-— a mock-interview studio (multi-agent interviewer / evaluator / coach), gap-driven flash cards +
-mastery levels, and a learner-editable study planner concept (placement assessment → skill-gap map →
-a time-budget-honest plan: *feasible or flag*).
+— a mock-interview studio (multi-agent interviewer / evaluator / coach) with MCQ placement checks,
+gap-driven flash cards + MCQ quiz drills and mastery levels (reusing the shipped quiz engine), and a
+learner-editable study planner concept (placement assessment → skill-gap map → a time-budget-honest
+plan: *feasible or flag*).
 
 Every layer ships through the same gates: grounded-or-refuse, privacy review, evals before release.
 
