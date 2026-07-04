@@ -88,6 +88,8 @@ second-model reviewer) can pick up without re-deriving the reasoning. Continues
   mockups) for July 11/12.
 - **Personal Coach design addendum PR** — queued (loop spec, planner propose-validate-repair,
   factor model, privacy rules, phase gate, learning-objectives map).
-- **PR #58** (pre-dates this arc) still open with one unaddressed finding; owner decision pending.
+- **PR #58** — earlier session context carried it as "open with one unaddressed finding"; that was
+  stale: it merged 2026-06-29 ("Document evidence-bound grading guardrails"). Corrected after the
+  Codex record-accuracy review of this log caught the claim against git history.
 - Handout template's own footer says demo "July 12 to 13" while its body says July 11th/12th —
   template-internal inconsistency, not ours to fix.

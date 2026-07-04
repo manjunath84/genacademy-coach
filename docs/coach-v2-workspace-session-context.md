@@ -85,7 +85,7 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 
 - **PR #61 merged (2026-07-04):** the design package landed on `main`; the follow-on breakout
   submission arc (PRs #62–#65) is logged in `docs/breakout-submission-session-context.md`.
-- **PR #58** (docs-only, pre-dates this thread) still open with one unaddressed finding (roadmap
-  cut-order vs AD-13 framing); owner decision pending.
+- **PR #58** — merged 2026-06-29 ("Document evidence-bound grading guardrails"); an earlier version
+  of this log wrongly listed it as open with a pending finding.
 - **Next workflow step after commit:** `writing-plans` for Phase 1, then build (first plan task:
   productionize the already-spiked deck→slide-image pipeline + panel data contract).
