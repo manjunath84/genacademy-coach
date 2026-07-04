@@ -20,6 +20,10 @@ where the current material sits in the course.
 > deck/section adjacency reference, or a bounded teaching action — validated at creation time.
 > No anchor → the chip is dropped. Clicking a chip submits a normal turn through the full pipeline
 > (retrieval → confidence bands → refusal floor). **Chips are shortcuts, never bypasses.**
+> **And the anchor survives the click:** the chip submits a structured payload (`chip_id`,
+> `anchor_type`, `anchor_id`, `filter_scope`, `reason_code`) — never just its label text — and the
+> receiving turn re-resolves the same anchor or drops the chip as stale. A chip can be invalidated;
+> it can never degrade into a label-only query that self-refuses.
 
 This kills the naive version's worst failure: the system suggesting a topic, the learner clicking it,
 and the deterministic gate refusing the system's own suggestion — a self-inflicted refusal loop.
@@ -56,7 +60,8 @@ this" now re-routes the learner into the corpus with anchored recovery chips.
 ## 5. Agentic vs deterministic (same spine as the rest of the system)
 
 - **Deterministic (Phase 1):** candidate generation (adjacency, near-misses, teach state, memory
-  dedupe), anchor validation, safe labels (reuse the source-label mapping), chip cap (≤4).
+  dedupe), anchor validation, filter-scope compliance (candidates come only from within the learner's
+  active filters — a chip never widens them), safe labels (reuse the source-label mapping), chip cap (≤4).
 - **Agentic (Phase C):** choosing + phrasing the top chips from the validated candidate pool, logged in
   the trace (`suggested: [next-subtopic, quiz, exercise]`). Joins Phase C where "agent curates the
   workspace" already lives.
@@ -89,6 +94,9 @@ SuggestionChip {
 ## 8. Tests / evals (deterministic; golden files and frozen `test` split untouched)
 
 - every chip has a resolvable anchor (drop-if-not invariant);
+- the click payload preserves the anchor (never a label-only submission); stale anchors drop the chip
+  rather than refusing;
+- chips respect the active filter scope; near-miss candidates outside the filter scope are excluded;
 - a suggested topic chip, when submitted, does not deterministically refuse (validated on the dev split
   only);
 - refusal state emits the recovery set, never topic chips without anchors;

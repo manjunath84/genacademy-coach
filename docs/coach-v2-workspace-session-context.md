@@ -56,7 +56,7 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 | Finalized PRD | `docs/coach-product-requirements.md` | in PR #61 |
 | Target-architecture spec (phases A→I + Phase-A build detail) | `docs/superpowers/specs/2026-06-30-tutor-workspace-and-target-architecture-design.md` | in PR #61 |
 | Suggestion-chips design (FR-W10) | `docs/coach-v2-next-step-suggestions.md` | in PR #61 |
-| Public mockups (evidence + refusal, synthetic content) | `docs/assets/mockups/` | in PR #61; FR-W10 chips visualized in both states |
+| Public mockups (evidence + refusal; representative conversation + one approved real slide per FR-W9's recorded exception) | `docs/assets/mockups/` | in PR #61; FR-W10 chips visualized in both states |
 | Private real-slide variant + rendered deck pages | gitignored local docs | local-only, never committed |
 | This context log | `docs/coach-v2-workspace-session-context.md` | in PR #61 |
 
@@ -67,8 +67,8 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 - One retrieval per turn; the panel is a projection of its citations; citations captured at retrieval,
   role-keyed, never reconstructed.
 - Extractive/real-asset only — generated visuals/summaries banned in every phase.
-- Public repo ⇒ corpus content, slide images, internal screenshots, raw filenames never committed;
-  safe display labels only.
+- Public repo ⇒ corpus content, slide images, internal screenshots, raw filenames never committed
+  (single recorded FR-W9 exception: one inspected demo slide, see AGENTS.md §5); safe display labels only.
 - Gates: no code before an approved plan; builder ≠ reviewer; evidence before "done".
 
 ## 4. Loose ends

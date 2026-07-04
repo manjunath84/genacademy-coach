@@ -81,6 +81,9 @@ anchor-validated chips per turn (continue / comprehension / practice; recovery s
 from teach-loop state, corpus adjacency, near-miss retrievals, and session-memory dedupe. No new model
 calls; clicking a chip submits a normal turn through the full pipeline. Chips are navigation, never
 evidence, and never display span content. Design doc: `docs/coach-v2-next-step-suggestions.md`.
+Build order within Phase 1 (each step lands green before the next): `PanelPayload` + minimal
+evidence/refusal card → per-lane sections → slide-visual card (after the privacy/asset tests) →
+suggestion chips (after the anchor-click contract tests).
 
 ### 5.2 Rendering
 
@@ -97,7 +100,10 @@ The tutor turn emits a pure `PanelPayload`:
   (`slide_image_ref` is optional — set only for slide-lane citations whose stored page image exists)
 - `chips: [ SuggestionChip { kind: continue|comprehension|practice|recovery, label_safe, anchor, reason_code } ]`
   — emitted from the same turn state (adjacency = manifest lookup; near-misses = the turn's own
-  retrieval pool; **no second retrieval**); a chip without a resolvable anchor is dropped.
+  retrieval pool; **no second retrieval**); a chip without a resolvable anchor is dropped. Click
+  payload: `{ chip_id, anchor_type, anchor_id, filter_scope, reason_code }` — the anchor is preserved
+  at click (never a label-only submission) and re-resolved next turn or the chip drops as stale;
+  candidates never leave the learner's active filter scope.
 
 Built in the **pure core** from the *same* retrieval / turn object (reusing `role → span_id`). It never
 issues a new query. The panel is a pure render of this payload.
@@ -130,9 +136,10 @@ issues a new query. The panel is a pure render of this payload.
 - pure-core test (payload builder imports no web framework).
 - slide-image tests: `slide_image_ref` appears only on slide-lane items; the resolved file exists; the
   image store path is gitignored (never committed).
-- chip tests: every chip anchor resolves (drop-if-not); suggested topics never deterministically refuse
-  (dev split only); refusal state emits the recovery set; visited-topic dedupe; ≤4 chips; no raw
-  filenames in labels.
+- chip tests: every chip anchor resolves (drop-if-not); the click payload preserves the anchor (never
+  label-only); stale anchors drop the chip rather than refusing; chips respect the active filter scope
+  (no outside-filter near-miss candidates); suggested topics never deterministically refuse (dev split
+  only); refusal state emits the recovery set; visited-topic dedupe; ≤4 chips; no raw filenames in labels.
 
 ### 5.7 Demo path (breakout)
 

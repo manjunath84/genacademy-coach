@@ -84,6 +84,11 @@ the local Gradio app are shipped. Role-keyed provenance (`role → span_id`) exi
   span content and are distinct from the panel's provenance projection. Phase 1 = deterministic
   candidate generation (teach-loop state · corpus adjacency · near-miss retrievals · session-memory
   dedupe); agentic curation/phrasing deferred to Phase C. Design: `docs/coach-v2-next-step-suggestions.md`.
+  **Click contract:** a chip click submits a structured payload (`chip_id`, `anchor_type`, `anchor_id`,
+  `filter_scope`, `reason_code`) — never just the label text; the next turn re-resolves the same anchor
+  or drops the chip as stale (invalidation, never a refusal bypass). Candidates are generated within the
+  learner's active filter scope — a chip never widens filters; `action_id` chips come only from the
+  enumerated teaching-action menu, so non-content actions cannot promise grounded content.
 
 ### 5.3 Retrieval, citations, filters
 
@@ -142,7 +147,8 @@ Immediate build = **Phase 1 (A)**. Everything in §5.4 is out-of-scope for Phase
 - **AC-5** Tests green; `ruff` clean; nothing changed under `corpus/`, `eval/`, or the golden set.
 - **AC-6** Next-step chips render (≤4) with resolvable anchors in the evidence state; the refusal state
   shows the recovery set; a suggested topic chip, when clicked, does not deterministically refuse
-  (validated on the dev split); chip labels contain no raw filename / path / URL.
+  (validated on the dev split); chip labels contain no raw filename / path / URL; click payloads
+  preserve the anchor (no label-only submission) and chips respect the active filter scope.
 
 ## 9. Success metrics
 
@@ -163,7 +169,8 @@ Deterministic refusal and citation-faithfulness are the load-bearing signals.
 ## 11. UI direction & mockups
 
 The panel decision policy (FR-W2 / W3 / W4 / W5 / W9 / W10) is the UI's backbone. Static mockups under
-`docs/assets/mockups/` visualize the `evidence` and `refusal` states (representative, non-real-corpus
-content) for review before build. The slide thumbnail in the mockup is a synthetic stand-in; the build
-displays the stored image of the actual cited slide (runtime-only, never committed). The real build is
-Gradio-native and may differ cosmetically.
+`docs/assets/mockups/` visualize the `evidence` and `refusal` states for review before build. The
+conversation text is representative (not real corpus); the evidence mockup's slide card features the
+one approved real slide recorded as FR-W9's exception (image, extracted span text, and alt text all
+covered by it). At runtime, cited slides are served privately from the gitignored store. The real build
+is Gradio-native and may differ cosmetically.
