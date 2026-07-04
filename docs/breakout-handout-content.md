@@ -12,7 +12,7 @@ design package (PR #61, independently reviewed).
 ## Q1 — Pick the use case *(→ handout Q1 cell)*
 
 **Adaptive GenAcademy AI Tutor & Q&A Coach** — a grounded tutor over the actual course corpus
-(slides, live-session recordings, handouts, cohort Q&A).
+(slides, live-session transcripts, handouts, approved cohort Q&A).
 
 - **Problem:** to understand one concept, a learner re-opens the slides, scrubs the session recording,
   and searches the handout and chat separately. No single place explains a topic *and* shows exactly
@@ -35,7 +35,8 @@ design package (PR #61, independently reviewed).
   answer actually cited (including the real slide image for slide citations) — no second search that
   could disagree with the answer.
 
-**Tools the agent calls (two kinds — this distinction is the design):**
+**Tools the agent calls — shipped core plus the merged Phase-1 design (two kinds; the split is the
+design):**
 - *Agent-chosen (the teaching brain):* teaching-action selector (explain / step-by-step / clarify /
   quiz / re-explain / refuse+escalate) · explanation-lens selector (low-code / code-heavy / bridge) ·
   grounded check-question generator.
@@ -98,7 +99,8 @@ values live on the project's public eval dashboard.
 **Status & scope.** The grounded engine is built and evaluated (teach loop, quiz, skill-gap diagnosis,
 escalation, tracing, eval harness + public dashboard). The Tutor Workspace (context panel, slide-image
 card, next-step suggestions) is fully designed, adversarially reviewed by a second model, and merged;
-Phase-1 build is next, on the Week-1 corpus, text-first. Later phases (each gated): agentic panel
+Phase-1 build is next — on the current index, text-first, with a curated Week-1 demo path (the
+Week-1-only corpus substrate is its own later phase). Later phases (each gated): agentic panel
 curation → opt-in current-docs lookup (separate, clearly-labeled lane) → voice in/out → consent-gated
 tutor voice → admin ingestion with eval-contamination checks → cohort auth → learner progress view.
 
