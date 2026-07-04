@@ -65,7 +65,12 @@ the local Gradio app are shipped. Role-keyed provenance (`role → span_id`) exi
 - **FR-W4** Each panel item shows: safe source label · lane · citation id · confidence posture (status,
   not a control) · extractive span text.
 - **FR-W5** **Per-lane collapsible sections** grouping cited spans by lane (slides / transcript / handout /
-  Q&A), each with a one-line "why this source." *(Confirmed in Phase 1.)*
+  Q&A), each with a one-line "why this source." *(Confirmed in Phase 1.)* **Lane display names speak
+  learner-language, not corpus taxonomy:** `transcript` renders as "Instructor explanation", `qa` as
+  "Cohort Q&A"; the artifact type (e.g., "live-session transcript") stays in the source card's
+  provenance row. Internal lane ids in contracts and traces are unchanged. The "why this source" lines
+  are deterministic per-lane templates written in tutor voice (e.g., slides → "the concept as presented
+  in class", transcript → "how the instructor explained it live").
 - **FR-W6** Read-only & extractive — no synthesized summaries or visuals, no decorative content from
   priors. Real stored assets are allowed (FR-W9); generated ones are banned in every phase.
 - **FR-W7** A short grounded check question after tutoring (reuses the shipped check/quiz path).

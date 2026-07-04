@@ -122,7 +122,9 @@ issues a new query. The panel is a pure render of this payload.
 ### 5.5 Module boundaries (isolation)
 
 - `panel_payload.py` (pure core) — turn/provenance → `PanelPayload`. No Gradio import; unit-testable.
-- `source_labels.py` (privacy) — span metadata → safe display label; no raw filename/path/URL.
+- `source_labels.py` (privacy + microcopy) — span metadata → safe display label (no raw
+  filename/path/URL) and the `lane_id` → learner-facing lane name mapping (`transcript` →
+  "Instructor explanation", `qa` → "Cohort Q&A") plus the per-lane "why this source" templates.
 - `slide_images.py` (assets) — deck → per-slide PNGs (headless render, refreshed per corpus version) +
   citation → slide-index resolver; the image store is gitignored.
 - `suggestions.py` (pure core) — turn state → `SuggestionChip[]` (slot rules, anchor validation,
@@ -135,7 +137,8 @@ issues a new query. The panel is a pure render of this payload.
 - panel-provenance-subset invariant (every panel `citation_id` ∈ the turn's citation set).
 - no-second-retrieval assertion (payload derives from the same retrieval object).
 - refusal-state renders escalation, not evidence.
-- privacy-label test (no raw filename / path / URL in `source_label_safe`).
+- privacy-label test (no raw filename / path / URL in `source_label_safe`); lane-name mapping covers
+  every lane id (no raw corpus-taxonomy fallthrough into the UI).
 - pure-core test (payload builder imports no web framework).
 - slide-image tests: `slide_image_ref` appears only on slide-lane items; the resolved file exists; the
   image store path is gitignored (never committed).

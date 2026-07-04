@@ -48,6 +48,11 @@ second-model reviewer) can pick up without re-deriving the reasoning.
     end users. Correct: it is telemetry, not learner content. Now hidden by default, captured in the
     local trace, revealed via a collapsed "behind this answer" disclosure + presenter/demo toggle; the
     panel's plain-language posture chip stays as the always-visible status.
+10c. **Lane names moved to learner-language (owner UX call, 2026-07-04).** "Transcript" names the
+    system's storage format, not the learner's help: lanes now render as "Instructor explanation" /
+    "Cohort Q&A" (slides/handout unchanged), artifact type stays in the provenance row, internal lane
+    ids unchanged in contracts/trace. "Why this source" lines rewritten as deterministic tutor-voice
+    templates. Mapping lives in `source_labels.py` (FR-W5 amended).
 11. **FR-W10 next-step suggestion chips.** Owner requested intelligent "what next" suggestions
     (pattern: post-turn suggestion chips). Brainstormed; **Approach A approved** — deterministic,
     anchor-validated chips in Phase 1 (teach-state + corpus adjacency + near-miss retrievals + session
