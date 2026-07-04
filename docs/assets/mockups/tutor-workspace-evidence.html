@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutor Workspace — evidence state (mockup)</title>
+<style>
+  :root{
+    --bg:#eef1f6; --card:#ffffff; --ink:#1b2130; --muted:#6b7280; --line:#e3e7ef;
+    --accent:#2f4b7c; --accent-soft:#eaf0fb; --good:#1c7a3f; --good-soft:#e7f6ec;
+    --hl:#fff3bf; --code:#f4f6fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+  .app{max-width:1360px;margin:0 auto;padding:22px 24px 28px}
+  .caption{font-size:12px;color:var(--muted);margin:0 2px 12px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand h1{font-size:18px;margin:0;letter-spacing:.2px}
+  .tag{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);
+    padding:4px 9px;border-radius:999px;border:1px solid #d6e0f2}
+  .filters{display:flex;gap:8px}
+  .chip{font-size:12px;color:#374151;background:#fff;border:1px solid var(--line);
+    padding:6px 11px;border-radius:999px}
+  .cols{display:grid;grid-template-columns:1.12fr .88fr;gap:20px;align-items:start}
+  .pane{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .pane h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+    margin:0 0 14px}
+  /* conversation */
+  .msg{display:flex;margin-bottom:14px}
+  .msg.user{justify-content:flex-end}
+  .bubble{max-width:88%;padding:12px 14px;border-radius:14px;font-size:14.5px;line-height:1.55}
+  .user .bubble{background:var(--accent-soft);border:1px solid #dbe6f7}
+  .bot .bubble{background:#f7f8fb;border:1px solid var(--line)}
+  .cite{color:var(--accent);font-weight:700;background:var(--hl);border-radius:4px;
+    padding:0 3px;font-size:12px;vertical-align:.5px;text-decoration:none}
+  .check{margin-top:6px;background:#fbfcfe;border:1px dashed #cfd8e8;border-left:3px solid var(--accent);
+    border-radius:10px;padding:12px 14px;font-size:14px}
+  .check b{color:var(--accent)}
+  .trace{margin-top:16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+    color:#475069;background:var(--code);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+  /* context panel */
+  .posture{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
+    padding:5px 11px;border-radius:999px;margin-bottom:14px}
+  .posture.good{background:var(--good-soft);color:var(--good);border:1px solid #cde dd}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+  .lane{border:1px solid var(--line);border-radius:11px;margin-bottom:11px;overflow:hidden}
+  .lane-head{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;
+    background:#fafbfd;font-size:13.5px;font-weight:700}
+  .lane-head .arw{color:var(--muted);font-size:12px}
+  .lane-body{padding:4px 13px 13px}
+  .srccard{border-left:3px solid var(--accent);padding:10px 12px;margin-top:9px;background:#fdfefe}
+  .srcrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .srclabel{font-size:13px;font-weight:600}
+  .cid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--accent);
+    background:var(--accent-soft);border-radius:5px;padding:1px 6px}
+  .why{font-size:12px;color:var(--muted);font-style:italic;margin:4px 0 7px}
+  .span{font-size:13px;line-height:1.5;color:#28303f;background:var(--code);border:1px solid #eaeef5;
+    border-radius:8px;padding:9px 11px}
+  .collapsed .lane-body{display:none}
+  /* slide-visual card (representative mock; build renders the stored page image of the cited slide) */
+  .slidefig{margin:9px 0 2px}
+  .slide169{aspect-ratio:16/9;background:#fff;border:1px solid #d8dee9;border-radius:8px;
+    box-shadow:0 1px 3px rgba(16,24,40,.10);padding:16px 18px 12px;display:flex;
+    flex-direction:column;gap:9px}
+  .s-bar{height:5px;width:54px;background:var(--accent);border-radius:3px}
+  .s-title{font-size:16px;font-weight:800;color:#22314e;letter-spacing:.1px}
+  .s-bullets{margin:0;padding-left:17px;font-size:12px;color:#3c4657;line-height:1.6}
+  .s-foot{margin-top:auto;font-size:10px;color:#8b93a3;display:flex;justify-content:space-between}
+  .figcap{font-size:11px;color:var(--muted);font-style:italic;margin-top:6px}
+  .footnote{margin-top:14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);
+    padding-top:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <p class="caption">Mockup · Tutor Workspace — <b>evidence state</b> · representative content (not real corpus) · design preview, final build is Gradio-native</p>
+  <div class="topbar">
+    <div class="brand">
+      <h1>GenAcademy Coach — Tutor Workspace</h1>
+      <span class="tag">grounded or it refuses</span>
+    </div>
+    <div class="filters">
+      <span class="chip">All sources ▾</span>
+      <span class="chip">Week 1 ▾</span>
+      <span class="chip">Lens: bridge ▾</span>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- LEFT: tutor conversation -->
+    <div class="pane">
+      <h2>Tutor</h2>
+      <div class="msg user"><div class="bubble">What is LangChain, and why would I use it instead of calling an LLM API directly?</div></div>
+      <div class="msg bot"><div class="bubble">
+        LangChain is a framework for composing LLM calls into larger workflows — chaining prompts, tools,
+        memory, and retrieval so you don't wire each step by hand.<a class="cite" href="#">S1</a>
+        A direct API call is one prompt in, one completion out; LangChain gives you reusable pieces for
+        multi-step apps like a retrieval-augmented tutor.<a class="cite" href="#">T1</a>
+        The handout walks through building exactly that pattern.<a class="cite" href="#">H1</a>
+        <div class="check"><b>Check yourself:</b> in one line — when is a direct API call the better choice than LangChain?</div>
+      </div></div>
+      <div class="trace">action: explain · lens: bridge · decision: PROCEED · cited spans: 3</div>
+    </div>
+
+    <!-- RIGHT: grounded context panel -->
+    <div class="pane">
+      <h2>Grounded context · this answer's sources</h2>
+      <span class="posture good"><span class="dot"></span>Grounded · PROCEED</span>
+
+      <div class="lane">
+        <div class="lane-head">Slides · 1 <span class="arw">▾</span></div>
+        <div class="lane-body">
+          <div class="srccard">
+            <div class="srcrow"><span class="srclabel">Week 1 · Session 2 · Slides</span><span class="cid">S1</span></div>
+            <div class="why">why this source — concept framing</div>
+            <div class="slidefig">
+              <div class="slide169">
+                <div class="s-bar"></div>
+                <div class="s-title">LangChain: why a framework?</div>
+                <ul class="s-bullets">
+                  <li>Direct API call = one prompt in, one completion out</li>
+                  <li>Chains compose prompts, tools, memory, and retrieval</li>
+                  <li>Same reusable pieces across every multi-step app</li>
+                </ul>
+                <div class="s-foot"><span>GenAcademy · Week 1 · Session 2</span><span>Slide 12</span></div>
+              </div>
+              <div class="figcap">Slide preview — representative mock. The build shows the stored image of the actual cited slide; never a generated one.</div>
+            </div>
+            <div class="span">LangChain = a framework to compose LLM calls: chains, tools, memory, and retrieval.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lane">
+        <div class="lane-head">Transcript · 1 <span class="arw">▾</span></div>
+        <div class="lane-body">
+          <div class="srccard">
+            <div class="srcrow"><span class="srclabel">Week 1 · Session 1 · Transcript</span><span class="cid">T1</span></div>
+            <div class="why">why this source — instructor explanation</div>
+            <div class="span">"A direct API call is one-shot; LangChain is for multi-step apps — think a tutor that retrieves, then explains."</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lane collapsed">
+        <div class="lane-head">Handout · 1 <span class="arw">▸</span></div>
+        <div class="lane-body"></div>
+      </div>
+
+      <div class="footnote">Panel shows only the sources this answer cited — a projection of one retrieval, not a second search.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
