@@ -122,7 +122,11 @@ reuse contract are in **`docs/genacademy-rag-foundation.md`** — read it before
   any third-party or cohort data are `.gitignore`d. Confirm attribution/permission before any data lands
   (see `specs/roadmap.md` risk caps). Owner-approved upload to a private LangSmith evaluation project is
   data egress for eval/observability, not public publishing; still do not commit, screenshot, or publicly
-  share raw corpus, learner text, or generated tutor traces.
+  share raw corpus, learner text, or generated tutor traces. *Recorded single-asset exception
+  (owner-approved, 2026-07-04): one inspected demo slide — Week 1 · Session 2 · slide 22, verified free
+  of personal/internal/third-party-sensitive content — is published in `docs/assets/mockups/` (covering
+  the image, its extracted span text, and alt text) as the workspace mockup's featured asset. Not
+  precedent: every other corpus render stays gitignored.*
 - **Do NOT add new modes/surfaces ahead of the grounded core.** Quiz, Skill-Gap, cohort auth/admin, and
   privacy-first memory are shipped bounded pull-ins because the teach-loop MVP works. Interview, admin
   upload, ElevenLabs voice, explicit LangGraph, and public corpus hosting still need separate plans and

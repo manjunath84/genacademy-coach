@@ -1,6 +1,6 @@
 # Roadmap
 
-Status updated: 2026-06-29.
+Status updated: 2026-07-04.
 
 The project is now past the teach-loop MVP. Teach, Quiz, Skill-Gap Diagnosis, and the local Gradio UI
 are shipped. Future work is intentionally separated from the grounded core so the project stays honest:
@@ -14,6 +14,12 @@ added: baseline + reliability bar, deterministic decision safety, the FastAPI/HT
 provider resilience, stable corpus references, and datastore/deployment seams.
 
 ## Active priority: Post-eval refusal precision, grading, and bounded recovery
+
+> **Reprioritization (owner-approved, 2026-07-04):** the Tutor Workspace Phase-1 design/build slice
+> (PR #61: `docs/coach-product-requirements.md` + the target-architecture spec) is inserted ahead as
+> the active build item, serving the breakout-demo dual mandate. Refusal-precision and bounded Turn-2
+> recovery remain next in queue immediately after Phase 1 and are not displaced further. Grounded-core
+> guardrails, the AD-13 grading ladder, and the frozen `test` split rules are unchanged.
 
 Week-4 evaluation changed the next build order. Retrieval recall is healthy, refusal recall remains the
 load-bearing guardrail, and the remaining quality work is mostly post-retrieval behavior:

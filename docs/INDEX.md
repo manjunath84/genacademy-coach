@@ -23,6 +23,14 @@ commit or quote `localdocs/` content unless the owner explicitly asks.
 
 For post-Week-4 work, start with:
 
+- `docs/coach-product-requirements.md` - finalized consolidated PRD for the Tutor Workspace + phased
+  target architecture (FR-1..FR-W10, AC-1..6); the requirements source for Phase-1 build work.
+- `docs/superpowers/specs/2026-06-30-tutor-workspace-and-target-architecture-design.md` - phase map A-I
+  with entry gates + Phase-A build detail (PanelPayload/SuggestionChip contracts, tests, done bar).
+- `docs/coach-v2-next-step-suggestions.md` - FR-W10 next-step suggestion chips design
+  (anchor-validated; deterministic Phase 1, agentic curation Phase C).
+- `docs/coach-v2-workspace-session-context.md` - decision log + artifact map for the workspace design
+  sessions (2026-06-30 to 2026-07-04).
 - `docs/coach-v2-week1-prd.md` - draft PRD/planning record for Coach v2: Week-1 corpus-first rollout,
   default cross-lane synthesis, optional filters, GitHub source acquisition, and staged voice/current-docs
   and cohort-ops roadmap.

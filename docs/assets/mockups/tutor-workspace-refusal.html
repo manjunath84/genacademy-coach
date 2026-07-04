@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutor Workspace — refusal state (mockup)</title>
+<style>
+  :root{
+    --bg:#eef1f6; --card:#ffffff; --ink:#1b2130; --muted:#6b7280; --line:#e3e7ef;
+    --accent:#2f4b7c; --accent-soft:#eaf0fb; --warn:#9a5b12; --warn-soft:#fdf3e3;
+    --code:#f4f6fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+  .app{max-width:1360px;margin:0 auto;padding:22px 24px 28px}
+  .caption{font-size:12px;color:var(--muted);margin:0 2px 12px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand h1{font-size:18px;margin:0;letter-spacing:.2px}
+  .tag{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);
+    padding:4px 9px;border-radius:999px;border:1px solid #d6e0f2}
+  .filters{display:flex;gap:8px}
+  .chip{font-size:12px;color:#374151;background:#fff;border:1px solid var(--line);
+    padding:6px 11px;border-radius:999px}
+  .cols{display:grid;grid-template-columns:1.12fr .88fr;gap:20px;align-items:start}
+  .pane{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .pane h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+    margin:0 0 14px}
+  .msg{display:flex;margin-bottom:14px}
+  .msg.user{justify-content:flex-end}
+  .bubble{max-width:88%;padding:12px 14px;border-radius:14px;font-size:14.5px;line-height:1.55}
+  .user .bubble{background:var(--accent-soft);border:1px solid #dbe6f7}
+  .bot .bubble{background:#fbf6ee;border:1px solid #f0e2ca}
+  .refuse-lead{font-weight:600}
+  .mentor-btn{display:inline-block;margin-top:11px;font-size:13px;font-weight:700;color:#fff;
+    background:var(--accent);border-radius:9px;padding:9px 15px;text-decoration:none}
+  .trace{margin-top:16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+    color:#475069;background:var(--code);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+  .behind{margin-top:14px}
+  .behind summary{font-size:12px;color:var(--muted);cursor:pointer;list-style:none;
+    display:inline-flex;align-items:center;gap:6px;font-weight:600}
+  .behind summary::-webkit-details-marker{display:none}
+  .behind[open] summary{margin-bottom:8px}
+  .behind .trace{margin-top:0}
+  .posture{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
+    padding:5px 11px;border-radius:999px;margin-bottom:14px;
+    background:var(--warn-soft);color:var(--warn);border:1px solid #f0dcbb}
+  .tri{display:inline-block;width:0;height:0;border-left:5px solid transparent;
+    border-right:5px solid transparent;border-bottom:8px solid currentColor}
+  .noev{border:1px dashed #d7c9ad;background:#fdfaf4;border-radius:11px;padding:15px 15px;
+    font-size:13.5px;line-height:1.55;color:#5c5140}
+  .noev b{color:var(--warn)}
+  .lanes-empty{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .lane0{font-size:12px;color:#9aa1ac;background:#f6f7f9;border:1px solid var(--line);
+    border-radius:999px;padding:5px 11px}
+  .escalate{margin-top:13px}
+  .escalate a{font-size:13px;font-weight:700;color:var(--accent);text-decoration:none}
+  /* FR-W10 recovery chips (anchored re-entry after a refusal) */
+  .sugg{margin-top:14px}
+  .sugg-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:8px}
+  .chipbtn{font-size:13px;font-weight:600;color:var(--accent);background:#fff;
+    border:1.5px solid #c9d7ee;border-radius:999px;padding:8px 14px;text-decoration:none;
+    display:inline-flex;align-items:center;gap:7px}
+  .chipbtn:hover{background:var(--accent-soft)}
+  .footnote{margin-top:14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);
+    padding-top:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <p class="caption">Mockup · Tutor Workspace — <b>refusal state</b> · representative content (not real corpus) · design preview, final build is Gradio-native</p>
+  <div class="topbar">
+    <div class="brand">
+      <h1>GenAcademy Coach — Tutor Workspace</h1>
+      <span class="tag">grounded or it refuses</span>
+    </div>
+    <div class="filters">
+      <span class="chip">All sources ▾</span>
+      <span class="chip">Week 1 ▾</span>
+      <span class="chip">Lens: bridge ▾</span>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- LEFT: tutor refuses -->
+    <div class="pane">
+      <h2>Tutor</h2>
+      <div class="msg user"><div class="bubble">How do I fine-tune a model on my company's private customer data?</div></div>
+      <div class="msg bot"><div class="bubble">
+        <span class="refuse-lead">I can't ground this in the Week 1 course material, so I won't guess.</span>
+        This looks outside the current corpus. I'd rather refuse than answer from memory and risk being wrong.
+        Want me to flag it for a mentor?
+        <br><a class="mentor-btn" href="#">Ask a mentor →</a>
+      </div></div>
+      <div class="sugg">
+        <div class="sugg-label">Where you can go from here · anchored to course material</div>
+        <div class="chipsrow">
+          <a class="chipbtn" href="#">Ask about: how AI models are trained (Week 1)</a>
+          <a class="chipbtn" href="#">Browse Week-1 topics</a>
+          <a class="chipbtn" href="#">Send to mentor</a>
+        </div>
+      </div>
+      <details class="behind" open>
+        <summary>ⓘ Behind this answer <span style="font-weight:400">(expanded here to show the disclosure state; collapsed by default)</span></summary>
+        <div class="trace">action: refuse + escalate · decision: STOP · grounded spans: 0 · chips: recovery</div>
+      </details>
+    </div>
+
+    <!-- RIGHT: panel refusal state -->
+    <div class="pane">
+      <h2>Grounded context · this answer's sources</h2>
+      <span class="posture"><span class="tri"></span>Not grounded · STOP (refused)</span>
+
+      <div class="noev">
+        <b>No grounded evidence.</b> Nothing in the selected corpus met the grounding threshold, so the
+        tutor refused rather than answer from its own priors. No panel content is shown without a citation
+        the answer carries.
+      </div>
+
+      <div class="lanes-empty">
+        <span class="lane0">Slides · 0</span>
+        <span class="lane0">Instructor explanation · 0</span>
+        <span class="lane0">Handout · 0</span>
+        <span class="lane0">Cohort Q&amp;A · 0</span>
+      </div>
+
+      <div class="escalate"><a href="#">Escalate to mentor →</a></div>
+
+      <div class="footnote">No answer appears unless it can cite the course. This is the guardrail working — the same retrieval decides both the answer and this panel.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
