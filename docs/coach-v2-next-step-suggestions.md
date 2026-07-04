@@ -98,6 +98,7 @@ SuggestionChip {
 
 ## 9. Open items
 
-- Mockup update (chips in the evidence + refusal screens) — pending, on request.
+- Mockup update (chips in the evidence + refusal screens) — **done 2026-07-03**, both states in
+  `docs/assets/mockups/` (continue/comprehension/practice chips on evidence; recovery set on refusal).
 - Chip-click telemetry as curriculum signal for the Phase-I progress dashboard (forward-compatible;
   log chip ids only, never raw learner text).

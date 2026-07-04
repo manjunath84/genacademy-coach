@@ -48,12 +48,12 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 
 | Artifact | Path | State (2026-07-03) |
 |---|---|---|
-| Finalized PRD | `docs/coach-product-requirements.md` | written; uncommitted |
-| Target-architecture spec (phases A→I + Phase-A build detail) | `docs/superpowers/specs/2026-06-30-tutor-workspace-and-target-architecture-design.md` | written; uncommitted |
-| Suggestion-chips design (FR-W10) | `docs/coach-v2-next-step-suggestions.md` | written; uncommitted |
-| Public mockups (evidence + refusal, synthetic content) | `docs/assets/mockups/` | written; uncommitted; chips not yet visualized |
+| Finalized PRD | `docs/coach-product-requirements.md` | in PR #61 |
+| Target-architecture spec (phases A→I + Phase-A build detail) | `docs/superpowers/specs/2026-06-30-tutor-workspace-and-target-architecture-design.md` | in PR #61 |
+| Suggestion-chips design (FR-W10) | `docs/coach-v2-next-step-suggestions.md` | in PR #61 |
+| Public mockups (evidence + refusal, synthetic content) | `docs/assets/mockups/` | in PR #61; FR-W10 chips visualized in both states |
 | Private real-slide variant + rendered deck pages | gitignored local docs | local-only, never committed |
-| This context log | `docs/coach-v2-workspace-session-context.md` | written; uncommitted |
+| This context log | `docs/coach-v2-workspace-session-context.md` | in PR #61 |
 
 ## 3. Guardrails that shaped every decision
 
@@ -68,8 +68,8 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 
 ## 4. Loose ends
 
-- **Commit pending owner approval:** PRD + spec + mockups + the two new docs → branch off `main`.
-- **Mockup update for FR-W10 chips** — designed, not yet visualized; on request.
+- **PR #61 open:** the design package on `docs/tutor-workspace-design-package` (PRD + spec + designs
+  + mockups, FR-W10 chips included); merge pending owner review.
 - **PR #58** (docs-only, pre-dates this thread) still open with one unaddressed finding (roadmap
   cut-order vs AD-13 framing); owner decision pending.
 - **Next workflow step after commit:** `writing-plans` for Phase 1, then build (first plan task:

@@ -70,6 +70,15 @@
   .s-bullets{margin:0;padding-left:17px;font-size:12px;color:#3c4657;line-height:1.6}
   .s-foot{margin-top:auto;font-size:10px;color:#8b93a3;display:flex;justify-content:space-between}
   .figcap{font-size:11px;color:var(--muted);font-style:italic;margin-top:6px}
+  /* FR-W10 next-step suggestion chips (deterministic, anchor-validated) */
+  .sugg{margin-top:14px}
+  .sugg-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:8px}
+  .chipbtn{font-size:13px;font-weight:600;color:var(--accent);background:#fff;
+    border:1.5px solid #c9d7ee;border-radius:999px;padding:8px 14px;text-decoration:none;
+    display:inline-flex;align-items:center;gap:7px}
+  .chipbtn:hover{background:var(--accent-soft)}
   .footnote{margin-top:14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);
     padding-top:11px}
 </style>
@@ -102,7 +111,15 @@
         The handout walks through building exactly that pattern.<a class="cite" href="#">H1</a>
         <div class="check"><b>Check yourself:</b> in one line — when is a direct API call the better choice than LangChain?</div>
       </div></div>
-      <div class="trace">action: explain · lens: bridge · decision: PROCEED · cited spans: 3</div>
+      <div class="sugg">
+        <div class="sugg-label">Suggested next steps · anchored to course material</div>
+        <div class="chipsrow">
+          <a class="chipbtn" href="#">Next: → Agents &amp; tool calling</a>
+          <a class="chipbtn" href="#">Quiz me on this</a>
+          <a class="chipbtn" href="#">Show a handout exercise</a>
+        </div>
+      </div>
+      <div class="trace">action: explain · lens: bridge · decision: PROCEED · cited spans: 3 · chips: next-in-deck · quiz · exercise</div>
     </div>
 
     <!-- RIGHT: grounded context panel -->

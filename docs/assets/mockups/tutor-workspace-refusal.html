@@ -51,6 +51,15 @@
     border-radius:999px;padding:5px 11px}
   .escalate{margin-top:13px}
   .escalate a{font-size:13px;font-weight:700;color:var(--accent);text-decoration:none}
+  /* FR-W10 recovery chips (anchored re-entry after a refusal) */
+  .sugg{margin-top:14px}
+  .sugg-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:8px}
+  .chipbtn{font-size:13px;font-weight:600;color:var(--accent);background:#fff;
+    border:1.5px solid #c9d7ee;border-radius:999px;padding:8px 14px;text-decoration:none;
+    display:inline-flex;align-items:center;gap:7px}
+  .chipbtn:hover{background:var(--accent-soft)}
   .footnote{margin-top:14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);
     padding-top:11px}
 </style>
@@ -81,7 +90,15 @@
         Want me to flag it for a mentor?
         <br><a class="mentor-btn" href="#">Ask a mentor →</a>
       </div></div>
-      <div class="trace">action: refuse + escalate · decision: STOP · grounded spans: 0</div>
+      <div class="sugg">
+        <div class="sugg-label">Where you can go from here · anchored to course material</div>
+        <div class="chipsrow">
+          <a class="chipbtn" href="#">Ask about: how AI models are trained (Week 1)</a>
+          <a class="chipbtn" href="#">Browse Week-1 topics</a>
+          <a class="chipbtn" href="#">Send to mentor</a>
+        </div>
+      </div>
+      <div class="trace">action: refuse + escalate · decision: STOP · grounded spans: 0 · chips: recovery</div>
     </div>
 
     <!-- RIGHT: panel refusal state -->
