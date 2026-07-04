@@ -12,7 +12,8 @@ second-model reviewer) can pick up without re-deriving the reasoning. Continues
    FR-W10 chips design, mockups) locked onto `main`.
 2. **Handout content as a versioned artifact (PR #62).** The team breakout handout `.docx` lives
    outside the repo (it carries team names/emails — never committed). Its content now has a
-   privacy-clean, reviewed paste source: `docs/breakout-handout-content.md`, sections mapped to the
+   privacy-clean, reviewed paste source: `docs/breakout-handout-content.md` (since moved to
+   gitignored `localdocs/` — see entry 12), sections mapped to the
    handout cells (Q1 use case · Q2 knowledge/tools · Q3 autonomy/evals · section-4 project write-up).
    Codex content review (fact-check table, 15 claims) caught **two real factual errors** — corpus
    "recordings" → **transcripts** (matches the ingestion contract), and Phase-1 mis-stated as
@@ -66,12 +67,21 @@ second-model reviewer) can pick up without re-deriving the reasoning. Continues
     the same agent-chosen vs deterministic split), Q3 "The same split scales" (agents propose,
     deterministic systems dispose; golden set + release gates per layer). Trailing appends by design
     so the docx patch stays a pure per-cell append.
+12. **Question cells de-staged + paste source moved private (PR #68, owner calls).** Owner principle:
+    the question cells describe the product; delivery timing is section 4's job alone (its three-state
+    status block stays the single status story). Staging qualifiers came out of the Q1–Q3 vision
+    bullets and out of the Q2 tools intro (whose "shipped core + Phase-1 design" label — a PR #62
+    standalone-reading fix — is superseded by this principle; section 4 now carries that honesty).
+    Product name widened to span both pillars — "AI Tutor & **Personal Coach**" replaces "AI Tutor &
+    Q&A Coach" — and "approved cohort Q&A" became "curated cohort Q&A" (same no-raw-chat safeguard,
+    plainer word). The paste source itself moved to gitignored `localdocs/` — the public repo no
+    longer carries the team's submission text; this log keeps only the decision trail.
 
 ## 2. Artifact map
 
 | Artifact | Path | State (2026-07-04) |
 |---|---|---|
-| Handout paste source (Q1/Q2/Q3/§4) | `docs/breakout-handout-content.md` | merged via PRs #62–#65, five Codex passes total |
+| Handout paste source (Q1/Q2/Q3/§4) | `localdocs/docs/breakout-handout-content.md` (gitignored; lived in public `docs/` through PRs #62–#67) | de-staged full-vision wording; source of truth for the docx |
 | Team handout (submission file) | outside the repo (carries team emails) | filled + thrice patched, render-verified, submit-ready; pre-fill backup alongside |
 | Fill/patch scripts + review prompts/outputs | `tmp/` | gitignored, one-off operational |
 | Workspace-arc context log | `docs/coach-v2-workspace-session-context.md` | loose-ends section trued up in this PR |
