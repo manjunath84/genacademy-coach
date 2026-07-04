@@ -89,6 +89,12 @@ the local Gradio app are shipped. Role-keyed provenance (`role → span_id`) exi
   or drops the chip as stale (invalidation, never a refusal bypass). Candidates are generated within the
   learner's active filter scope — a chip never widens filters; `action_id` chips come only from the
   enumerated teaching-action menu, so non-content actions cannot promise grounded content.
+- **FR-W11** Learner-first observability: the per-turn reasoning strip (action · lens · decision band ·
+  citation count · chip ids) is **not** part of the default learner view — it reads as debug output to
+  a non-technical learner. It is always captured in the local trace (allow-listed fields only) and is
+  exposed in the UI only behind a collapsed "behind this answer" disclosure, plus a presenter/demo
+  toggle for walkthroughs. The always-visible learner-facing status is the panel's plain-language
+  grounding posture (FR-W4).
 
 ### 5.3 Retrieval, citations, filters
 
@@ -149,6 +155,8 @@ Immediate build = **Phase 1 (A)**. Everything in §5.4 is out-of-scope for Phase
   shows the recovery set; a suggested topic chip, when clicked, does not deterministically refuse
   (validated on the dev split); chip labels contain no raw filename / path / URL; click payloads
   preserve the anchor (no label-only submission) and chips respect the active filter scope.
+- **AC-7** The default render hides the reasoning strip (FR-W11); the "behind this answer" disclosure /
+  demo toggle reveals allow-listed fields only; the panel's grounding-posture chip remains always visible.
 
 ## 9. Success metrics
 

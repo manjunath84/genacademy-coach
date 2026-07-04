@@ -43,6 +43,11 @@ second-model reviewer) can pick up without re-deriving the reasoning.
     slide (Week 1 · Session 2 · slide 22 — a framework-primitives overview; no personal data or internal
     systems) is published in `docs/assets/mockups/` as the featured asset. The remaining deck renders
     stay private (uninspected third-party content). FR-W9 wording amended to record the exception.
+10b. **Reasoning strip demoted to disclosure (owner UX call, 2026-07-04 → FR-W11).** The owner flagged
+    the always-visible trace strip (`action · lens · decision · cited spans · chips`) as meaningless to
+    end users. Correct: it is telemetry, not learner content. Now hidden by default, captured in the
+    local trace, revealed via a collapsed "behind this answer" disclosure + presenter/demo toggle; the
+    panel's plain-language posture chip stays as the always-visible status.
 11. **FR-W10 next-step suggestion chips.** Owner requested intelligent "what next" suggestions
     (pattern: post-turn suggestion chips). Brainstormed; **Approach A approved** — deterministic,
     anchor-validated chips in Phase 1 (teach-state + corpus adjacency + near-miss retrievals + session

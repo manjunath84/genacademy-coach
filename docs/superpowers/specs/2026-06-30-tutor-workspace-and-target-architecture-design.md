@@ -84,6 +84,9 @@ evidence, and never display span content. Design doc: `docs/coach-v2-next-step-s
 Build order within Phase 1 (each step lands green before the next): `PanelPayload` + minimal
 evidence/refusal card → per-lane sections → slide-visual card (after the privacy/asset tests) →
 suggestion chips (after the anchor-click contract tests).
+Includes (confirmed 2026-07-04, PRD FR-W11): the per-turn reasoning strip is hidden by default —
+captured in the local trace, revealed only via a collapsed "behind this answer" disclosure +
+presenter/demo toggle. The panel posture chip is the always-visible learner-facing status.
 
 ### 5.2 Rendering
 
@@ -136,6 +139,8 @@ issues a new query. The panel is a pure render of this payload.
 - pure-core test (payload builder imports no web framework).
 - slide-image tests: `slide_image_ref` appears only on slide-lane items; the resolved file exists; the
   image store path is gitignored (never committed).
+- reasoning-strip test: default render hides the strip; the disclosure/demo toggle reveals allow-listed
+  fields only; the posture chip renders in every state.
 - chip tests: every chip anchor resolves (drop-if-not); the click payload preserves the anchor (never
   label-only); stale anchors drop the chip rather than refusing; chips respect the active filter scope
   (no outside-filter near-miss candidates); suggested topics never deterministically refuse (dev split
