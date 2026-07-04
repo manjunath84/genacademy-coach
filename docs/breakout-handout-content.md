@@ -23,6 +23,11 @@ design package (PR #61, independently reviewed).
 - **Why an agent, not a chatbot:** it chooses the next *teaching* move (explain, step-by-step, quiz,
   re-explain differently, refuse + escalate) based on how the learner is doing — but it can never
   choose to answer without course evidence. **Grounded or it refuses.**
+- **Where it grows:** the same grounded core is scoped to grow into **voice tutoring** (ask by
+  voice, hear the answer — a cloned tutor voice only behind an explicit consent gate) and a
+  **Personal Coach** — a mock-interview studio with MCQ placement, gap-driven flash cards + quiz
+  drills, mastery levels, and a personalized study planner that is *feasible or flag*: it never
+  silently over-schedules a learner.
 
 ## Q2 — Knowledge and tools *(→ handout Q2 cell)*
 
@@ -44,6 +49,11 @@ design):**
   confidence-band gate with a hard refusal floor · citation capture · context-panel projection (incl.
   slide-image lookup) · next-step suggestion builder (anchored to the corpus) · deterministic answer
   grading floor · mentor-escalation queue · session memory (derived state only, privacy-scoped).
+- *Scoped next, same split:* **voice agent** — speech-to-text in, spoken answers out, a cloned tutor
+  voice strictly behind a deterministic consent gate · **Personal Coach agents** — interviewer /
+  evaluator / coach / curriculum-planner behind a deterministic orchestrator · **study-planner
+  scheduler** — the LLM proposes the plan; deterministic code validates and repairs it
+  (prerequisites, time arithmetic, spaced review).
 
 ## Q3 — Autonomy and evals *(→ handout Q3 cell)*
 
@@ -55,6 +65,10 @@ design):**
   **refusal recall on negative controls (hard release gate = 1.000)**, refusal precision, filter
   correctness, latency, and cost — with an honest baseline → post-improvement delta (regressions
   disclosed) on a public eval dashboard.
+- **The same split scales:** in the scoped voice tutoring and Personal Coach, agents propose
+  (interview questions, feedback, draft study plans) and deterministic systems dispose (grading
+  floors, the voice-consent gate, schedule feasibility — *feasible or flag*). No layer ships without
+  its own golden set and the same release gates.
 
 ## Our project *(→ handout section-4 cell: "Use case, where RAG fits, tools, autonomy vs workflow, evaluation")*
 

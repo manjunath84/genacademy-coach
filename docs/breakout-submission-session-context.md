@@ -58,6 +58,14 @@ second-model reviewer) can pick up without re-deriving the reasoning. Continues
    repo.
 10. **Ops learning (Codex CLI):** `codex exec` in a background shell blocks forever on open stdin
     ("Reading additional input from stdin…") — always launch with stdin closed (`</dev/null`).
+11. **Q1–Q3 full-vision pass (PR #67, owner call).** The section-4 write-up carried the full vision
+    (PRs #63–#65) but the three question cells still read core-tutor-only; owner asked for voice agent
+    + Personal Coach there too. One trailing bullet per cell, scoped language throughout: Q1 "Where it
+    grows" (voice tutoring + Personal Coach, echoing the thesis's "scoped to grow"), Q2 "Scoped next,
+    same split" (voice agent · Personal Coach agents · study-planner scheduler as future tools under
+    the same agent-chosen vs deterministic split), Q3 "The same split scales" (agents propose,
+    deterministic systems dispose; golden set + release gates per layer). Trailing appends by design
+    so the docx patch stays a pure per-cell append.
 
 ## 2. Artifact map
 
