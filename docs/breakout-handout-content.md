@@ -101,16 +101,16 @@ values live on the project's public eval dashboard.
 **Built & evaluated:** the grounded engine — teach loop, quiz, skill-gap diagnosis, escalation,
 tracing, eval harness + public dashboard.
 
-**In build this week for the demo:** the Tutor Workspace — context panel with real slide images and
+**Build slice for this week's demo:** the Tutor Workspace — context panel with real slide images and
 next-step suggestions (design merged after independent second-model review; runs on the current
 index, text-first, with a curated Week-1 demo path).
 
-**Designed, slotting into the same grounded core:** agentic panel curation · current-docs lookup
+**Scoped, slotting into the same grounded core:** agentic panel curation · current-docs lookup
 (opt-in, separately cited lane) · voice in/out + consent-gated tutor voice · admin ingestion with
-eval-contamination checks · cohort access · progress analytics · and the **Personal Coach** —
-mock-interview studio (multi-agent interviewer / evaluator / coach), gap-driven flash cards + mastery
-levels, and a learner-editable study planner (placement assessment → skill-gap map → a
-time-budget-honest plan: *feasible or flag*).
+eval-contamination checks · cohort access · progress analytics · and the **Personal Coach direction**
+— a mock-interview studio (multi-agent interviewer / evaluator / coach), gap-driven flash cards +
+mastery levels, and a learner-editable study planner concept (placement assessment → skill-gap map →
+a time-budget-honest plan: *feasible or flag*).
 
 Every layer ships through the same gates: grounded-or-refuse, privacy review, evals before release.
 
