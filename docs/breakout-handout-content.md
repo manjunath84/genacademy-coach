@@ -61,7 +61,10 @@ design):**
 **Thesis.** A grounded AI tutor over the actual GenAcademy corpus. It answers only from retrieved
 course evidence, shows the exact source beside every answer in a split-pane **Tutor Workspace**, and
 **refuses and routes to a mentor when it can't ground the answer.** Agentic in how it teaches;
-deterministic in grounding.
+deterministic in grounding. One grounded core, scoped to grow into the full platform: voice tutoring,
+current-docs awareness, controlled content ingestion, cohort access, progress analytics, and a
+**Personal Coach** (mock-interview studio, gap-driven flash cards + mastery levels, and a personalized
+study planner).
 
 **The demo moment.** Ask *"What is LangChain and why use it instead of calling an LLM API directly?"*
 → plain-English tutor answer with citations → the right panel shows the actual course slide (real
