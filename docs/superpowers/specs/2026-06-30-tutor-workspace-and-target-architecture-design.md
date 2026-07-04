@@ -74,6 +74,8 @@ the stored page image of the exact cited slide (rendered from the deck via headl
 time; real asset, never generated). Citation → slide-index resolution happens deck-side — the pptx
 loader already emits per-slide structure — so the **current index is untouched**. Slide images live in
 a gitignored store and are served at runtime only; the repo is public, so they are never committed.
+(Recorded exception, 2026-07-04: one inspected demo slide is published in the mockups at the owner's
+direction; the runtime store stays gitignored.)
 Includes (confirmed 2026-07-03): **deterministic next-step suggestion chips** (PRD FR-W10) — 2–4
 anchor-validated chips per turn (continue / comprehension / practice; recovery set on refusal), built
 from teach-loop state, corpus adjacency, near-miss retrievals, and session-memory dedupe. No new model

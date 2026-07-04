@@ -38,7 +38,12 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 9. **Trace-line explainer.** The strip `action · lens · decision · cited spans` documented as the UI
    expression of the spine: action + lens are the agent's (logged) choices; decision band + cited
    spans are the system's deterministic measurements.
-10. **FR-W10 next-step suggestion chips.** Owner requested intelligent "what next" suggestions
+10a. **Real demo slide published (owner's direction, 2026-07-04).** The mockup's slide card first used
+    an original synthetic infographic; the owner directed embedding a real slide. One inspected, benign
+    slide (Week 1 · Session 2 · slide 22 — a framework-primitives overview; no personal data or internal
+    systems) is published in `docs/assets/mockups/` as the featured asset. The remaining deck renders
+    stay private (uninspected third-party content). FR-W9 wording amended to record the exception.
+11. **FR-W10 next-step suggestion chips.** Owner requested intelligent "what next" suggestions
     (pattern: post-turn suggestion chips). Brainstormed; **Approach A approved** — deterministic,
     anchor-validated chips in Phase 1 (teach-state + corpus adjacency + near-miss retrievals + session
     memory), agentic curation in Phase C. Hard rule: never suggest what you can't ground; chips are

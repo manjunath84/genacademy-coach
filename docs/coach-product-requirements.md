@@ -73,7 +73,9 @@ the local Gradio app are shipped. Role-keyed provenance (`role → span_id`) exi
 - **FR-W9** Slide-visual card: when a cited span comes from a slide deck, the panel shows the **stored
   page image of that exact slide** (rendered from the deck at build time — real asset, never generated),
   keyed citation → deck + slide index. Slide images live in a private, gitignored store and are served
-  at runtime only; they are never committed — the repo is public.
+  at runtime only; they are never committed — the repo is public. *Recorded exception (2026-07-04,
+  owner's direction): one inspected, benign demo slide (Week 1 · Session 2 · slide 22) is published in
+  `docs/assets/mockups/` as the mockup's featured asset; the runtime store remains gitignored.*
 - **FR-W10** Next-step suggestion chips: after each tutor turn, 2–4 clickable suggestions (continue /
   comprehension / practice slots; a recovery set on refusal). **Every chip carries a grounding anchor**
   (span id, deck/section adjacency, or bounded teaching action) validated at creation — no anchor, no
