@@ -60,15 +60,10 @@
   .span{font-size:13px;line-height:1.5;color:#28303f;background:var(--code);border:1px solid #eaeef5;
     border-radius:8px;padding:9px 11px}
   .collapsed .lane-body{display:none}
-  /* slide-visual card (representative mock; build renders the stored page image of the cited slide) */
+  /* slide-visual card (embeds a real image, as the build does; sample asset is original) */
   .slidefig{margin:9px 0 2px}
-  .slide169{aspect-ratio:16/9;background:#fff;border:1px solid #d8dee9;border-radius:8px;
-    box-shadow:0 1px 3px rgba(16,24,40,.10);padding:16px 18px 12px;display:flex;
-    flex-direction:column;gap:9px}
-  .s-bar{height:5px;width:54px;background:var(--accent);border-radius:3px}
-  .s-title{font-size:16px;font-weight:800;color:#22314e;letter-spacing:.1px}
-  .s-bullets{margin:0;padding-left:17px;font-size:12px;color:#3c4657;line-height:1.6}
-  .s-foot{margin-top:auto;font-size:10px;color:#8b93a3;display:flex;justify-content:space-between}
+  .slideimg{width:100%;display:block;border:1px solid #d8dee9;border-radius:8px;
+    box-shadow:0 1px 3px rgba(16,24,40,.10)}
   .figcap{font-size:11px;color:var(--muted);font-style:italic;margin-top:6px}
   /* FR-W10 next-step suggestion chips (deterministic, anchor-validated) */
   .sugg{margin-top:14px}
@@ -134,17 +129,8 @@
             <div class="srcrow"><span class="srclabel">Week 1 · Session 2 · Slides</span><span class="cid">S1</span></div>
             <div class="why">why this source — concept framing</div>
             <div class="slidefig">
-              <div class="slide169">
-                <div class="s-bar"></div>
-                <div class="s-title">LangChain: why a framework?</div>
-                <ul class="s-bullets">
-                  <li>Direct API call = one prompt in, one completion out</li>
-                  <li>Chains compose prompts, tools, memory, and retrieval</li>
-                  <li>Same reusable pieces across every multi-step app</li>
-                </ul>
-                <div class="s-foot"><span>GenAcademy · Week 1 · Session 2</span><span>Slide 12</span></div>
-              </div>
-              <div class="figcap">Slide preview — representative mock. The build shows the stored image of the actual cited slide; never a generated one.</div>
+              <img class="slideimg" src="sample-slide-infographic.png" alt="Slide 12 — the composable pieces of an LLM app (sample slide, original illustration)">
+              <div class="figcap">Slide image embedded exactly as the build does (stored page image keyed by citation → slide index). This one is an original sample; at runtime it is the actual cited slide, served privately.</div>
             </div>
             <div class="span">LangChain = a framework to compose LLM calls: chains, tools, memory, and retrieval.</div>
           </div>
