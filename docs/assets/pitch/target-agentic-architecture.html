@@ -88,7 +88,7 @@
     grading, scheduling, privacy, and evaluation.</p>
 
   <div class="legend mono">
-    <span class="pill built">Built / evaluated</span>
+    <span class="pill built">Built surface</span>
     <span class="pill proto">Prototype surface</span>
     <span class="pill next">Next scoped lane</span>
     <span class="pill guard">Deterministic gate</span>
@@ -117,8 +117,8 @@
 
     <main class="center">
       <div class="orchestrator">
-        <h2>Coach Orchestrator <span class="tag protoTag">prototype</span></h2>
-        <p>Chooses the mode, passes bounded context to the right specialist, records the decision,
+        <h2>Target Coach Orchestrator <span class="tag protoTag">prototype</span></h2>
+        <p>Architecture role, not a shipped router class: chooses the mode, passes bounded context to the right specialist, records the decision,
           and routes every output through the same trust gates before the learner sees it.</p>
       </div>
       <div class="arrows mono"><span>surface -> intent</span><span>specialist -> gate</span><span>gate -> learner</span></div>
@@ -211,7 +211,7 @@
         </div>
         <div class="node blue">
           <h3>Eval + Trace Gate <span class="tag guardTag">gate</span></h3>
-          <p>Path-level trace, golden evals, refusal metrics, and release bars.</p>
+          <p>Path-level trace, teach-flow golden evals, refusal metrics, and release bars.</p>
         </div>
       </div>
     </main>
@@ -252,7 +252,7 @@
     <div class="callout">
       <h2>Status honesty for July 11</h2>
       <div class="statusgrid">
-        <div class="statusbox"><h3>Built</h3><p>Grounded tutor, quiz, skill-gap, refusal, evals.</p></div>
+        <div class="statusbox"><h3>Built</h3><p>Grounded tutor/refusal/evals; quiz and skill-gap support surfaces.</p></div>
         <div class="statusbox"><h3>Prototype</h3><p>Workspace story, memory profile, Personal Coach flow.</p></div>
         <div class="statusbox"><h3>Next</h3><p>Mock interview, voice, planner validation, admin lanes.</p></div>
       </div>

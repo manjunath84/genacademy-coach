@@ -1,12 +1,13 @@
 # GenAcademy Coach — Agent Orchestration Flow
 
 **Purpose:** reviewer-readable architecture flow for the July 11 pitch package. This complements the
-visual one-pager and storyboard by showing the actual control topology: learner surface →
-orchestrator → specialist agents → deterministic trust gates → learner-facing result.
+visual one-pager and storyboard by showing the target control topology: learner surface →
+orchestration role → specialist agents → deterministic trust gates → learner-facing result.
 
-**Status labels for the pitch:** grounded tutor, quiz/check, skill-gap diagnosis, refusal, citations,
-and eval traces are the proven pattern. Personal Coach, memory profile, mock interview, study planner,
-and voice I/O are target lanes to build incrementally behind the same gates.
+**Status labels for the pitch:** the grounded teach loop, refusal, citations, and eval traces are the
+evaluated pattern; quiz/check and skill-gap are shipped support surfaces. The Personal Coach,
+memory-profile UI, mock interview, study planner, and voice I/O are target lanes to build
+incrementally behind the same gates.
 
 ## Core Orchestration Diagram
 
@@ -16,7 +17,7 @@ flowchart LR
     UI["Tutor Workspace / Personal Coach UI"]
     Voice["Voice Interaction Agent\nspeech input + spoken tutor response"]
     VoiceConsent["Consent + Transcript Review Gate"]
-    Orchestrator["Coach Orchestrator"]
+    Orchestrator["Target Coach Orchestrator\nprototype routing role"]
     Response["Grounded Tutor Response"]
 
     Learner --> UI --> Orchestrator
@@ -66,7 +67,7 @@ flowchart LR
     Voice["Voice Interaction Agent\nSTT + TTS"]
     Consent["Consent + Visible Recording State"]
     Transcript["Reviewed Transcript"]
-    Orchestrator["Coach Orchestrator"]
+    Orchestrator["Target Coach Orchestrator\nprototype routing role"]
     Trust["Grounding + Citation Gate"]
     Privacy["Privacy + Memory Gate"]
     Response["Approved Tutor Response"]
@@ -92,5 +93,5 @@ evaluation.
   renamed copy of the same prompt.
 - **Trust boundary:** the model can choose teaching and coaching moves, but cannot bypass evidence,
   citation, refusal, privacy, or scheduling gates.
-- **Incremental build path:** every future lane plugs into the same orchestrator and gate pattern, so
+- **Incremental build path:** every future lane plugs into the same orchestration and gate pattern, so
   Personal Coach, memory, mock interview, study planner, and voice can ship one slice at a time.
