@@ -1229,6 +1229,15 @@ def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[di
 
 
 def render_panel_markdown(payload: PanelPayload) -> str:
+    """Render evidence as markdown with per-lane headers.
+
+    Used directly for the refusal card in the live flow; the evidence path
+    is the flat fallback rendering exercised by unit tests, while the live
+    evidence view renders via per-lane accordions in `panel_view_updates`.
+
+    Groups items by canonical `item.lane` key to match accordion behavior;
+    displays the human-friendly `item.lane_label` in headers.
+    """
     if payload.state == "refusal":
         return (
             "### Not in the course material\n\n"
@@ -1238,8 +1247,8 @@ def render_panel_markdown(payload: PanelPayload) -> str:
     lines: list[str] = []
     seen_lanes: list[str] = []
     for item in payload.items:
-        if item.lane_label not in seen_lanes:
-            seen_lanes.append(item.lane_label)
+        if item.lane not in seen_lanes:
+            seen_lanes.append(item.lane)
             lines.append(f"#### {item.lane_label}")
         lines.append(f"**{item.source_label_safe}**")
         lines.append(f"> {item.extract_text}")
