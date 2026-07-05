@@ -104,6 +104,23 @@ already built:
   and mentor escalation address common agent failures such as loops, unsupported tool use, token waste,
   bad decisions, and wrong-tool routing.
 
+## Week 4 Evaluation Alignment
+
+The July 11 pitch treats evaluation as a system design requirement, not an afterthought:
+
+- **Custom system evals over leaderboard claims:** measure the learner workflow and trust gates, not
+  just the model.
+- **Golden scenarios plus rubrics:** define expected behavior, allowed evidence, refusal cases, and
+  grading criteria before tuning prompts or adding new lanes.
+- **Trajectory evals for agents:** score route choice, retrieved evidence, tool/gate behavior,
+  refusal/escalation, and final learner-facing response.
+- **Hybrid review:** use deterministic checks where possible, human review for ambiguous pedagogy and
+  safety, and calibrated LLM judges only for bounded rubric-backed judgments.
+- **Regression buckets:** protect happy paths, edge cases, adversarial/refusal cases, privacy/memory
+  cases, and future voice/mock-interview lanes.
+- **Observability loop:** traces and logs become new eval cases after review; production monitoring
+  tracks latency, cost, failures, drift, and feedback once a lane ships.
+
 ## Pitch Line
 
 GenAcademy Coach is not a single chatbot. It is a grounded learning orchestrator: specialist agents
