@@ -139,3 +139,19 @@ def test_chip_model_carries_filter_scope_field():
         reason_code="near-miss",
     )
     assert chip.filter_scope == "all"
+
+
+def test_practice_label_never_leaks_raw_ids():
+    profile = LearnerProfile(struggled=["slide/week1-session1-82cf85861f9f::36.pptx"])
+    chips = build_suggestion_chips(
+        response=_response([CITED]),
+        spans=[_span(CITED), _span(NEAR, stype="note")],
+        evidence_band="proceed",
+        profile=profile,
+    )
+    practice = [chip for chip in chips if chip.kind == "practice"]
+    assert practice, "practice chip should still be offered with a safe static label"
+    assert practice[0].label_safe == "Practice a tricky spot again"
+    assert "::" not in practice[0].label_safe and ".pptx" not in practice[0].label_safe
+    # anchor keeps the raw topic server-side
+    assert practice[0].anchor_id.startswith("drill::")

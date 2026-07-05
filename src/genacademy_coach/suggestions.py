@@ -2,12 +2,13 @@
 
 One hard rule: never suggest what you can't ground. Every chip carries an
 anchor built from the turn's own objects (span pool, profile) — no new model
-calls, no second retrieval. Clicking a chip submits a normal turn through the
+calls, never issues a query. Clicking a chip submits a normal turn through the
 full pipeline; a stale anchor drops the chip, it never bypasses refusal.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel
@@ -24,6 +25,16 @@ MAX_CHIPS = 4
 _RECOVERY_COUNT = 2
 
 ChipKind = Literal["continue", "comprehension", "practice", "recovery"]
+
+_UNSAFE_LABEL = re.compile(r"(::|/|\\|\.[A-Za-z0-9]{2,5}$)")
+
+
+def _safe_topic_label(topic: str) -> str | None:
+    """A topic string is label-safe only if it carries no id/path/extension artifacts."""
+    cleaned = topic.strip()
+    if not cleaned or _UNSAFE_LABEL.search(cleaned):
+        return None
+    return cleaned
 AnchorType = Literal["span", "action"]
 
 
@@ -115,11 +126,16 @@ def build_suggestion_chips(
     if profile.struggled:
         topic = profile.struggled[-1].strip()
         if topic and topic.lower() not in known:
+            safe_topic = _safe_topic_label(topic)
             chips.append(
                 SuggestionChip(
                     chip_id=f"practice::{topic.lower()}",
                     kind="practice",
-                    label_safe=f"Practice: {topic}",
+                    label_safe=(
+                        f"Practice: {safe_topic}"
+                        if safe_topic is not None
+                        else "Practice a tricky spot again"
+                    ),
                     anchor_type="action",
                     anchor_id=f"drill::{topic}",
                     reason_code="check-failed",

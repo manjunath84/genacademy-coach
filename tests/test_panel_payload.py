@@ -139,3 +139,17 @@ def test_posture_text_present_in_every_state():
 def test_panel_payload_symbol_importable_and_defaults():
     payload = PanelPayload(state="refusal", posture_text="p")
     assert payload.items == []
+
+
+def test_pure_core_modules_have_no_retrieval_path():
+    import inspect
+
+    import genacademy_coach.panel_payload as panel_module
+    import genacademy_coach.suggestions as suggestions_module
+
+    for module in (panel_module, suggestions_module):
+        # Strip the RetrievedSpan type name (a parameter type, not a retrieval call)
+        # before checking — we guard against retrieval calls/imports, not type annotations.
+        source = inspect.getsource(module).replace("RetrievedSpan", "")
+        assert "retrieve" not in source.lower(), f"{module.__name__} must not touch retrieval"
+        assert "vectorstore" not in source.lower()
