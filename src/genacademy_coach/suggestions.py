@@ -27,6 +27,11 @@ ChipKind = Literal["continue", "comprehension", "practice", "recovery"]
 AnchorType = Literal["span", "action"]
 
 
+def _dedupe_key(label: str) -> str:
+    """Learner-facing topic key: the label's title portion, lowercased."""
+    return label.split(" (", 1)[0].strip().lower()
+
+
 class SuggestionChip(BaseModel):
     chip_id: str
     kind: ChipKind
@@ -56,31 +61,12 @@ def build_suggestion_chips(
     pool = [span for span in spans if span.citation_id not in cited]
     known = {topic.strip().lower() for topic in profile.known}
 
-    def is_known_text(text: str) -> bool:
-        """Check if text matches any known topic."""
-        text_lower = text.lower()
-        # Check for exact match or substring match against known topics
-        return text_lower in known or any(known_topic in text_lower for known_topic in known)
-
-    def is_known_span(span: RetrievedSpan) -> bool:
-        """Check if a span's topic is known using label and doc_id matching."""
-        label = safe_source_label(span)
-        if is_known_text(label):
-            return True
-        # Also check doc_id: if any word from a known topic appears in the doc_id, it's known
-        doc_id_part = span.doc_id.split("/")[-1].lower() if span.doc_id else ""
-        for known_topic in known:
-            for word in known_topic.split():
-                if word and word in doc_id_part:
-                    return True
-        return False
-
     if evidence_band == "stop" or response.next_action == "refuse_escalate":
         recovery: list[SuggestionChip] = []
         for span in sorted(spans, key=lambda s: -s.score):
-            if is_known_span(span):
-                continue
             label = safe_source_label(span)
+            if _dedupe_key(label) in known:
+                continue
             recovery.append(
                 SuggestionChip(
                     chip_id=f"recovery::{span.citation_id}",
@@ -98,9 +84,9 @@ def build_suggestion_chips(
     chips: list[SuggestionChip] = []
 
     for span in sorted(pool, key=lambda s: -s.score):
-        if is_known_span(span):
-            continue
         label = safe_source_label(span)
+        if _dedupe_key(label) in known:
+            continue
         chips.append(
             SuggestionChip(
                 chip_id=f"continue::{span.citation_id}",
@@ -128,7 +114,7 @@ def build_suggestion_chips(
 
     if profile.struggled:
         topic = profile.struggled[-1].strip()
-        if topic and not is_known_text(topic):
+        if topic and topic.lower() not in known:
             chips.append(
                 SuggestionChip(
                     chip_id=f"practice::{topic.lower()}",

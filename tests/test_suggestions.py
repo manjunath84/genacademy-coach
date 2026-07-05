@@ -68,15 +68,27 @@ def test_refusal_turn_emits_recovery_set_only():
 
 
 def test_known_topic_dedupe_drops_continue_candidate():
-    # the near-miss labels resolve from titles; mark them known
-    known_topics = ["Notes Bbbb 3333 4444".title(), "Talk Cccc 5555 6666".title()]
-    known_profile = LearnerProfile(known=known_topics)
-    chips = _chips(profile=known_profile)
-    not_continue = all(
-        chip.kind != "continue" or chip.anchor_id not in {NEAR, NEAR2} for chip in chips
+    # Give the near-miss spans distinct titles so their labels are distinct and matchable
+    near_span = _span(NEAR, stype="note", title="Vector Stores Overview")
+    near2_span = _span(NEAR2, stype="transcript", title="Agent Tools Deep Dive")
+    known_profile = LearnerProfile(known=["Vector Stores Overview", "Agent Tools Deep Dive"])
+    chips = build_suggestion_chips(
+        response=_response([CITED]),
+        spans=[_span(CITED), near_span, near2_span],
+        evidence_band="proceed",
+        profile=known_profile,
     )
-    no_continue = all(chip.kind != "continue" for chip in chips)
-    assert not_continue or no_continue
+    # Both near-miss candidates are known — no continue chip should be emitted
+    assert all(chip.kind != "continue" for chip in chips)
+
+    # Positive control: with empty known, a continue chip IS produced from these same spans
+    chips_empty_known = build_suggestion_chips(
+        response=_response([CITED]),
+        spans=[_span(CITED), near_span, near2_span],
+        evidence_band="proceed",
+        profile=LearnerProfile(),
+    )
+    assert any(chip.kind == "continue" for chip in chips_empty_known)
 
 
 def test_labels_carry_no_filename_artifacts():
