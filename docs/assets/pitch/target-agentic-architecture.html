@@ -84,7 +84,7 @@
   <div class="eyebrow mono">GenAcademy Coach - July 11 architecture pitch</div>
   <h1><span>One grounded learning brain,</span> <span>many specialist agents.</span></h1>
   <p class="sub">The prototype demonstrates the pattern: specialist agents teach, interview,
-    diagnose, plan, remember, and speak. Deterministic gates own retrieval, citations, refusal,
+    diagnose, plan, remember, listen, and speak. Deterministic gates own retrieval, citations, refusal,
     grading, scheduling, privacy, and evaluation.</p>
 
   <div class="legend mono">
@@ -107,7 +107,7 @@
       </div>
       <div class="node purple">
         <h3>Voice Session <span class="tag nextTag">next</span></h3>
-        <p>Consent-gated speech input and tutor voice output. Voice becomes a normal grounded turn.</p>
+        <p>Learners can ask by voice or typing; the tutor can answer with text and audio together.</p>
       </div>
       <div class="node">
         <h3>Admin / Mentor Queue <span class="tag nextTag">next</span></h3>
@@ -182,9 +182,9 @@
         <div class="agent">
           <h3>Voice Interaction Agent <span class="tag nextTag">next</span></h3>
           <ul>
-            <li>Transcribes learner speech.</li>
+            <li>Transcribes learner speech into a normal tutor turn.</li>
             <li>Routes transcript to grounded tutor.</li>
-            <li>Speaks only approved grounded output.</li>
+            <li>Speaks the same approved grounded response shown in text.</li>
           </ul>
         </div>
         <div class="agent">
@@ -232,7 +232,7 @@
       </div>
       <div class="node">
         <h3>Speech Tools <span class="tag nextTag">next</span></h3>
-        <p>Speech-to-text and text-to-speech adapters behind consent and retention controls.</p>
+        <p>Speech-to-text and text-to-speech adapters behind consent, transcript review, and retention controls.</p>
       </div>
       <div class="node rose">
         <h3>Attack Surface</h3>
@@ -245,7 +245,7 @@
     <div class="callout">
       <h2>Architecture pitch line</h2>
       <p><b>GenAcademy Coach is not a single chatbot.</b> It is a grounded learning orchestrator:
-        specialist agents handle teaching, interviewing, diagnosis, planning, memory, and voice,
+        specialist agents handle teaching, interviewing, diagnosis, planning, memory, and text/voice interaction,
         while deterministic services control evidence, citations, refusal, grading, privacy,
         scheduling, and evaluation.</p>
     </div>

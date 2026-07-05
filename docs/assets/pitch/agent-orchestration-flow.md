@@ -6,7 +6,7 @@ orchestrator → specialist agents → deterministic trust gates → learner-fac
 
 **Status labels for the pitch:** grounded tutor, quiz/check, skill-gap diagnosis, refusal, citations,
 and eval traces are the proven pattern. Personal Coach, memory profile, mock interview, study planner,
-and voice are target lanes to build incrementally behind the same gates.
+and voice I/O are target lanes to build incrementally behind the same gates.
 
 ## Core Orchestration Diagram
 
@@ -14,9 +14,13 @@ and voice are target lanes to build incrementally behind the same gates.
 flowchart LR
     Learner["Learner"]
     UI["Tutor Workspace / Personal Coach UI"]
+    Voice["Voice Interaction Agent\nspeech input + spoken tutor response"]
+    VoiceConsent["Consent + Transcript Review Gate"]
     Orchestrator["Coach Orchestrator"]
+    Response["Grounded Tutor Response"]
 
     Learner --> UI --> Orchestrator
+    Learner --> Voice --> VoiceConsent --> Orchestrator
 
     Orchestrator --> Tutor["Teaching Agent"]
     Orchestrator --> Quiz["Quiz / Check Agent"]
@@ -34,40 +38,51 @@ flowchart LR
 
     Trust --> Corpus["Course Corpus / RAG"]
     Trust --> Refusal["Refuse + Mentor Escalation"]
+    Trust --> Response
     Scheduler --> Plan["Personal Study Plan"]
     Privacy --> Profile["Learner Profile: goals, known, struggled, preferences"]
 
     Profile --> Orchestrator
     Plan --> UI
+    Plan --> Voice
     Refusal --> UI
+    Refusal --> Voice
     Corpus --> UI
+    Response --> UI
+    Response --> Voice --> Learner
 ```
 
-## Voice Extension
+## Voice I/O In The Core Loop
 
-Voice is an interaction lane, not a new answer brain. Speech is converted into a normal grounded
-tutor turn; the spoken response is generated only after retrieval, citation, refusal, and privacy gates
-approve the text answer.
+Voice is a first-class input/output mode for the same tutor loop. The learner can speak instead of
+typing, and the coach can return the answer as text plus spoken audio at the same time. The voice
+agent still does not answer directly: it captures speech, manages consent/transcript review, and speaks
+only the grounded response that already passed retrieval, citation, refusal, privacy, and trace gates.
 
 ```mermaid
 flowchart LR
     Learner["Learner"]
-    Voice["Voice Interaction Agent"]
+    TextUI["Text UI"]
+    Voice["Voice Interaction Agent\nSTT + TTS"]
     Consent["Consent + Visible Recording State"]
     Transcript["Reviewed Transcript"]
     Orchestrator["Coach Orchestrator"]
     Trust["Grounding + Citation Gate"]
     Privacy["Privacy + Memory Gate"]
-    TTS["Tutor Voice Output"]
+    Response["Approved Tutor Response"]
 
+    Learner --> TextUI --> Orchestrator
     Learner --> Consent --> Voice --> Transcript --> Orchestrator
-    Orchestrator --> Trust --> Privacy --> TTS --> Learner
+    Orchestrator --> Trust --> Privacy --> Response
+    Response --> TextUI --> Learner
+    Response --> Voice --> Learner
 ```
 
 ## Pitch Line
 
 GenAcademy Coach is not a single chatbot. It is a grounded learning orchestrator: specialist agents
-teach, interview, diagnose gaps, plan study, curate memory, and support voice interaction, while
+teach, interview, diagnose gaps, plan study, curate memory, and support simultaneous text/voice
+interaction, while
 deterministic services control retrieval, citations, refusal, grading, scheduling, privacy, and
 evaluation.
 

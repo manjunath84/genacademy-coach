@@ -114,7 +114,7 @@
       <button class="tab" data-screen="memory"><b>3. Memory Profile</b><span>Consent, edit, delete</span></button>
       <button class="tab" data-screen="interview"><b>4. Mock Interview</b><span>Specialized interviewer + evaluator</span></button>
       <button class="tab" data-screen="plan"><b>5. Study Plan</b><span>LLM proposes, scheduler validates</span></button>
-      <button class="tab" data-screen="voice"><b>6. Voice Session</b><span>Speech becomes a grounded turn</span></button>
+      <button class="tab" data-screen="voice"><b>6. Voice Session</b><span>Ask by voice, hear the tutor too</span></button>
     </nav>
 
     <section class="panel">
@@ -293,7 +293,7 @@
 
       <article class="screen" id="screen-voice">
         <div class="screenHead">
-          <div><h2>Voice agent lane</h2><p class="desc">Voice adds a natural interface, not a new trust model. Speech is transcribed, grounded, checked, then spoken.</p></div>
+          <div><h2>Voice tutor session</h2><p class="desc">Learners can ask by voice instead of typing, and the tutor can respond with synchronized text plus spoken audio.</p></div>
           <span class="screenTag next">next lane</span>
         </div>
         <div class="mockSurface">
@@ -301,9 +301,9 @@
             <h3>Voice turn pipeline</h3>
             <div class="timeline">
               <div class="step"><div class="num">1</div><p>Consent prompt and visible recording state.</p></div>
-              <div class="step"><div class="num">2</div><p>Speech-to-text transcript enters the normal orchestrator.</p></div>
+              <div class="step"><div class="num">2</div><p>Speech-to-text transcript enters the same orchestrator as typed questions.</p></div>
               <div class="step"><div class="num">3</div><p>Grounded tutor retrieves, cites, and passes refusal gate.</p></div>
-              <div class="step"><div class="num">4</div><p>Text-to-speech reads only the approved grounded answer.</p></div>
+              <div class="step"><div class="num">4</div><p>The approved answer appears as text and plays as tutor voice at the same time.</p></div>
             </div>
           </div>
           <div class="box">
@@ -311,7 +311,7 @@
             <ul>
               <li>Mute and stop always visible.</li>
               <li>Transcript shown before memory save.</li>
-              <li>Voice output never hides citations.</li>
+              <li>Voice output never hides citations; the text answer keeps them visible.</li>
               <li>Refusal still routes to mentor escalation.</li>
             </ul>
           </div>
@@ -321,7 +321,7 @@
           </div>
           <div class="box blue">
             <h3>Architecture rule</h3>
-            <p>The voice agent cannot answer directly. It is an interface adapter around the same grounded tutor, memory gate, and evaluation trace.</p>
+            <p>The voice agent is first-class I/O, not an independent reasoning path. It wraps the same grounded tutor, memory gate, and evaluation trace.</p>
           </div>
         </div>
       </article>
