@@ -1,7 +1,7 @@
 import subprocess
 import sys
 
-from genacademy_coach.panel_payload import build_panel_payload
+from genacademy_coach.panel_payload import PanelPayload, build_panel_payload
 from genacademy_coach.teach_types import CoachAgentResponse, ProvenanceRecord, RetrievedSpan
 
 
@@ -134,3 +134,8 @@ def test_posture_text_present_in_every_state():
             evidence_band=band,
         )
         assert payload.posture_text.strip(), f"posture missing for band={band}"
+
+
+def test_panel_payload_symbol_importable_and_defaults():
+    payload = PanelPayload(state="refusal", posture_text="p")
+    assert payload.items == []
