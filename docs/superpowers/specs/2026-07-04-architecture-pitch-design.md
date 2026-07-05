@@ -136,8 +136,11 @@ evals before release."
   conflicting objectives in one prompt; role separation under a deterministic orchestrator is the
   same sandwich pattern.
 - *Cost/latency?* ~$0.14 per full 40-case eval run (current reference, runs 2/3 only — baseline
-  cost not comparable, pricing env was unset); case p95 ~21.96s; turn p95 8.28s against a 12s
-  bar; five production monitoring signals with alert thresholds already defined.
+  cost not comparable, pricing env was unset); case p95 ~21.96s; turn p95 8.28s — inside the
+  dashboard's 10s production alert SLA; five production monitoring signals with alert thresholds
+  already defined. *(Amended 2026-07-04 after PR #70 review: originally quoted "against a 12s
+  bar" — the dashboard JSON does not carry 12s, and the numbers policy binds artifacts to the
+  dashboard.)*
 
 ## 5. Numbers policy (hard rule)
 
