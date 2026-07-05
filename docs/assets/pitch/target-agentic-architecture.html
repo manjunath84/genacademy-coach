@@ -211,7 +211,7 @@
         </div>
         <div class="node blue">
           <h3>Eval + Trace Gate <span class="tag guardTag">gate</span></h3>
-          <p>Path-level trace, teach-flow golden evals, refusal metrics, and release bars.</p>
+          <p>Path-level trace, teach-flow golden evals, latency/cost signals, refusal metrics, and release bars.</p>
         </div>
       </div>
     </main>
@@ -234,6 +234,10 @@
         <h3>Speech Tools <span class="tag nextTag">next</span></h3>
         <p>Speech-to-text and text-to-speech adapters behind consent, transcript review, and retention controls.</p>
       </div>
+      <div class="node">
+        <h3>MCP / A2A Boundary <span class="tag nextTag">next</span></h3>
+        <p>External tools and agent-to-agent links stay deferred until they can pass the same gates.</p>
+      </div>
       <div class="node rose">
         <h3>Attack Surface</h3>
         <p>Voice, memory, admin upload, and current-docs add power. Each needs a gate before release.</p>
@@ -247,7 +251,8 @@
       <p><b>GenAcademy Coach is not a single chatbot.</b> It is a grounded learning orchestrator:
         specialist agents handle teaching, interviewing, diagnosis, planning, memory, and text/voice interaction,
         while deterministic services control evidence, citations, refusal, grading, privacy,
-        scheduling, and evaluation.</p>
+        scheduling, and evaluation. The target maps to router, supervisor, and planner-executor
+        patterns while deferring MCP/A2A integrations until earned.</p>
     </div>
     <div class="callout">
       <h2>Status honesty for July 11</h2>

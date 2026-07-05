@@ -79,6 +79,25 @@ flowchart LR
     Response --> Voice --> Learner
 ```
 
+## Week 3 Pattern Alignment
+
+The target architecture maps to the Agentic AI Leap design patterns without pretending every layer is
+already built:
+
+- **Router pattern:** the target Coach Orchestrator is the routing/control role that selects tutor,
+  quiz/check, mock interview, memory, planner, voice, or escalation paths.
+- **Planner-executor pattern:** the Study Planner proposes a plan; deterministic scheduler validation
+  checks feasibility before anything is shown as a plan.
+- **Reflection / supervisor pattern:** the mock-interview loop separates interviewer, rubric
+  evaluator, misconception diagnoser, and feedback coach so one prompt is not grading itself.
+- **Human-in-the-loop pattern:** refusal and low-confidence cases route to mentor review instead of
+  forcing the agent to answer.
+- **MCP / A2A boundary:** external tool and agent-to-agent integrations stay deferred. If they are
+  added later, they plug in behind the same retrieval, citation, permission, privacy, and trace gates.
+- **Failure-mode controls:** loop caps, grounded citations, tool/route gating, cost/latency tracing,
+  and mentor escalation address common agent failures such as loops, unsupported tool use, token waste,
+  bad decisions, and wrong-tool routing.
+
 ## Pitch Line
 
 GenAcademy Coach is not a single chatbot. It is a grounded learning orchestrator: specialist agents
