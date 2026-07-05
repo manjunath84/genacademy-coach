@@ -9,6 +9,9 @@ evaluated pattern; quiz/check and skill-gap are shipped support surfaces. The Pe
 memory-profile UI, mock interview, study planner, and voice I/O are target lanes to build
 incrementally behind the same gates.
 
+**July 11 ADLC cut:** this pitch is intentionally about **Scope**, **Prototype**, and **Evaluate**.
+Build, Deploy, and Monitor remain the post-demo lifecycle once each lane earns implementation.
+
 ## Core Orchestration Diagram
 
 ```mermaid
@@ -83,6 +86,9 @@ flowchart LR
 
 The target architecture maps to the Agentic AI Leap design patterns without pretending every layer is
 already built:
+
+- **ADLC focus:** define the learner problem and success criteria, prototype the cross-lane workflow,
+  and specify eval gates before building every lane.
 
 - **Router pattern:** the target Coach Orchestrator is the routing/control role that selects tutor,
   quiz/check, mock interview, memory, planner, voice, or escalation paths.
