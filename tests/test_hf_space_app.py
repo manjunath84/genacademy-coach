@@ -464,7 +464,7 @@ def test_start_teach_check_prefills_grounded_demo_answer(monkeypatch):
 
     monkeypatch.setattr(gradio_app, "run_teach_ui", fake_run_teach_ui)
 
-    output, trace_summary, metadata, state_token, answer, submit_update = (
+    output, trace_summary, metadata, state_token, answer, submit_update, *_panel = (
         gradio_app.start_teach_check_ui(*TEACH_GROUNDED_PRESET[:3])
     )
 
@@ -973,13 +973,14 @@ def test_teach_ui_session_pruning_keeps_store_bounded(monkeypatch):
 
 
 def test_submit_teach_answer_ui_requires_active_check():
-    output, trace_summary, metadata, state_token, answer, submit_update = submit_teach_answer_ui(
+    result = submit_teach_answer_ui(
         "agent harness",
         "analogy",
         "code_heavy",
         "This is just a reusable prompt template.",
         None,
     )
+    output, trace_summary, metadata, state_token, answer, submit_update, *_panel = result
 
     assert output == "Start a check before submitting an answer."
     assert trace_summary == "**Status:** `invalid_input`"
@@ -990,13 +991,14 @@ def test_submit_teach_answer_ui_requires_active_check():
 
 
 def test_submit_teach_answer_ui_rejects_expired_check():
-    output, trace_summary, metadata, state_token, answer, submit_update = submit_teach_answer_ui(
+    result = submit_teach_answer_ui(
         "agent harness",
         "analogy",
         "code_heavy",
         "This is just a reusable prompt template.",
         "missing-state",
     )
+    output, trace_summary, metadata, state_token, answer, submit_update, *_panel = result
 
     assert output == "Start a check before submitting an answer."
     assert trace_summary == "**Status:** `invalid_input`"
@@ -1020,13 +1022,14 @@ def test_submit_teach_answer_ui_requires_matching_check():
         "track_lens": "code_heavy",
     }
 
-    output, trace_summary, metadata, state_token, answer, submit_update = submit_teach_answer_ui(
+    result = submit_teach_answer_ui(
         "agent harness",
         "step_by_step",
         "code_heavy",
         "This is just a reusable prompt template.",
         "state-1",
     )
+    output, trace_summary, metadata, state_token, answer, submit_update, *_panel = result
 
     assert output == "Start a new check after changing topic, style, or track lens."
     assert trace_summary == "**Status:** `invalid_input`"
