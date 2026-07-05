@@ -12,13 +12,22 @@ from pathlib import Path
 from typing import Any
 
 from genacademy_coach.foundation import Foundation, build_course_vectorstore
+from genacademy_coach.panel_payload import PanelPayload, build_panel_payload
 from genacademy_coach.privacy import user_id_hash
 from genacademy_coach.quiz_session import QuizSession
 from genacademy_coach.quiz_types import QuizQuestion, QuizSessionResult, grade_quiz
 from genacademy_coach.settings import CoachSettings
 from genacademy_coach.skillgap_session import SkillGapSession, validate_skillgap_session_id
+from genacademy_coach.slide_images import make_slide_image_resolver, slide_store_dir
+from genacademy_coach.source_labels import LANE_ORDER, lane_name
+from genacademy_coach.suggestions import (
+    ChipClick,
+    build_suggestion_chips,
+    resolve_chip_click,
+)
 from genacademy_coach.teach_session import CoachSession
 from genacademy_coach.teach_types import LearnerProfile, RetrievedSpan
+from genacademy_coach.trace import load_trace
 from genacademy_coach.web.auth import (
     DEFAULT_AUTH_MESSAGE,
     CoachAuth,
@@ -1214,6 +1223,140 @@ def safe_trace_rows(trace_path: str, allowed_fields: tuple[str, ...]) -> list[di
     return rows
 
 
+# ---------------------------------------------------------------------------
+# Task 5: workspace view helpers
+# ---------------------------------------------------------------------------
+
+
+def render_panel_markdown(payload: PanelPayload) -> str:
+    """Render evidence as markdown with per-lane headers.
+
+    Used directly for the refusal card in the live flow; the evidence path
+    is the flat fallback rendering exercised by unit tests, while the live
+    evidence view renders via per-lane accordions in `panel_view_updates`.
+
+    Groups items by canonical `item.lane` key to match accordion behavior;
+    displays the human-friendly `item.lane_label` in headers.
+    """
+    if payload.state == "refusal":
+        return (
+            "### Not in the course material\n\n"
+            f"{payload.posture_text}\n\n"
+            "_The suggestions below route back into the course._"
+        )
+    lines: list[str] = []
+    seen_lanes: list[str] = []
+    for item in payload.items:
+        if item.lane not in seen_lanes:
+            seen_lanes.append(item.lane)
+            lines.append(f"#### {item.lane_label}")
+        lines.append(f"**{item.source_label_safe}**")
+        lines.append(f"> {item.extract_text}")
+        lines.append(f"_{item.why_text}_")
+        lines.append("")
+    return "\n".join(lines) if lines else "_No cited evidence to project._"
+
+
+def _build_workspace_payload(session: Any, result: Any) -> tuple[PanelPayload, list]:
+    """PanelPayload + chips from the turn's own objects. Never a new query."""
+    spans = _current_spans(session)
+    last_turn = load_trace(Path(result.trace_path))[-1]
+    resolver = make_slide_image_resolver(slide_store_dir(CoachSettings.from_env()))
+    payload = build_panel_payload(
+        response=result.response,
+        spans=spans,
+        evidence_band=last_turn.evidence_band,
+        provenance={k: v for k, v in last_turn.provenance.items()},
+        slide_image_for=resolver,
+    )
+    chips = build_suggestion_chips(
+        response=result.response,
+        spans=spans,
+        evidence_band=last_turn.evidence_band,
+        profile=result.profile,
+    )
+    return payload, chips
+
+
+_EMPTY_PANEL = "_Run a teach turn to see the evidence panel._"
+
+
+def _lane_body_markdown(items: list) -> str:
+    return "\n".join(
+        f"**{item.source_label_safe}**\n\n> {item.extract_text}\n\n_{item.why_text}_\n"
+        for item in items
+    )
+
+
+def panel_view_updates(session: Any, result: Any) -> tuple:
+    """Returns an 18-tuple, in this exact order:
+    (posture_md, status_md, slide_image_update,
+     lane_accordion_updates x5, lane_markdown_updates x5,
+     chip_updates x4, chips_state)."""
+    hidden_lanes = [gr.update(visible=False)] * len(LANE_ORDER)
+    empty_lane_md = [gr.update(value="")] * len(LANE_ORDER)
+    chip_hidden = [gr.update(visible=False, value="")] * 4
+    if session is None or result is None:
+        return (
+            "",
+            _EMPTY_PANEL,
+            gr.update(visible=False),
+            *hidden_lanes,
+            *empty_lane_md,
+            *chip_hidden,
+            [],
+        )
+
+    payload, chips = _build_workspace_payload(session, result)
+    posture = f"**{payload.posture_text}**"
+    if payload.state == "refusal":
+        status_md = render_panel_markdown(payload)
+    elif payload.state == "clarify":
+        status_md = (
+            "_Grounded with caveats — the sections below are the parts of the "
+            "course this answer stands on._"
+        )
+    else:
+        status_md = "_Every section below is a source this answer actually cited._"
+
+    lane_accordion_updates = []
+    lane_markdown_updates = []
+    for lane in LANE_ORDER:
+        lane_items = [item for item in payload.items if item.lane == lane]
+        if lane_items:
+            lane_accordion_updates.append(gr.update(visible=True))
+            lane_markdown_updates.append(gr.update(value=_lane_body_markdown(lane_items)))
+        else:
+            lane_accordion_updates.append(gr.update(visible=False))
+            lane_markdown_updates.append(gr.update(value=""))
+
+    slide_ref = next(
+        (item.slide_image_ref for item in payload.items if item.slide_image_ref), None
+    )
+    image_update = (
+        gr.update(value=slide_ref, visible=True)
+        if slide_ref
+        else gr.update(visible=False)
+    )
+
+    chip_updates = []
+    for slot in range(4):
+        if slot < len(chips):
+            chip_updates.append(gr.update(visible=True, value=chips[slot].label_safe))
+        else:
+            chip_updates.append(gr.update(visible=False, value=""))
+    chips_state = [chip.model_dump() for chip in chips]
+    return (
+        posture,
+        status_md,
+        image_update,
+        *lane_accordion_updates,
+        *lane_markdown_updates,
+        *chip_updates,
+        chips_state,
+    )
+
+
 @lru_cache(maxsize=1)
 def _runtime() -> tuple[CoachSettings, Foundation]:
     settings = CoachSettings.from_env()
@@ -1964,7 +2107,7 @@ def start_teach_check_ui(
     track_lens: str,
     state_token: str | None = None,
     request: gr.Request | None = None,
-) -> tuple[str, str, dict[str, Any], str | None, str, Any]:
+):
     _finish_teach_state(state_token)
     output, trace_summary, metadata, next_state_token, answer = run_teach_ui(
         topic,
@@ -1974,6 +2117,9 @@ def start_teach_check_ui(
         None,
         request,
     )
+    entry = TEACH_UI_SESSIONS.get(next_state_token or "")
+    session = entry["session"] if entry is not None else None
+    result = entry["last_result"] if entry is not None else None
     return (
         output,
         trace_summary,
@@ -1983,6 +2129,7 @@ def start_teach_check_ui(
         if next_state_token is not None
         else answer,
         _teach_submit_button_update(interactive=next_state_token is not None),
+        *panel_view_updates(session, result),
     )
 
 
@@ -1993,7 +2140,7 @@ def submit_teach_answer_ui(
     learner_answer: str,
     state_token: str | None = None,
     request: gr.Request | None = None,
-) -> tuple[str, str, dict[str, Any], str | None, str, Any]:
+):
     answer = learner_answer.strip()
     if not state_token:
         metadata = {"status": "invalid_input"}
@@ -2004,6 +2151,7 @@ def submit_teach_answer_ui(
             state_token,
             answer,
             _teach_submit_button_update(interactive=False),
+            *panel_view_updates(None, None),
         )
     if not answer:
         metadata = {"status": "invalid_input"}
@@ -2014,6 +2162,7 @@ def submit_teach_answer_ui(
             state_token,
             answer,
             _teach_submit_button_update(interactive=True),
+            *panel_view_updates(None, None),
         )
 
     try:
@@ -2029,6 +2178,7 @@ def submit_teach_answer_ui(
             state_token,
             answer,
             _teach_submit_button_update(interactive=True),
+            *panel_view_updates(None, None),
         )
 
     _prune_teach_ui_sessions()
@@ -2042,6 +2192,7 @@ def submit_teach_answer_ui(
             None,
             answer,
             _teach_submit_button_update(interactive=False),
+            *panel_view_updates(None, None),
         )
     if not _teach_state_matches(
         entry,
@@ -2058,6 +2209,7 @@ def submit_teach_answer_ui(
             None,
             answer,
             _teach_submit_button_update(interactive=False),
+            *panel_view_updates(None, None),
         )
 
     output, trace_summary, metadata, next_state_token, cleared_answer = run_teach_ui(
@@ -2068,6 +2220,14 @@ def submit_teach_answer_ui(
         state_token,
         request,
     )
+    next_entry = TEACH_UI_SESSIONS.get(next_state_token or "")
+    next_session = next_entry["session"] if next_entry is not None else None
+    next_result = next_entry["last_result"] if next_entry is not None else None
+    # If next_state_token is None (terminal turn), session was already finished;
+    # use the last known session/result from the pre-submit entry for the panel.
+    if next_session is None and next_result is None:
+        next_session = entry.get("session")
+        next_result = entry.get("last_result")
     return (
         output,
         trace_summary,
@@ -2075,6 +2235,7 @@ def submit_teach_answer_ui(
         next_state_token,
         cleared_answer,
         _teach_submit_button_update(interactive=next_state_token is not None),
+        *panel_view_updates(next_session, next_result),
     )
 
 
@@ -2315,20 +2476,67 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                             value="_Awaiting teach run._",
                             elem_classes=["gc-output"],
                         )
-                        teach_trace_summary = gr.Markdown(
-                            label="Trace summary",
-                            value="_Trace summary appears after a run._",
-                            elem_classes=["gc-trace"],
+                        presenter_mode = gr.Checkbox(
+                            label="Presenter mode (show reasoning)", value=False
                         )
                         with gr.Accordion(
-                            "Redacted metadata",
+                            "Behind this answer",
                             open=False,
                             elem_classes=["gc-accordion"],
-                        ):
+                        ) as behind_accordion:
+                            teach_trace_summary = gr.Markdown(
+                                label="Trace summary",
+                                value="_Trace summary appears after a run._",
+                                elem_classes=["gc-trace"],
+                            )
                             teach_metadata = gr.JSON(
                                 label="Redacted metadata",
                                 elem_classes=["gc-json"],
                             )
+                        presenter_mode.change(
+                            fn=lambda on: gr.update(open=bool(on)),
+                            inputs=[presenter_mode],
+                            outputs=[behind_accordion],
+                        )
+                    with gr.Column(scale=5, min_width=360, elem_classes=["gc-panel-soft"]):
+                        gr.HTML(
+                            """
+                            <p class="gc-eyebrow">Evidence panel</p>
+                            <h2 class="gc-panel-title">Where this answer comes from</h2>
+                            """
+                        )
+                        teach_posture = gr.Markdown(value="", elem_classes=["gc-trace"])
+                        teach_panel_status = gr.Markdown(
+                            value="_Run a teach turn to see the evidence panel._",
+                            elem_classes=["gc-output"],
+                        )
+                        teach_slide_image = gr.Image(
+                            label="Cited slide",
+                            visible=False,
+                            interactive=False,
+                            type="filepath",
+                        )
+                        # A2: per-lane collapsible sections — one static accordion
+                        # per lane, shown only when the turn cited that lane.
+                        lane_accordions = []
+                        lane_markdowns = []
+                        for _lane in LANE_ORDER:
+                            with gr.Accordion(
+                                lane_name(_lane),
+                                open=True,
+                                visible=False,
+                                elem_classes=["gc-accordion"],
+                            ) as _lane_acc:
+                                _lane_md = gr.Markdown("")
+                            lane_accordions.append(_lane_acc)
+                            lane_markdowns.append(_lane_md)
+                        chips_state = gr.State([])
+                        with gr.Row():
+                            chip_0 = gr.Button("", visible=False, elem_classes=["gc-preset-button"])
+                            chip_1 = gr.Button("", visible=False, elem_classes=["gc-preset-button"])
+                        with gr.Row():
+                            chip_2 = gr.Button("", visible=False, elem_classes=["gc-preset-button"])
+                            chip_3 = gr.Button("", visible=False, elem_classes=["gc-preset-button"])
                 grounded_preset.click(
                     fn=fill_teach_grounded_preset_ui,
                     inputs=[teach_state],
@@ -2363,6 +2571,16 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                         teach_state,
                         learner_answer,
                         submit_teach_button,
+                        teach_posture,
+                        teach_panel_status,
+                        teach_slide_image,
+                        *lane_accordions,
+                        *lane_markdowns,
+                        chip_0,
+                        chip_1,
+                        chip_2,
+                        chip_3,
+                        chips_state,
                     ],
                 )
                 submit_teach_button.click(
@@ -2375,8 +2593,59 @@ def build_demo(status_message: str | None = None) -> gr.Blocks:
                         teach_state,
                         learner_answer,
                         submit_teach_button,
+                        teach_posture,
+                        teach_panel_status,
+                        teach_slide_image,
+                        *lane_accordions,
+                        *lane_markdowns,
+                        chip_0,
+                        chip_1,
+                        chip_2,
+                        chip_3,
+                        chips_state,
                     ],
                 )
+
+                def _chip_click(slot: int):
+                    def _handler(chips, topic, style_v, lens_v, state_token):
+                        if not chips or slot >= len(chips):
+                            return start_teach_check_ui(topic, style_v, lens_v, state_token)
+                        _chip_keys = (
+                            "chip_id", "anchor_type", "anchor_id", "filter_scope", "reason_code"
+                        )
+                        click = ChipClick(**{k: chips[slot][k] for k in _chip_keys})
+                        entry = TEACH_UI_SESSIONS.get(state_token or "")
+                        session = entry["session"] if entry is not None else None
+                        spans = _current_spans(session) if session is not None else []
+                        resolved = resolve_chip_click(click, spans=spans)
+                        next_topic = resolved if resolved else topic
+                        return start_teach_check_ui(next_topic, style_v, lens_v, state_token)
+
+                    return _handler
+
+                for slot, chip_button in enumerate([chip_0, chip_1, chip_2, chip_3]):
+                    chip_button.click(
+                        fn=_chip_click(slot),
+                        inputs=[chips_state, teach_topic, style, track_lens, teach_state],
+                        outputs=[
+                            teach_output,
+                            teach_trace_summary,
+                            teach_metadata,
+                            teach_state,
+                            learner_answer,
+                            submit_teach_button,
+                            teach_posture,
+                            teach_panel_status,
+                            teach_slide_image,
+                            *lane_accordions,
+                            *lane_markdowns,
+                            chip_0,
+                            chip_1,
+                            chip_2,
+                            chip_3,
+                            chips_state,
+                        ],
+                    )
 
             with gr.Tab("Quiz"):
                 quiz_state = gr.State(value=None)

@@ -1,0 +1,166 @@
+"""Deterministic next-step suggestion chips (PRD FR-W10).
+
+One hard rule: never suggest what you can't ground. Every chip carries an
+anchor built from the turn's own objects (span pool, profile) — no new model
+calls, never issues a query. Clicking a chip submits a normal turn through the
+full pipeline; a stale anchor drops the chip, it never bypasses refusal.
+"""
+
+from __future__ import annotations
+
+import re
+from typing import Literal
+
+from pydantic import BaseModel
+
+from genacademy_coach.source_labels import safe_source_label
+from genacademy_coach.teach_types import (
+    CoachAgentResponse,
+    EvidenceBand,
+    LearnerProfile,
+    RetrievedSpan,
+)
+
+MAX_CHIPS = 4
+_RECOVERY_COUNT = 2
+
+ChipKind = Literal["continue", "comprehension", "practice", "recovery"]
+
+_UNSAFE_LABEL = re.compile(r"(::|/|\\|\.[A-Za-z0-9]{2,5}$)")
+
+
+def _safe_topic_label(topic: str) -> str | None:
+    """A topic string is label-safe only if it carries no id/path/extension artifacts."""
+    cleaned = topic.strip()
+    if not cleaned or _UNSAFE_LABEL.search(cleaned):
+        return None
+    return cleaned
+AnchorType = Literal["span", "action"]
+
+
+def _dedupe_key(label: str) -> str:
+    """Learner-facing topic key: the label's title portion, lowercased."""
+    return label.split(" (", 1)[0].strip().lower()
+
+
+class SuggestionChip(BaseModel):
+    chip_id: str
+    kind: ChipKind
+    label_safe: str
+    anchor_type: AnchorType
+    anchor_id: str
+    filter_scope: str = "all"
+    reason_code: str
+
+
+class ChipClick(BaseModel):
+    chip_id: str
+    anchor_type: AnchorType
+    anchor_id: str
+    filter_scope: str = "all"
+    reason_code: str
+
+
+def build_suggestion_chips(
+    *,
+    response: CoachAgentResponse,
+    spans: list[RetrievedSpan],
+    evidence_band: EvidenceBand,
+    profile: LearnerProfile,
+) -> list[SuggestionChip]:
+    cited = set(response.citation_ids)
+    pool = [span for span in spans if span.citation_id not in cited]
+    known = {topic.strip().lower() for topic in profile.known}
+
+    if evidence_band == "stop" or response.next_action == "refuse_escalate":
+        recovery: list[SuggestionChip] = []
+        for span in sorted(spans, key=lambda s: -s.score):
+            label = safe_source_label(span)
+            if _dedupe_key(label) in known:
+                continue
+            recovery.append(
+                SuggestionChip(
+                    chip_id=f"recovery::{span.citation_id}",
+                    kind="recovery",
+                    label_safe=f"Back to the course: {label}",
+                    anchor_type="span",
+                    anchor_id=span.citation_id,
+                    reason_code="refusal-recovery",
+                )
+            )
+            if len(recovery) == _RECOVERY_COUNT:
+                break
+        return recovery
+
+    chips: list[SuggestionChip] = []
+
+    for span in sorted(pool, key=lambda s: -s.score):
+        label = safe_source_label(span)
+        if _dedupe_key(label) in known:
+            continue
+        chips.append(
+            SuggestionChip(
+                chip_id=f"continue::{span.citation_id}",
+                kind="continue",
+                label_safe=f"Next: {label}",
+                anchor_type="span",
+                anchor_id=span.citation_id,
+                reason_code="near-miss",
+            )
+        )
+        break
+
+    primary_cited = next((s for s in spans if s.citation_id in cited), None)
+    if primary_cited is not None:
+        chips.append(
+            SuggestionChip(
+                chip_id=f"comprehension::{primary_cited.citation_id}",
+                kind="comprehension",
+                label_safe="Check my understanding of this",
+                anchor_type="action",
+                anchor_id=f"recheck::{primary_cited.citation_id}",
+                reason_code="cited-recheck",
+            )
+        )
+
+    if profile.struggled:
+        topic = profile.struggled[-1].strip()
+        if topic and topic.lower() not in known:
+            safe_topic = _safe_topic_label(topic)
+            chips.append(
+                SuggestionChip(
+                    chip_id=f"practice::{topic.lower()}",
+                    kind="practice",
+                    label_safe=(
+                        f"Practice: {safe_topic}"
+                        if safe_topic is not None
+                        else "Practice a tricky spot again"
+                    ),
+                    anchor_type="action",
+                    anchor_id=f"drill::{topic}",
+                    reason_code="check-failed",
+                )
+            )
+
+    return chips[:MAX_CHIPS]
+
+
+def resolve_chip_click(
+    click: ChipClick, *, spans: list[RetrievedSpan]
+) -> str | None:
+    """Resolve a clicked chip back to a topic to submit as a normal turn.
+
+    Returns None when the anchor no longer resolves (stale) — the caller
+    drops the chip silently; a stale chip must never trigger a refusal.
+    """
+    if click.anchor_type == "span":
+        span = next((s for s in spans if s.citation_id == click.anchor_id), None)
+        return safe_source_label(span) if span is not None else None
+    if click.anchor_id.startswith("drill::"):
+        topic = click.anchor_id.removeprefix("drill::").strip()
+        return topic or None
+    if click.anchor_id.startswith("recheck::"):
+        citation_id = click.anchor_id.removeprefix("recheck::")
+        span = next((s for s in spans if s.citation_id == citation_id), None)
+        return safe_source_label(span) if span is not None else None
+    return None
