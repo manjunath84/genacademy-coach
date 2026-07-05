@@ -31,7 +31,11 @@ def render_deck(deck: Path, store: Path) -> int:
             check=True,
             capture_output=True,
         )
-        pdf = next(Path(tmp).glob("*.pdf"))
+        pdf = next(Path(tmp).glob("*.pdf"), None)
+        if pdf is None:
+            raise RuntimeError(
+                f"soffice produced no PDF for {deck.name} — deck may be unreadable"
+            )
         subprocess.run(
             ["pdftoppm", "-png", "-r", "110", str(pdf), str(Path(tmp) / "page")],
             check=True,
