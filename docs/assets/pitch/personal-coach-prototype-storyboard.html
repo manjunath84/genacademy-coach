@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GenAcademy Coach - Personal Coach Prototype Storyboard</title>
+<style>
+  :root{
+    --bg:#eef1f6; --bg2:#f7f8fb; --ink:#1b2130; --muted:#475069; --faint:#6b7280;
+    --card:#ffffff; --border:#d8dee9; --soft:#cfd8e8; --blue:#2f4b7c; --blue2:#dbe6f7;
+    --green:#1c7a3f; --green2:#e7f6ec; --gold:#fff3bf; --slate:#28303f;
+    --purple:#5b4b8a; --purple2:#eee9fb; --rose:#ffe5e5; --roseink:#9b1c1c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    width:1440px; margin:0 auto; min-height:100vh; padding:38px 50px 34px;
+    background:linear-gradient(var(--bg2) 0, var(--bg) 150px);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  .top{display:flex; justify-content:space-between; align-items:flex-start; gap:24px;}
+  .eyebrow{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint);}
+  h1{font-size:40px; line-height:1.08; margin:8px 0 7px;}
+  h1 span{background:var(--gold); padding:0 10px;}
+  .sub{font-size:16px; line-height:1.42; max-width:900px;}
+  .status{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; max-width:360px;}
+  .pill{font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:800;
+        padding:6px 9px; border-radius:999px; border:1px solid var(--border); background:var(--card);}
+  .built{background:var(--green2); color:var(--green); border-color:#cdeedd;}
+  .proto{background:var(--blue2); color:var(--blue);}
+  .next{background:var(--purple2); color:var(--purple);}
+  .guard{background:var(--slate); color:#fff; border-color:var(--slate);}
+  .app{display:grid; grid-template-columns:240px 1fr 320px; gap:16px; margin-top:22px;}
+  .rail,.panel,.right{border:1px solid var(--border); border-radius:14px; background:var(--card);
+                      box-shadow:0 1px 3px rgba(16,24,40,.06);}
+  .rail{padding:15px;}
+  .rail h2,.right h2{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+                     margin-bottom:12px;}
+  .tab{width:100%; text-align:left; border:1px solid var(--border); background:#fff; border-radius:10px;
+       padding:11px 10px; margin-bottom:8px; color:var(--ink); cursor:pointer; font:inherit;}
+  .tab b{display:block; font-size:14px; margin-bottom:3px;}
+  .tab span{display:block; font-size:11px; color:var(--faint); line-height:1.25;}
+  .tab.active{border-color:var(--blue); background:var(--blue2);}
+  .panel{padding:0; overflow:hidden; min-height:690px;}
+  .screen{display:none; padding:22px;}
+  .screen.active{display:block;}
+  .screenHead{display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:18px;}
+  .screen h2{font-size:25px; line-height:1.15; margin-bottom:5px;}
+  .screen .desc{font-size:13px; color:var(--muted); line-height:1.4;}
+  .screenTag{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:800;
+             padding:5px 8px; border-radius:999px; white-space:nowrap;}
+  .mockSurface{display:grid; grid-template-columns:1.05fr .95fr; gap:14px;}
+  .box{border:1px solid var(--border); border-radius:12px; background:#fff; padding:14px;
+       min-height:110px;}
+  .box.dark{background:var(--slate); color:#fff; border-color:var(--slate);}
+  .box.blue{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .box.gold{background:var(--gold);}
+  .box.green{background:var(--green2); border-color:#cdeedd;}
+  .box.purple{background:var(--purple2); border-color:#dad1f4;}
+  .box.rose{background:var(--rose); border-color:#facaca; color:var(--roseink);}
+  .box h3{font-size:15px; margin-bottom:8px;}
+  .box p,.box li{font-size:12.5px; line-height:1.38;}
+  .box ul{list-style:none; display:grid; gap:5px;}
+  .chat{display:grid; gap:10px;}
+  .bubble{padding:12px 13px; border-radius:14px; font-size:13px; line-height:1.4; max-width:92%;}
+  .learner{background:var(--blue2); margin-left:auto;}
+  .coach{background:#fff; border:1px solid var(--border);}
+  .evidenceList{display:grid; gap:9px;}
+  .evidence{border:1px solid var(--border); border-radius:10px; padding:10px; background:#fff;}
+  .evidence .title{font-size:12px; font-weight:800;}
+  .evidence .meta{font-size:11px; color:var(--faint); margin-top:3px;}
+  .memoryGrid,.planGrid,.interviewGrid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  .chipRow{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px;}
+  .chip{font-size:11.5px; padding:6px 8px; border-radius:999px; background:var(--blue2); color:var(--blue);
+        border:1px solid var(--soft);}
+  .timeline{display:grid; gap:10px;}
+  .step{display:grid; grid-template-columns:34px 1fr; gap:9px; align-items:start;}
+  .num{height:28px; width:28px; border-radius:999px; display:grid; place-items:center; color:#fff;
+       background:var(--blue); font-size:12px; font-weight:800;}
+  .right{padding:15px;}
+  .right .section{border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;
+                  background:#fff;}
+  .right h3{font-size:14px; margin-bottom:7px;}
+  .right p,.right li{font-size:12px; color:var(--muted); line-height:1.38;}
+  .right ul{list-style:none; display:grid; gap:5px;}
+  .footer{display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid var(--border);
+          margin-top:18px; padding-top:12px;}
+  .footer b{font-size:14px;}
+  .footer span{font-size:11px; color:var(--faint);}
+</style>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="eyebrow mono">Static prototype storyboard - public-safe synthetic content</div>
+      <h1><span>Personal Coach</span> <span>prototype flow</span></h1>
+      <p class="sub">A clickable presentation mockup for July 11: it shows the full target experience
+        without claiming every lane is shipped. Each screen is backed by the same grounded-or-refuse
+        architecture.</p>
+    </div>
+    <div class="status mono">
+      <span class="pill built">Built pattern</span>
+      <span class="pill proto">Prototype</span>
+      <span class="pill next">Next lane</span>
+      <span class="pill guard">Trust gate</span>
+    </div>
+  </header>
+
+  <main class="app">
+    <nav class="rail">
+      <h2>Storyboard</h2>
+      <button class="tab active" data-screen="tutor"><b>1. Grounded Tutor</b><span>Ask, teach, cite, refuse if needed</span></button>
+      <button class="tab" data-screen="evidence"><b>2. Evidence Panel</b><span>Same retrieval, visible proof</span></button>
+      <button class="tab" data-screen="memory"><b>3. Memory Profile</b><span>Consent, edit, delete</span></button>
+      <button class="tab" data-screen="interview"><b>4. Mock Interview</b><span>Specialized interviewer + evaluator</span></button>
+      <button class="tab" data-screen="plan"><b>5. Study Plan</b><span>LLM proposes, scheduler validates</span></button>
+      <button class="tab" data-screen="voice"><b>6. Voice Session</b><span>Speech becomes a grounded turn</span></button>
+    </nav>
+
+    <section class="panel">
+      <article class="screen active" id="screen-tutor">
+        <div class="screenHead">
+          <div><h2>Grounded tutor turn</h2><p class="desc">The learner asks naturally. The system retrieves first, then the agent teaches only from cited course evidence.</p></div>
+          <span class="screenTag built">built pattern</span>
+        </div>
+        <div class="mockSurface">
+          <div class="box">
+            <h3>Conversation</h3>
+            <div class="chat">
+              <div class="bubble learner">Can you explain why agent tools increase both capability and risk?</div>
+              <div class="bubble coach"><b>Coach:</b> Tools let the agent act beyond text, so the system adds evidence and permission gates before any action. In this course context, that means retrieve first, cite the source, and refuse when the evidence is missing.</div>
+              <div class="bubble coach"><b>Check:</b> In one sentence, what gate prevents a tool-using agent from answering from model memory?</div>
+            </div>
+          </div>
+          <div class="box blue">
+            <h3>Runtime decision</h3>
+            <ul>
+              <li>Intent: teach concept</li>
+              <li>Band: PROCEED</li>
+              <li>Move: explain then check</li>
+              <li>Lens: bridge</li>
+              <li>Gate: citations present</li>
+            </ul>
+            <div class="chipRow"><span class="chip">Ask a quiz</span><span class="chip">Show evidence</span><span class="chip">Practice this concept</span></div>
+          </div>
+          <div class="box gold">
+            <h3>What this proves</h3>
+            <p>The agent chooses the teaching move at runtime, while deterministic code owns whether the answer is allowed.</p>
+          </div>
+          <div class="box rose">
+            <h3>Failure path</h3>
+            <p>If the course corpus cannot support the answer, the response is refusal plus mentor escalation, not a best-guess answer.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="screen" id="screen-evidence">
+        <div class="screenHead">
+          <div><h2>Evidence panel</h2><p class="desc">The answer, cited snippets, source labels, and slide card are projections of the same retrieval.</p></div>
+          <span class="screenTag proto">prototype</span>
+        </div>
+        <div class="mockSurface">
+          <div class="box">
+            <h3>Answer card</h3>
+            <p><b>Teaching claim:</b> an agentic tutor should be free to choose the teaching strategy, but not free to invent evidence.</p>
+            <div class="chipRow"><span class="chip">Citation 1</span><span class="chip">Citation 2</span><span class="chip">Behind this answer</span></div>
+          </div>
+          <div class="box">
+            <h3>Cited evidence</h3>
+            <div class="evidenceList">
+              <div class="evidence"><div class="title">Course slide</div><div class="meta">week / session / slide label - public-safe placeholder</div></div>
+              <div class="evidence"><div class="title">Handout section</div><div class="meta">source type: handout - captured at retrieval</div></div>
+              <div class="evidence"><div class="title">Transcript support</div><div class="meta">source type: transcript - support lane only</div></div>
+            </div>
+          </div>
+          <div class="box blue">
+            <h3>Invariant</h3>
+            <p>No second retrieval for the panel. The answer and evidence cannot drift apart because the panel renders the original cited objects.</p>
+          </div>
+          <div class="box green">
+            <h3>Demo moment</h3>
+            <p>Click the disclosure, show the source labels, then say: "This is how the audience knows the tutor did not hallucinate the lesson."</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="screen" id="screen-memory">
+        <div class="screenHead">
+          <div><h2>Memory profile</h2><p class="desc">Memory is a product surface, not a hidden database. The learner can approve, edit, and delete what persists.</p></div>
+          <span class="screenTag proto">prototype</span>
+        </div>
+        <div class="memoryGrid">
+          <div class="box green">
+            <h3>Approved memory</h3>
+            <ul>
+              <li>Goal: prepare for agent architecture demos.</li>
+              <li>Preference: explain with diagrams first.</li>
+              <li>Known: RAG, citations, evaluation basics.</li>
+              <li>Struggled: multi-agent orchestration tradeoffs.</li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>Suggested update</h3>
+            <p>"Learner wants Personal Coach, memory, mock interview, and voice in the target architecture pitch."</p>
+            <div class="chipRow"><span class="chip">Approve</span><span class="chip">Edit</span><span class="chip">Discard</span></div>
+          </div>
+          <div class="box blue">
+            <h3>Privacy gate</h3>
+            <ul>
+              <li>No raw private traces in public artifacts.</li>
+              <li>No durable memory without learner visibility.</li>
+              <li>Deletion is part of the product, not an admin chore.</li>
+            </ul>
+          </div>
+          <div class="box gold">
+            <h3>How memory changes teaching</h3>
+            <p>The orchestrator can choose a different lens next time: more diagrams, shorter checks, or a targeted interview on weak concepts.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="screen" id="screen-interview">
+        <div class="screenHead">
+          <div><h2>Mock interview loop</h2><p class="desc">This is the clearest answer to "limited agent specialization": interviewer, evaluator, diagnoser, and coach have distinct jobs.</p></div>
+          <span class="screenTag next">next lane</span>
+        </div>
+        <div class="interviewGrid">
+          <div class="box purple">
+            <h3>Interview Conductor</h3>
+            <p>Asks one open-ended question at a time and chooses follow-ups based on the learner answer.</p>
+          </div>
+          <div class="box blue">
+            <h3>Rubric Evaluator</h3>
+            <p>Grades against cited expected points. It cannot reward unsupported claims from model priors.</p>
+          </div>
+          <div class="box gold">
+            <h3>Misconception Diagnoser</h3>
+            <p>Labels the gap: missing definition, weak contrast, wrong tool boundary, or unclear evaluation story.</p>
+          </div>
+          <div class="box green">
+            <h3>Feedback Coach</h3>
+            <p>Turns the gap into a different explanation and a targeted practice prompt.</p>
+          </div>
+          <div class="box">
+            <h3>Sample gap report</h3>
+            <ul>
+              <li>Strength: explains retrieval before generation.</li>
+              <li>Gap: needs clearer privacy/memory boundary.</li>
+              <li>Next drill: compare memory curator vs session state.</li>
+            </ul>
+          </div>
+          <div class="box rose">
+            <h3>Release gate</h3>
+            <p>Mock interview waits until grounded open-answer grading has enough evaluation coverage.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="screen" id="screen-plan">
+        <div class="screenHead">
+          <div><h2>Personal study plan</h2><p class="desc">The planner proposes; deterministic validation checks feasibility, prerequisites, and workload.</p></div>
+          <span class="screenTag next">next lane</span>
+        </div>
+        <div class="planGrid">
+          <div class="box">
+            <h3>Plan generated from gaps</h3>
+            <div class="timeline">
+              <div class="step"><div class="num">1</div><p>Review grounding and citation gates with one short explanation.</p></div>
+              <div class="step"><div class="num">2</div><p>Practice a mock interview answer on agent specialization.</p></div>
+              <div class="step"><div class="num">3</div><p>Do a five-question quiz on memory, privacy, and refusal.</p></div>
+              <div class="step"><div class="num">4</div><p>Rehearse the 90-second architecture pitch.</p></div>
+            </div>
+          </div>
+          <div class="box blue">
+            <h3>Scheduler validation</h3>
+            <ul>
+              <li>Checks available time.</li>
+              <li>Limits daily load.</li>
+              <li>Orders prerequisites first.</li>
+              <li>Repairs or flags infeasible plans.</li>
+            </ul>
+          </div>
+          <div class="box green">
+            <h3>Learner control</h3>
+            <p>Accept the plan, shorten it, move a block, or ask for a voice rehearsal. The agent updates the plan through the same validator.</p>
+          </div>
+          <div class="box gold">
+            <h3>Pitch wording</h3>
+            <p>"The LLM proposes. Deterministic scheduling validates and repairs. Feasible, or flag."</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="screen" id="screen-voice">
+        <div class="screenHead">
+          <div><h2>Voice agent lane</h2><p class="desc">Voice adds a natural interface, not a new trust model. Speech is transcribed, grounded, checked, then spoken.</p></div>
+          <span class="screenTag next">next lane</span>
+        </div>
+        <div class="mockSurface">
+          <div class="box purple">
+            <h3>Voice turn pipeline</h3>
+            <div class="timeline">
+              <div class="step"><div class="num">1</div><p>Consent prompt and visible recording state.</p></div>
+              <div class="step"><div class="num">2</div><p>Speech-to-text transcript enters the normal orchestrator.</p></div>
+              <div class="step"><div class="num">3</div><p>Grounded tutor retrieves, cites, and passes refusal gate.</p></div>
+              <div class="step"><div class="num">4</div><p>Text-to-speech reads only the approved grounded answer.</p></div>
+            </div>
+          </div>
+          <div class="box">
+            <h3>Voice controls</h3>
+            <ul>
+              <li>Mute and stop always visible.</li>
+              <li>Transcript shown before memory save.</li>
+              <li>Voice output never hides citations.</li>
+              <li>Refusal still routes to mentor escalation.</li>
+            </ul>
+          </div>
+          <div class="box rose">
+            <h3>Added risk</h3>
+            <p>Voice can capture sensitive context accidentally. The product needs retention limits, transcript review, and explicit consent before release.</p>
+          </div>
+          <div class="box blue">
+            <h3>Architecture rule</h3>
+            <p>The voice agent cannot answer directly. It is an interface adapter around the same grounded tutor, memory gate, and evaluation trace.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <aside class="right">
+      <h2>Presenter notes</h2>
+      <div class="section">
+        <h3>Core claim</h3>
+        <p>This is not "many agents for optics." Each specialist owns a different cognition: teach,
+          interview, evaluate, diagnose, plan, remember, or speak.</p>
+      </div>
+      <div class="section">
+        <h3>Honest status</h3>
+        <ul>
+          <li>Built: grounded tutor pattern, quiz, skill-gap, refusal.</li>
+          <li>Prototype: workspace, evidence, memory profile, storyboard.</li>
+          <li>Next: mock interview, planner validation, voice, admin.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <h3>Trust model</h3>
+        <p>Every lane returns to the same gates: retrieval, citation, refusal, privacy, trace, and eval.</p>
+      </div>
+      <div class="section">
+        <h3>Demo order</h3>
+        <p>Tutor -> evidence -> memory -> mock interview -> study plan -> voice. End with the architecture one-pager.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <b>Prototype proves the architecture; implementation can grow lane by lane.</b>
+    <span class="mono">No corpus text, learner data, private URLs, or raw traces included.</span>
+  </footer>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll(".tab"));
+  const screens = Array.from(document.querySelectorAll(".screen"));
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const id = tab.dataset.screen;
+      tabs.forEach((item) => item.classList.toggle("active", item === tab));
+      screens.forEach((screen) => screen.classList.toggle("active", screen.id === `screen-${id}`));
+    });
+  });
+</script>
+</body>
+</html>

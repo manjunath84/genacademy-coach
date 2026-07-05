@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GenAcademy Coach - Target Agentic Architecture</title>
+<style>
+  :root{
+    --bg:#eef1f6; --bg2:#f7f8fb; --ink:#1b2130; --muted:#475069; --faint:#6b7280;
+    --card:#ffffff; --border:#d8dee9; --soft:#cfd8e8; --blue:#2f4b7c;
+    --blue2:#dbe6f7; --green:#1c7a3f; --green2:#e7f6ec; --gold:#fff3bf;
+    --slate:#28303f; --rose:#ffe5e5; --rose-ink:#9b1c1c; --purple:#5b4b8a;
+    --purple2:#eee9fb;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    width:1440px; margin:0 auto; padding:42px 56px 34px;
+    background:linear-gradient(var(--bg2) 0, var(--bg) 160px);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  .eyebrow{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint);}
+  h1{font-size:43px; line-height:1.05; letter-spacing:-.01em; margin:9px 0 8px;}
+  h1 span{background:var(--gold); padding:0 10px;}
+  .sub{font-size:17px; line-height:1.45; max-width:980px;}
+  .legend{display:flex; gap:14px; align-items:center; margin:18px 0 20px; color:var(--muted);
+          font-size:12px; letter-spacing:.05em; text-transform:uppercase;}
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border-radius:999px;
+        border:1px solid var(--border); background:var(--card); font-weight:700;}
+  .pill.built{background:var(--green2); color:var(--green); border-color:#cdeedd;}
+  .pill.proto{background:var(--blue2); color:var(--blue);}
+  .pill.next{background:var(--purple2); color:var(--purple);}
+  .pill.guard{background:var(--slate); color:#fff; border-color:var(--slate);}
+  .architecture{display:grid; grid-template-columns:280px 1fr 300px; gap:18px; align-items:stretch;}
+  .lane{border:1px solid var(--border); background:var(--card); border-radius:12px;
+        box-shadow:0 1px 3px rgba(16,24,40,.06); padding:16px;}
+  .lane h2{font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+           margin-bottom:12px;}
+  .node{border:1px solid var(--border); border-radius:10px; padding:12px 12px 11px;
+        background:#fff; margin-bottom:10px;}
+  .node.dark{background:var(--slate); border-color:var(--slate); color:#fff;}
+  .node.blue{background:var(--blue); border-color:var(--blue); color:#fff;}
+  .node.gold{background:var(--gold);}
+  .node.green{background:var(--green2); border-color:#cdeedd;}
+  .node.purple{background:var(--purple2); border-color:#dad1f4;}
+  .node.rose{background:var(--rose); border-color:#facaca; color:var(--rose-ink);}
+  .node h3{font-size:15px; margin-bottom:4px;}
+  .node p{font-size:12.5px; line-height:1.38; color:inherit;}
+  .tag{font-size:10px; letter-spacing:.08em; text-transform:uppercase; font-weight:800;
+       border-radius:4px; padding:2px 5px; margin-left:5px; vertical-align:1px;}
+  .builtTag{background:var(--green2); color:var(--green);}
+  .protoTag{background:var(--blue2); color:var(--blue);}
+  .nextTag{background:var(--purple2); color:var(--purple);}
+  .guardTag{background:var(--slate); color:#fff;}
+  .center{display:grid; grid-template-rows:auto auto 1fr; gap:13px;}
+  .orchestrator{background:var(--blue); color:#fff; border-radius:12px; padding:16px 18px;
+                box-shadow:0 2px 8px rgba(47,75,124,.18);}
+  .orchestrator h2{font-size:18px; letter-spacing:.08em; text-transform:uppercase; color:#fff;
+                   margin-bottom:6px;}
+  .orchestrator p{font-size:13.5px; line-height:1.45;}
+  .agents{display:grid; grid-template-columns:repeat(3,1fr); gap:11px;}
+  .agent{border:1px solid var(--border); border-radius:12px; background:var(--card);
+         padding:12px; min-height:132px; box-shadow:0 1px 3px rgba(16,24,40,.06);}
+  .agent h3{font-size:15px; margin-bottom:7px;}
+  .agent ul{list-style:none; display:grid; gap:5px;}
+  .agent li{font-size:12px; line-height:1.32; color:var(--muted);}
+  .trust{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:2px;}
+  .trust .node{min-height:98px; margin:0;}
+  .arrows{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; color:var(--faint);
+          text-align:center; font-size:12px; margin:1px 0;}
+  .footer{display:grid; grid-template-columns:1.2fr .8fr; gap:18px; margin-top:18px;}
+  .callout{border:1px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--card);
+           box-shadow:0 1px 3px rgba(16,24,40,.05);}
+  .callout h2{font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+              margin-bottom:8px;}
+  .callout p{font-size:14px; line-height:1.45;}
+  .statusgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px;}
+  .statusbox{border:1px solid var(--border); border-radius:10px; padding:10px; background:#fff;}
+  .statusbox h3{font-size:12px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:5px;}
+  .statusbox p{font-size:12px; color:var(--muted);}
+</style>
+</head>
+<body>
+  <div class="eyebrow mono">GenAcademy Coach - July 11 architecture pitch</div>
+  <h1><span>One grounded learning brain,</span> <span>many specialist agents.</span></h1>
+  <p class="sub">The prototype demonstrates the pattern: specialist agents teach, interview,
+    diagnose, plan, remember, and speak. Deterministic gates own retrieval, citations, refusal,
+    grading, scheduling, privacy, and evaluation.</p>
+
+  <div class="legend mono">
+    <span class="pill built">Built / evaluated</span>
+    <span class="pill proto">Prototype surface</span>
+    <span class="pill next">Next scoped lane</span>
+    <span class="pill guard">Deterministic gate</span>
+  </div>
+
+  <section class="architecture">
+    <aside class="lane">
+      <h2>Interaction Surfaces</h2>
+      <div class="node green">
+        <h3>Tutor Workspace <span class="tag protoTag">prototype</span></h3>
+        <p>Question, answer, citations, evidence panel, next-step chips, and trace disclosure.</p>
+      </div>
+      <div class="node purple">
+        <h3>Personal Coach <span class="tag nextTag">next</span></h3>
+        <p>Goal setting, mock interviews, gap map, study plan, mastery loop, and learner controls.</p>
+      </div>
+      <div class="node purple">
+        <h3>Voice Session <span class="tag nextTag">next</span></h3>
+        <p>Consent-gated speech input and tutor voice output. Voice becomes a normal grounded turn.</p>
+      </div>
+      <div class="node">
+        <h3>Admin / Mentor Queue <span class="tag nextTag">next</span></h3>
+        <p>Review escalations, approve corpus changes, and inspect aggregate learning signals.</p>
+      </div>
+    </aside>
+
+    <main class="center">
+      <div class="orchestrator">
+        <h2>Coach Orchestrator <span class="tag protoTag">prototype</span></h2>
+        <p>Chooses the mode, passes bounded context to the right specialist, records the decision,
+          and routes every output through the same trust gates before the learner sees it.</p>
+      </div>
+      <div class="arrows mono"><span>surface -> intent</span><span>specialist -> gate</span><span>gate -> learner</span></div>
+      <div class="agents">
+        <div class="agent">
+          <h3>Teaching Agent <span class="tag builtTag">built</span></h3>
+          <ul>
+            <li>Explains cited course concepts.</li>
+            <li>Picks lens: low-code, code-heavy, bridge.</li>
+            <li>Asks grounded checks.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Quiz / Check Agent <span class="tag builtTag">built</span></h3>
+          <ul>
+            <li>Creates bounded checks from retrieved spans.</li>
+            <li>Uses deterministic grading first.</li>
+            <li>Feeds known and struggled signals.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Skill-Gap Diagnoser <span class="tag builtTag">built</span></h3>
+          <ul>
+            <li>Maps answers to concept gaps.</li>
+            <li>Produces practice directions.</li>
+            <li>Stays anchored to course evidence.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Mock Interview Agent <span class="tag nextTag">next</span></h3>
+          <ul>
+            <li>Conducts open-answer interviews.</li>
+            <li>Asks follow-ups only from cited expected points.</li>
+            <li>Hands gaps to the planner.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Feedback Coach <span class="tag nextTag">next</span></h3>
+          <ul>
+            <li>Turns misses into different explanations.</li>
+            <li>Selects analogy, steps, or contrast.</li>
+            <li>Never teaches outside the corpus.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Study Planner Agent <span class="tag nextTag">next</span></h3>
+          <ul>
+            <li>Proposes a learner plan.</li>
+            <li>Calls deterministic scheduler validation.</li>
+            <li>Repairs infeasible plans or flags them.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Memory Curator <span class="tag protoTag">prototype</span></h3>
+          <ul>
+            <li>Suggests durable memory updates.</li>
+            <li>Learner can approve, edit, delete.</li>
+            <li>Stores goals, preferences, known, struggled.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Voice Interaction Agent <span class="tag nextTag">next</span></h3>
+          <ul>
+            <li>Transcribes learner speech.</li>
+            <li>Routes transcript to grounded tutor.</li>
+            <li>Speaks only approved grounded output.</li>
+          </ul>
+        </div>
+        <div class="agent">
+          <h3>Mentor Router <span class="tag builtTag">built</span></h3>
+          <ul>
+            <li>Handles refusal and escalation.</li>
+            <li>Keeps low-confidence turns reviewable.</li>
+            <li>Protects against unsupported answers.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="trust">
+        <div class="node blue">
+          <h3>Retrieval + Citation Gate <span class="tag guardTag">gate</span></h3>
+          <p>One source-prioritized retriever. Citations captured at retrieval, not reconstructed.</p>
+        </div>
+        <div class="node blue">
+          <h3>Grounded Refusal Gate <span class="tag guardTag">gate</span></h3>
+          <p>STOP, CONFIRM, PROCEED bands. Below floor means refuse and escalate.</p>
+        </div>
+        <div class="node blue">
+          <h3>Privacy + Memory Gate <span class="tag guardTag">gate</span></h3>
+          <p>Consent, editable memory, deletion, and no hidden learner profiling.</p>
+        </div>
+        <div class="node blue">
+          <h3>Eval + Trace Gate <span class="tag guardTag">gate</span></h3>
+          <p>Path-level trace, golden evals, refusal metrics, and release bars.</p>
+        </div>
+      </div>
+    </main>
+
+    <aside class="lane">
+      <h2>Data And Tools</h2>
+      <div class="node">
+        <h3>Course Corpus <span class="tag builtTag">built</span></h3>
+        <p>Slides, handouts, transcripts, and notes with source labels and citeable spans.</p>
+      </div>
+      <div class="node">
+        <h3>Learner Profile <span class="tag protoTag">prototype</span></h3>
+        <p>Goals, learning preference, known concepts, struggled concepts, and approved memory.</p>
+      </div>
+      <div class="node">
+        <h3>Scheduler Validator <span class="tag nextTag">next</span></h3>
+        <p>Checks time windows, workload, prerequisites, and plan feasibility.</p>
+      </div>
+      <div class="node">
+        <h3>Speech Tools <span class="tag nextTag">next</span></h3>
+        <p>Speech-to-text and text-to-speech adapters behind consent and retention controls.</p>
+      </div>
+      <div class="node rose">
+        <h3>Attack Surface</h3>
+        <p>Voice, memory, admin upload, and current-docs add power. Each needs a gate before release.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section class="footer">
+    <div class="callout">
+      <h2>Architecture pitch line</h2>
+      <p><b>GenAcademy Coach is not a single chatbot.</b> It is a grounded learning orchestrator:
+        specialist agents handle teaching, interviewing, diagnosis, planning, memory, and voice,
+        while deterministic services control evidence, citations, refusal, grading, privacy,
+        scheduling, and evaluation.</p>
+    </div>
+    <div class="callout">
+      <h2>Status honesty for July 11</h2>
+      <div class="statusgrid">
+        <div class="statusbox"><h3>Built</h3><p>Grounded tutor, quiz, skill-gap, refusal, evals.</p></div>
+        <div class="statusbox"><h3>Prototype</h3><p>Workspace story, memory profile, Personal Coach flow.</p></div>
+        <div class="statusbox"><h3>Next</h3><p>Mock interview, voice, planner validation, admin lanes.</p></div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
