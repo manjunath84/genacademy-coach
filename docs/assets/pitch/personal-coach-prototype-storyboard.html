@@ -59,6 +59,26 @@
   .bubble{max-width:88%;padding:12px 14px;border-radius:14px;font-size:14.5px;line-height:1.55}
   .user .bubble{background:var(--accent-soft);border:1px solid #dbe6f7}
   .bot .bubble{background:#f7f8fb;border:1px solid var(--line)}
+  .answer-with-voice{position:relative;padding-right:58px}
+  .voice-replay{
+    position:absolute;
+    top:12px;
+    right:12px;
+    width:34px;
+    height:34px;
+    border-radius:999px;
+    border:1px solid #c9d7ee;
+    background:#fff;
+    color:var(--accent);
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+    box-shadow:0 1px 2px rgba(16,24,40,.08);
+  }
+  .voice-replay:hover{background:var(--accent-soft)}
+  .voice-replay:focus-visible{outline:3px solid #b7c8e8;outline-offset:2px}
+  .voice-replay svg{width:18px;height:18px}
+  .voice-replay.playing{background:var(--accent);color:#fff}
   .cite{color:var(--accent);font-weight:700;background:var(--hl);border-radius:4px;
     padding:0 3px;font-size:12px;vertical-align:.5px;text-decoration:none}
   .check{margin-top:6px;background:#fbfcfe;border:1px dashed #cfd8e8;border-left:3px solid var(--accent);
@@ -160,7 +180,14 @@
           <span class="state built">Built pattern</span>
         </div>
         <div class="msg user"><div class="bubble">What is LangChain, and why would I use it instead of calling an LLM API directly?</div></div>
-        <div class="msg bot"><div class="bubble">
+        <div class="msg bot"><div class="bubble answer-with-voice">
+          <button class="voice-replay" type="button" title="Replay spoken explanation" aria-label="Replay spoken explanation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+          </button>
           LangChain is a framework for composing LLM calls into larger workflows - chaining prompts,
           tools, memory, and retrieval so you do not wire each step by hand.<a class="cite" href="#">S1</a>
           A direct API call is one prompt in, one completion out; LangChain gives you reusable pieces
@@ -444,6 +471,12 @@
       modes.forEach((item) => item.classList.toggle("active", item === mode));
       screens.forEach((screen) => screen.classList.toggle("active", screen.id === `screen-${id}`));
       contexts.forEach((context) => context.classList.toggle("active", context.id === `context-${id}`));
+    });
+  });
+  document.querySelectorAll(".voice-replay").forEach((button) => {
+    button.addEventListener("click", () => {
+      button.classList.add("playing");
+      window.setTimeout(() => button.classList.remove("playing"), 900);
     });
   });
 </script>
