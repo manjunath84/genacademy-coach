@@ -212,23 +212,24 @@
       <article class="screen" id="screen-evidence">
         <div class="screen-title">
           <div>
-            <h3>Evidence panel</h3>
-            <p>The answer and right-side evidence are projections of the same retrieval, so the tutor response and source panel cannot drift apart.</p>
+            <h3>Evidence panel for the same answer</h3>
+            <p>The panel is not a new search. It shows the exact S1, T1, and H1 evidence already cited in the LangChain tutor response.</p>
           </div>
           <span class="state proto">Prototype</span>
         </div>
-        <div class="msg user"><div class="bubble">Can I see exactly where that explanation came from?</div></div>
+        <div class="msg user"><div class="bubble">Can I see exactly where that LangChain explanation came from?</div></div>
         <div class="msg bot"><div class="bubble">
-          Yes. The cited spans on the right are the same objects used to produce the answer. The panel
-          does not run a second search; it only renders the support already attached to citations.
-          <div class="check"><b>Trust proof:</b> source labels, citation IDs, and slide images all come from retrieval-time metadata.</div>
+          Yes. The answer used three cited supports: the slide that lists LangChain primitives,
+          the instructor explanation contrasting direct API calls with multi-step apps, and the
+          handout pattern for building retrieval-augmented workflows.
+          <div class="check"><b>Trust proof:</b> every citation in the answer maps to one visible source card on the right.</div>
         </div></div>
         <div class="sugg">
-          <div class="sugg-label">Grounded actions</div>
+          <div class="sugg-label">Source proof controls</div>
           <div class="chipsrow">
-            <a class="chipbtn" href="#">Open S1</a>
-            <a class="chipbtn" href="#">Compare T1</a>
-            <a class="chipbtn" href="#">Ask a follow-up</a>
+            <a class="chipbtn" href="#">Open cited slide S1</a>
+            <a class="chipbtn" href="#">Compare transcript T1</a>
+            <a class="chipbtn" href="#">Show handout H1</a>
           </div>
         </div>
       </article>
@@ -371,22 +372,57 @@
       </article>
 
       <article class="context" id="context-evidence">
-        <span class="posture good"><span class="dot"></span>Trust proof</span>
+        <span class="posture good"><span class="dot"></span>Grounded · 3 cited sources</span>
         <div class="lane">
-          <div class="lane-head">Evidence invariant <span class="arw">v</span></div>
+          <div class="lane-head">Answer citation map <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Answer and panel share retrieval IDs</span><span class="cid">GATE</span></div>
-              <div class="span">Citations are captured at retrieval time. The evidence panel renders only cited objects, so a second search cannot contradict the answer.</div>
+              <div class="srcrow"><span class="srclabel">LangChain explanation support</span><span class="cid">MAP</span></div>
+              <div class="span">S1 supports the list of primitives. T1 supports the direct API call vs multi-step app contrast. H1 supports the retrieval-augmented tutor workflow pattern.</div>
+            </div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-head">Slides · 1 <span class="arw">v</span></div>
+          <div class="lane-body">
+            <div class="srccard">
+              <div class="srcrow"><span class="srclabel">Week 1 · Session 2 · Slides - Slide 22</span><span class="cid">S1</span></div>
+              <div class="why">supports - LangChain as composable primitives</div>
+              <div class="slidefig">
+                <img class="slideimg" src="../mockups/real-slide-week1-s2-slide22.png" alt="Week 1 Session 2 Slide 22 - LangChain Core Primitives">
+                <div class="figcap">Approved public mockup slide from the Tutor Workspace artifact. Runtime slide cards are served privately from the gitignored store.</div>
+              </div>
+              <div class="span">LangChain Core Primitives - Models · Prompts · Chains · Memory · Retrievers · Document Loaders · Text Splitters · Vector Stores · Tools · Agents · Callbacks · Output Parsers</div>
+            </div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-head">Instructor explanation · 1 <span class="arw">v</span></div>
+          <div class="lane-body">
+            <div class="srccard">
+              <div class="srcrow"><span class="srclabel">Week 1 · Session 1 · live-session transcript</span><span class="cid">T1</span></div>
+              <div class="why">supports - why a direct API call is different</div>
+              <div class="span">"A direct API call is one-shot; LangChain is for multi-step apps - think a tutor that retrieves, then explains."</div>
+            </div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-head">Handout · 1 <span class="arw">v</span></div>
+          <div class="lane-body">
+            <div class="srccard">
+              <div class="srcrow"><span class="srclabel">Week 1 · LangChain/RAG handout</span><span class="cid">H1</span></div>
+              <div class="why">supports - the concrete workflow pattern</div>
+              <div class="span">The handout pattern walks from retrieval to a grounded answer, which is why the tutor answer describes LangChain as useful for retrieval-augmented workflows.</div>
             </div>
           </div>
         </div>
         <div class="lane">
           <div class="lane-head">Evaluation hook <span class="arw">v</span></div>
           <div class="lane-body">
-            <div class="span">Evals check route choice, retrieved evidence, citation use, refusal behavior, and next-step grounding.</div>
+            <div class="span">Evals can assert citation parity: cited answer IDs must equal rendered panel IDs, and unsupported claims should trigger refusal instead of a source card.</div>
           </div>
         </div>
+        <div class="footnote">Evidence panel for the same LangChain answer: one retrieval, three cited objects, no second search.</div>
       </article>
 
       <article class="context" id="context-memory">
