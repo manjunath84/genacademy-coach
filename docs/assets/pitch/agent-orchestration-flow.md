@@ -108,6 +108,9 @@ already built:
 
 The July 11 pitch treats evaluation as a system design requirement, not an afterthought:
 
+- **Working-success signal:** the system is working when it consistently gives grounded, cited,
+  level-appropriate help; refuses unsupported questions; chooses useful next learning actions; and
+  passes lane-specific golden, trajectory, privacy, voice, and regression checks.
 - **Custom system evals over leaderboard claims:** measure the learner workflow and trust gates, not
   just the model.
 - **Golden scenarios plus rubrics:** define expected behavior, allowed evidence, refusal cases, and
