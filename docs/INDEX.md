@@ -143,6 +143,9 @@ Historical files are useful evidence, but they do not override the active roadma
 - `docs/superpowers/specs/2026-06-15-genacademy-coach-mvp-design.md` - original MVP design anchor.
 - `docs/superpowers/specs/2026-06-23-week4-eval-execution-design.md` - Week-4 eval design.
 - `docs/superpowers/specs/2026-06-25-week4-eval-dashboard-design.md` - dashboard design.
+- `docs/superpowers/plans/2026-07-13-local-ai-lab.md` - draft review packet for an owner-local AI
+  learning lab; not a Coach roadmap item, and no implementation begins before independent review
+  plus explicit owner approval.
 - `docs/superpowers/plans/` - implementation plans and review handoffs by date.
 
 ## Privacy Notes
