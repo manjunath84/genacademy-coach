@@ -28,7 +28,11 @@
   .filters{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
   .chip{font-size:12px;color:#374151;background:#fff;border:1px solid var(--line);
     padding:6px 11px;border-radius:999px}
-  .modebar{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
+  .modebar{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+  .plannedbar{display:flex;align-items:center;gap:8px;margin:0 0 16px;flex-wrap:wrap;
+    padding:9px 11px;border:1px dashed var(--line);border-radius:10px;background:#f8fafc}
+  .planned-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin-right:2px}
   .walkthrough-note{font-size:12px;color:var(--muted);margin:-4px 2px 10px}
   .legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
   .legend-item{font-size:12px;color:#475069;background:#fff;border:1px solid var(--line);
@@ -44,6 +48,8 @@
     cursor:pointer;
   }
   .mode.active{background:var(--accent-soft);color:var(--accent);border-color:#c9d7ee}
+  .mode.planned{border-style:dashed;background:#fff;color:#5f6877}
+  .mode.planned.active{background:#f1f3f5;color:var(--accent);border-color:#aeb6c2}
   .cols{display:grid;grid-template-columns:1.12fr .88fr;gap:20px;align-items:start}
   .pane{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;
     box-shadow:0 1px 2px rgba(16,24,40,.04)}
@@ -58,13 +64,13 @@
     padding:5px 9px;border-radius:999px;white-space:nowrap}
   .built{background:var(--good-soft);color:var(--good)}
   .proto{background:var(--accent-soft);color:var(--accent)}
-  .next{background:var(--purple-soft);color:var(--purple)}
+  .next{background:#f1f3f5;color:#5f6877;border:1px dashed #aeb6c2}
   .msg{display:flex;margin-bottom:14px}
   .msg.user{justify-content:flex-end}
   .bubble{max-width:88%;padding:12px 14px;border-radius:14px;font-size:14.5px;line-height:1.55}
   .user .bubble{background:var(--accent-soft);border:1px solid #dbe6f7}
   .bot .bubble{background:#f7f8fb;border:1px solid var(--line)}
-  .answer-with-voice{position:relative;padding-right:58px}
+  .answer-with-voice{position:relative;padding-right:76px}
   .voice-replay{
     position:absolute;
     top:12px;
@@ -84,6 +90,9 @@
   .voice-replay:focus-visible{outline:3px solid #b7c8e8;outline-offset:2px}
   .voice-replay svg{width:18px;height:18px}
   .voice-replay.playing{background:var(--accent);color:#fff}
+  .voice-replay:disabled{cursor:not-allowed;opacity:.62;background:#f8fafc}
+  .voice-illustrative{position:absolute;top:50px;right:7px;font-size:8.5px;font-weight:800;
+    letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
   .cite{color:var(--accent);font-weight:700;background:var(--hl);border-radius:4px;
     padding:0 3px;font-size:12px;vertical-align:.5px;text-decoration:none}
   .check{margin-top:6px;background:#fbfcfe;border:1px dashed #cfd8e8;border-left:3px solid var(--accent);
@@ -105,7 +114,7 @@
   .posture{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
     padding:5px 11px;border-radius:999px;margin-bottom:14px}
   .posture.good{background:var(--good-soft);color:var(--good);border:1px solid #cdeedd}
-  .posture.wait{background:var(--purple-soft);color:var(--purple);border:1px solid #dad1f4}
+  .posture.wait{background:#f1f3f5;color:#5f6877;border:1px dashed #aeb6c2}
   .dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
   .lane{border:1px solid var(--line);border-radius:11px;margin-bottom:11px;overflow:hidden}
   .lane-head{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;
@@ -181,33 +190,37 @@
 </head>
 <body>
 <div class="app">
-  <p class="caption">July 11 demo walkthrough - Tutor Workspace-native shell - each tab is a presentation state that explains one capability and the architecture behind it</p>
+  <p class="caption">Public prototype storyboard - one reviewed course slide; synthetic transcript and handout evidence - seven scenes distinguish built behavior, presentation states, and planned capabilities</p>
   <div class="topbar">
     <div class="brand">
       <h1>GenAcademy Coach - Tutor Workspace</h1>
       <span class="tag">grounded or it refuses</span>
-      <span class="tag">Personal Coach extension</span>
+      <span class="tag">Personal Coach target</span>
     </div>
     <div class="filters">
       <span class="chip">All sources v</span>
-      <span class="chip">Week 1 v</span>
+      <span class="chip">Course + demo sources v</span>
       <span class="chip">Lens: bridge v</span>
     </div>
   </div>
 
-  <p class="walkthrough-note">Tabs are demo scenes, not final app navigation. Together they show how one grounded tutor becomes a Personal Coach through gated specialist lanes.</p>
+  <p class="walkthrough-note">Scene tabs change the presentation state; links, chips, and speaker controls are illustrative. The built workspace stays primary, and planned capabilities grow from the same grounded foundation.</p>
   <div class="legend" aria-label="Prototype status legend">
-    <span class="legend-item"><b>Built pattern</b> = evidence-backed core behavior</span>
-    <span class="legend-item"><b>Prototype</b> = pitch/storyboard candidate</span>
-    <span class="legend-item"><b>Next lane</b> = scoped future build</span>
+    <span class="legend-item"><b>Built</b> = evidence-backed core behavior</span>
+    <span class="legend-item"><b>Prototype design</b> = presentation state</span>
+    <span class="legend-item"><b>Planned</b> = ships only after privacy and eval gates</span>
   </div>
   <nav class="modebar" aria-label="Demo walkthrough scenes">
-    <button class="mode active" data-screen="tutor">1. Tutor Answer</button>
-    <button class="mode" data-screen="evidence">2. Source Proof</button>
-    <button class="mode" data-screen="memory">3. Memory + Consent</button>
-    <button class="mode" data-screen="interview">4. Mock Interview</button>
-    <button class="mode" data-screen="plan">5. Study Plan</button>
-    <button class="mode" data-screen="voice">6. Voice</button>
+    <button class="mode active" data-screen="tutor">ASK · ACTIVE</button>
+    <button class="mode" data-screen="evidence">LEARN · EVIDENCE</button>
+    <button class="mode" data-screen="practice">PRACTICE · BUILT</button>
+  </nav>
+  <nav class="plannedbar" aria-label="Planned capability storyboard scenes">
+    <span class="planned-label">Planned capabilities</span>
+    <button class="mode planned" data-screen="memory">Memory · service</button>
+    <button class="mode planned" data-screen="interview">Mock Interview · agent lane</button>
+    <button class="mode planned" data-screen="plan">Study Planner · workflow</button>
+    <button class="mode planned" data-screen="voice">Voice · adapter</button>
   </nav>
 
   <main class="cols">
@@ -222,26 +235,25 @@
           </div>
           <span class="state built">Built pattern</span>
         </div>
-        <div class="msg user"><div class="bubble">What is LangChain, and why would I use it instead of calling an LLM API directly?</div></div>
+        <div class="msg user"><div class="bubble">When is one model API call enough, and when does an LLM framework help?</div></div>
         <div class="msg bot"><div class="bubble answer-with-voice">
-          <button class="voice-replay" type="button" title="Replay spoken explanation" aria-label="Replay spoken explanation">
+          <button class="voice-replay" type="button" title="Illustrative planned voice control; playback is not implemented" aria-label="Illustrative planned voice control; playback is not implemented" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
             </svg>
           </button>
-          LangChain is a framework for composing LLM calls into larger workflows - chaining prompts,
-          tools, memory, and retrieval so you do not wire each step by hand.<a class="cite" href="#">S1</a>
-          A direct API call is one prompt in, one completion out; LangChain gives you reusable pieces
-          for multi-step apps like a retrieval-augmented tutor.<a class="cite" href="#">T1</a>
-          The handout walks through building exactly that pattern.<a class="cite" href="#">H1</a>
-          <div class="check"><b>Check yourself:</b> in one line - when is a direct API call the better choice than LangChain?</div>
+          <span class="voice-illustrative">planned voice</span>
+          One direct model call is enough for an isolated prompt and response. A framework helps when
+          the application must coordinate retrieval, tools, state, or several controlled steps.<a class="cite" href="#">S1</a><a class="cite" href="#">T1</a>
+          The decision rule is to use the simplest path that still meets those needs.<a class="cite" href="#">H1</a>
+          <div class="check"><b>Check yourself:</b> a grounded tutor must retrieve evidence, call tools, and preserve state. Which path fits better?</div>
         </div></div>
         <div class="sugg">
-          <div class="sugg-label">Suggested next steps - anchored to course material</div>
+          <div class="sugg-label">Suggested next steps - anchored to retrieved material</div>
           <div class="chipsrow">
-            <a class="chipbtn" href="#">Next: Agents &amp; tool calling</a>
+            <a class="chipbtn" href="#">Next: Retrieval &amp; tool calling</a>
             <a class="chipbtn" href="#">Quiz me on this</a>
             <a class="chipbtn" href="#">Show a handout exercise</a>
           </div>
@@ -252,7 +264,7 @@
         </details>
         <div class="demo-proof">
           <b>What this proves</b>
-          <p>The agent can choose a teaching move at runtime, but deterministic gates still require retrieval, citations, and grounded next steps.</p>
+          <p>The agent can choose a teaching move at runtime, while deterministic gates still require retrieval, citations, and grounded next steps. The disabled speaker control represents the planned voice adapter in scene 7.</p>
         </div>
       </article>
 
@@ -260,15 +272,15 @@
         <div class="screen-title">
           <div>
             <h3>2. The learner can inspect the source proof</h3>
-            <p>The panel is not a new search. It shows the exact S1, T1, and H1 evidence already cited in the LangChain tutor response.</p>
+            <p>The panel is not a new search. It shows the exact hybrid evidence already cited in the tutor response: reviewed course slide S1 and synthetic supports T1 and H1.</p>
           </div>
           <span class="state proto">Prototype</span>
         </div>
-        <div class="msg user"><div class="bubble">Can I see exactly where that LangChain explanation came from?</div></div>
+        <div class="msg user"><div class="bubble">Can I see exactly where that explanation came from?</div></div>
         <div class="msg bot"><div class="bubble">
-          Yes. The answer used three cited supports: the slide that lists LangChain primitives,
-          the instructor explanation contrasting direct API calls with multi-step apps, and the
-          handout pattern for building retrieval-augmented workflows.
+          Yes. The answer used one reviewed course slide that names the framework pieces, plus a
+          synthetic transcript that distinguishes direct calls from coordinated workflows and a
+          synthetic handout decision rule that chooses the simplest sufficient path.
           <div class="check"><b>Trust proof:</b> every citation in the answer maps to one visible source card on the right.</div>
         </div></div>
         <div class="sugg">
@@ -285,13 +297,37 @@
         </div>
       </article>
 
+      <article class="screen" id="screen-practice">
+        <div class="screen-title">
+          <div>
+            <h3>3. Practice checks understanding with the same evidence</h3>
+            <p>Quiz/Check and Skill-Gap are separate deterministic mode entrypoints that reuse the same foundation and trust services.</p>
+          </div>
+          <span class="state built">Built modes</span>
+        </div>
+        <div class="mini-scene">
+          <div class="mini-scene-title">Grounded check</div>
+          <div class="msg bot"><div class="bubble"><b>Check:</b> A grounded tutor must retrieve evidence, call tools, and preserve state. Which path fits better?</div></div>
+          <div class="msg user"><div class="bubble">A framework workflow, because several controlled components must work together.</div></div>
+          <div class="check"><b>Deterministic grade:</b> Correct and supported by the cited lesson. Next action: advance.</div>
+        </div>
+        <div class="grid2">
+          <div class="box green"><h3>Quiz / Check mode</h3><p>Generates a check from cited spans; deterministic grading owns pass/fail.</p></div>
+          <div class="box gold"><h3>Skill-Gap mode</h3><p>Aggregates graded signals into a bounded, evidence-linked gap summary.</p></div>
+        </div>
+        <div class="demo-proof">
+          <b>What this proves</b>
+          <p>Practice uses separate deterministic mode entrypoints over the same retrieval, citation, grading, and trace services. It is not another agent.</p>
+        </div>
+      </article>
+
       <article class="screen" id="screen-memory">
         <div class="screen-title">
           <div>
-            <h3>3. The Personal Coach remembers only with consent</h3>
+            <h3>4. Planned memory remembers only with consent</h3>
             <p>Memory is visible and editable. The coach may suggest an update, but the learner controls what is saved.</p>
           </div>
-          <span class="state proto">Prototype</span>
+          <span class="state next">Planned service</span>
         </div>
         <div class="grid2">
           <div class="box green">
@@ -326,10 +362,10 @@
       <article class="screen" id="screen-interview">
         <div class="screen-title">
           <div>
-            <h3>4. Mock interview uses specialist agents</h3>
-            <p>The interview flow separates asking, grading, diagnosing, and coaching so the system no longer looks like one oversized prompt.</p>
+            <h3>5. Mock Interview is the planned agent lane</h3>
+            <p>One bounded agent adapts questions across turns; rubric scoring and trust gates remain separate, reviewable services.</p>
           </div>
-          <span class="state next">Next lane</span>
+          <span class="state next">Planned agent lane</span>
         </div>
         <div class="mini-scene">
           <div class="mini-scene-title">Learner moment</div>
@@ -338,24 +374,24 @@
           <div class="check"><b>Feedback:</b> Strong start. Add one concrete tool example, then mention what happens when evidence is missing.</div>
         </div>
         <div class="grid2">
-          <div class="box purple"><h3>Interview Conductor</h3><p>Asks one open-ended question and chooses follow-ups from the learner answer.</p></div>
-          <div class="box blue"><h3>Rubric Evaluator</h3><p>Grades against cited expected points and cannot reward unsupported model-prior claims.</p></div>
-          <div class="box gold"><h3>Misconception Diagnoser</h3><p>Labels the gap: missing definition, weak contrast, wrong tool boundary, or unclear eval story.</p></div>
-          <div class="box green"><h3>Feedback Coach</h3><p>Turns the gap into a different explanation and a targeted practice prompt.</p></div>
+          <div class="box purple"><h3>Interview agent move</h3><p>Chooses the next question from the learner answer and bounded interview state.</p></div>
+          <div class="box blue"><h3>Rubric service</h3><p>Scores cited expected points and cannot reward unsupported model-prior claims.</p></div>
+          <div class="box gold"><h3>Gap diagnosis</h3><p>Labels missing definition, weak contrast, wrong boundary, or an unclear evaluation story.</p></div>
+          <div class="box green"><h3>Feedback output</h3><p>The lane returns cited feedback and a targeted practice prompt through the same trust gates.</p></div>
         </div>
         <div class="demo-proof">
           <b>What this proves</b>
-          <p>This directly addresses the earlier feedback about limited agent specialization: each agent has a distinct cognition and release gate.</p>
+          <p>Only the adaptive multi-turn interview earns the agent label. Grading, diagnosis, and feedback remain bounded responsibilities.</p>
         </div>
       </article>
 
       <article class="screen" id="screen-plan">
         <div class="screen-title">
           <div>
-            <h3>5. The coach turns gaps into a validated study plan</h3>
+            <h3>6. A planned workflow turns gaps into a validated study plan</h3>
             <p>The planner proposes a plan from learner goals and evidence; deterministic validation checks feasibility before it is shown.</p>
           </div>
-          <span class="state next">Next lane</span>
+          <span class="state next">Planned workflow</span>
         </div>
         <div class="mini-scene">
           <div class="mini-scene-title">Validated plan input</div>
@@ -390,31 +426,32 @@
       <article class="screen" id="screen-voice">
         <div class="screen-title">
           <div>
-            <h3>6. Voice is input and output for the same tutor path</h3>
+            <h3>7. Voice is a planned adapter for the same tutor path</h3>
             <p>The learner can ask by voice, then receives the same grounded answer as text plus spoken audio.</p>
           </div>
-          <span class="state next">Next lane</span>
+          <span class="state next">Planned adapter</span>
         </div>
         <div class="mini-scene">
           <div class="mini-scene-title">Voice moment</div>
           <div class="voice-meter">
             <div class="mic-dot">MIC</div>
-            <p><b>Transcript:</b> "Can you explain LangChain with an example from our course?" The transcript is reviewed, then routed through the same grounded tutor path.</p>
+            <p><b>Synthetic transcript:</b> "When should I use one model call instead of a framework?" The transcript is reviewed, then routed through the same grounded tutor path.</p>
           </div>
           <div class="msg bot"><div class="bubble answer-with-voice">
-            <button class="voice-replay" type="button" title="Replay spoken explanation" aria-label="Replay spoken explanation">
+            <button class="voice-replay" type="button" title="Illustrative planned voice control; playback is not implemented" aria-label="Illustrative planned voice control; playback is not implemented" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
               </svg>
             </button>
+            <span class="voice-illustrative">planned voice</span>
             The approved grounded answer appears as text, and the same response plays as tutor voice after citation and refusal gates pass.
           </div></div>
         </div>
         <div class="timeline">
           <div class="step"><div class="num">1</div><p>Consent prompt and visible recording state.</p></div>
-          <div class="step"><div class="num">2</div><p>Speech-to-text transcript enters the same orchestration path as typed questions.</p></div>
+          <div class="step"><div class="num">2</div><p>Speech-to-text transcript enters the same grounded Coach loop as typed questions.</p></div>
           <div class="step"><div class="num">3</div><p>Grounded tutor retrieves, cites, and passes refusal gates.</p></div>
           <div class="step"><div class="num">4</div><p>The approved answer appears as text and plays as tutor voice at the same time.</p></div>
         </div>
@@ -440,30 +477,30 @@
       <article class="context active" id="context-tutor">
         <span class="posture good"><span class="dot"></span>Grounded · PROCEED</span>
         <div class="route-card">
-          <b>Coach Orchestrator route</b>
-          <p>Learner question -> Teaching Agent -> source-prioritized retriever -> citation/refusal gate -> answer + evidence panel.</p>
+          <b>Coach agent loop · same grounded loop</b>
+          <p>Learner question -> teaching move -> source-prioritized retrieval -> citation/refusal gate -> answer + evidence panel.</p>
         </div>
         <div class="lane">
           <div class="lane-head">Slides · 1 <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Week 1 · Session 2 · Slides - Slide 22</span><span class="cid">S1</span></div>
-              <div class="why">why this source - the concept as presented in class</div>
+              <div class="srcrow"><span class="srclabel">Course slide · Week 1 · Session 2 · Slide 22</span><span class="cid">S1</span></div>
+              <div class="why">why this source - the framework components as presented in the course</div>
               <div class="slidefig">
-                <img class="slideimg" src="../mockups/real-slide-week1-s2-slide22.png" alt="Week 1 Session 2 Slide 22 - LangChain Core Primitives">
-                <div class="figcap">Course slide evidence shown as a cited source card. Runtime cards are pulled from the course corpus.</div>
+                <img class="slideimg" src="../mockups/real-slide-week1-s2-slide22.png" alt="Reviewed course slide showing LangChain core primitives">
+                <div class="figcap">Single inspected course slide retained under the owner's narrow public-demo exception; no other course visual is included.</div>
               </div>
-              <div class="span">LangChain Core Primitives - Models · Prompts · Chains · Memory · Retrievers · Document Loaders · Text Splitters · Vector Stores · Tools · Agents · Callbacks · Output Parsers</div>
+              <div class="span">The course slide presents composable primitives spanning prompts, chains, memory, retrieval, tools, agents, and structured output.</div>
             </div>
           </div>
         </div>
         <div class="lane">
-          <div class="lane-head">Instructor explanation · 1 <span class="arw">v</span></div>
+          <div class="lane-head">Transcript explanation · 1 <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Week 1 · Session 1 · live-session transcript</span><span class="cid">T1</span></div>
-              <div class="why">why this source - how the instructor explained it live</div>
-              <div class="span">"A direct API call is one-shot; LangChain is for multi-step apps - think a tutor that retrieves, then explains."</div>
+              <div class="srcrow"><span class="srclabel">Synthetic demo transcript · 00:02:10</span><span class="cid">T1</span></div>
+              <div class="why">why this source - public-safe explanation written for this storyboard</div>
+              <div class="span">A direct model call fits one isolated prompt and response. A framework becomes useful when retrieval, tools, state, or several controlled steps must work together.</div>
             </div>
           </div>
         </div>
@@ -471,9 +508,9 @@
           <div class="lane-head">Handout · 1 <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Week 1 · LangChain/RAG handout</span><span class="cid">H1</span></div>
-              <div class="why">why this source - the concrete workflow pattern</div>
-              <div class="span">The handout pattern walks from retrieval to a grounded answer, which is why the tutor answer describes LangChain as useful for retrieval-augmented workflows.</div>
+              <div class="srcrow"><span class="srclabel">Synthetic demo handout · Decision rule</span><span class="cid">H1</span></div>
+              <div class="why">why this source - public-safe worked rule written for this storyboard</div>
+              <div class="span">Choose the simplest path that meets the requirement: direct call for one isolated response; framework workflow for retrieval, tools, state, or multi-step control.</div>
             </div>
           </div>
         </div>
@@ -483,15 +520,15 @@
       <article class="context" id="context-evidence">
         <span class="posture good"><span class="dot"></span>Grounded · 3 cited sources</span>
         <div class="route-card">
-          <b>Coach Orchestrator route</b>
+          <b>Coach agent loop · source proof</b>
           <p>Cited answer IDs -> evidence projection -> citation parity eval. The panel renders only objects attached during retrieval.</p>
         </div>
         <div class="lane">
           <div class="lane-head">Answer citation map <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">LangChain explanation support</span><span class="cid">MAP</span></div>
-              <div class="span">S1 supports the list of primitives. T1 supports the direct API call vs multi-step app contrast. H1 supports the retrieval-augmented tutor workflow pattern.</div>
+              <div class="srcrow"><span class="srclabel">Hybrid answer support</span><span class="cid">MAP</span></div>
+              <div class="span">S1 names the coordinated components. T1 distinguishes an isolated call from a multi-step workflow. H1 supplies the decision rule used by the answer and check.</div>
             </div>
           </div>
         </div>
@@ -499,23 +536,23 @@
           <div class="lane-head">Slides · 1 <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Week 1 · Session 2 · Slides - Slide 22</span><span class="cid">S1</span></div>
-              <div class="why">supports - LangChain as composable primitives</div>
+              <div class="srcrow"><span class="srclabel">Course slide · Week 1 · Session 2 · Slide 22</span><span class="cid">S1</span></div>
+              <div class="why">supports - framework as coordinated components</div>
               <div class="slidefig">
-                <img class="slideimg" src="../mockups/real-slide-week1-s2-slide22.png" alt="Week 1 Session 2 Slide 22 - LangChain Core Primitives">
-                <div class="figcap">Course slide evidence shown as a cited source card. Runtime cards are pulled from the course corpus.</div>
+                <img class="slideimg" src="../mockups/real-slide-week1-s2-slide22.png" alt="Reviewed course slide showing LangChain core primitives">
+                <div class="figcap">Single inspected course slide retained under the owner's narrow public-demo exception; no other course visual is included.</div>
               </div>
-              <div class="span">LangChain Core Primitives - Models · Prompts · Chains · Memory · Retrievers · Document Loaders · Text Splitters · Vector Stores · Tools · Agents · Callbacks · Output Parsers</div>
+              <div class="span">The course slide presents composable primitives spanning prompts, chains, memory, retrieval, tools, agents, and structured output.</div>
             </div>
           </div>
         </div>
         <div class="lane">
-          <div class="lane-head">Instructor explanation · 1 <span class="arw">v</span></div>
+          <div class="lane-head">Transcript explanation · 1 <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Week 1 · Session 1 · live-session transcript</span><span class="cid">T1</span></div>
-              <div class="why">supports - why a direct API call is different</div>
-              <div class="span">"A direct API call is one-shot; LangChain is for multi-step apps - think a tutor that retrieves, then explains."</div>
+              <div class="srcrow"><span class="srclabel">Synthetic demo transcript · 00:02:10</span><span class="cid">T1</span></div>
+              <div class="why">supports - direct call versus coordinated workflow</div>
+              <div class="span">A direct model call fits one isolated prompt and response. A framework becomes useful when retrieval, tools, state, or several controlled steps must work together.</div>
             </div>
           </div>
         </div>
@@ -523,9 +560,9 @@
           <div class="lane-head">Handout · 1 <span class="arw">v</span></div>
           <div class="lane-body">
             <div class="srccard">
-              <div class="srcrow"><span class="srclabel">Week 1 · LangChain/RAG handout</span><span class="cid">H1</span></div>
-              <div class="why">supports - the concrete workflow pattern</div>
-              <div class="span">The handout pattern walks from retrieval to a grounded answer, which is why the tutor answer describes LangChain as useful for retrieval-augmented workflows.</div>
+              <div class="srcrow"><span class="srclabel">Synthetic demo handout · Decision rule</span><span class="cid">H1</span></div>
+              <div class="why">supports - the simplest-sufficient-path rule</div>
+              <div class="span">Choose the simplest path that meets the requirement: direct call for one isolated response; framework workflow for retrieval, tools, state, or multi-step control.</div>
             </div>
           </div>
         </div>
@@ -535,14 +572,34 @@
             <div class="span">Evals can assert citation parity: cited answer IDs must equal rendered panel IDs, and unsupported claims should trigger refusal instead of a source card.</div>
           </div>
         </div>
-        <div class="footnote">Evidence panel for the same LangChain answer: one retrieval, three cited objects, no second search.</div>
+        <div class="footnote">Evidence panel for the same hybrid answer: one reviewed course slide, two synthetic text sources, one retrieval, and no second search.</div>
+      </article>
+
+      <article class="context" id="context-practice">
+        <span class="posture good"><span class="dot"></span>Built modes · same trust gates</span>
+        <div class="route-card">
+          <b>Practice mode entrypoint</b>
+          <p>Cited concept -> generated check -> deterministic grade -> runtime next action: advance, drill, re-explain, or stop.</p>
+        </div>
+        <div class="lane">
+          <div class="lane-head">Quiz / Check mode <span class="arw">v</span></div>
+          <div class="lane-body">
+            <div class="span">The check is generated from retrieved evidence. Python owns the grade and the evidence/refusal floor.</div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-head">Evaluation checkpoint <span class="arw">v</span></div>
+          <div class="lane-body">
+            <div class="span">Score the chosen next action, cited support, deterministic grade, tool match, latency, and refusal behavior.</div>
+          </div>
+        </div>
       </article>
 
       <article class="context" id="context-memory">
-        <span class="posture wait"><span class="dot"></span>Consent required</span>
+        <span class="posture wait"><span class="dot"></span>Planned service · consent required</span>
         <div class="route-card">
-          <b>Coach Orchestrator route</b>
-          <p>Learner profile signal -> Memory Curator -> consent gate -> editable profile update or discard.</p>
+          <b>Planned control plane route</b>
+          <p>Consented profile signal -> Memory service -> approve/edit/delete gate -> bounded profile update or discard.</p>
         </div>
         <div class="lane">
           <div class="lane-head">Memory gate <span class="arw">v</span></div>
@@ -559,15 +616,15 @@
       </article>
 
       <article class="context" id="context-interview">
-        <span class="posture wait"><span class="dot"></span>Next scoped lane</span>
+        <span class="posture wait"><span class="dot"></span>Planned bounded agent lane</span>
         <div class="route-card">
-          <b>Coach Orchestrator route</b>
-          <p>Practice request -> Interview Conductor -> Rubric Evaluator -> Misconception Diagnoser -> Feedback Coach -> grounded next step.</p>
+          <b>Planned control plane route</b>
+          <p>Practice request -> bounded context handoff -> Mock Interview agent lane -> deterministic rubric service -> cited feedback + trace.</p>
         </div>
         <div class="lane">
-          <div class="lane-head">Specialist separation <span class="arw">v</span></div>
+          <div class="lane-head">Agent boundary <span class="arw">v</span></div>
           <div class="lane-body">
-            <div class="span">Interviewer asks. Rubric evaluator scores. Diagnoser labels the gap. Feedback coach teaches differently. This directly addresses limited agent specialization.</div>
+            <div class="span">The agent chooses adaptive interview questions. Rubric scoring, evidence checks, privacy, refusal, and release gates remain independently testable.</div>
           </div>
         </div>
         <div class="lane">
@@ -579,10 +636,10 @@
       </article>
 
       <article class="context" id="context-plan">
-        <span class="posture wait"><span class="dot"></span>Validated before shown</span>
+        <span class="posture wait"><span class="dot"></span>Planned workflow · validated before shown</span>
         <div class="route-card">
-          <b>Coach Orchestrator route</b>
-          <p>Goal + gaps + available time -> Study Planner Agent -> scheduler validator -> feasible study plan.</p>
+          <b>Planned control plane route</b>
+          <p>Goal + gaps + available time -> Study Planner workflow -> scheduler validator -> feasible study plan.</p>
         </div>
         <div class="lane">
           <div class="lane-head">Scheduler validator <span class="arw">v</span></div>
@@ -599,10 +656,10 @@
       </article>
 
       <article class="context" id="context-voice">
-        <span class="posture wait"><span class="dot"></span>Voice wraps same tutor path</span>
+        <span class="posture wait"><span class="dot"></span>Planned adapter · same tutor path</span>
         <div class="route-card">
-          <b>Coach Orchestrator route</b>
-          <p>Speech input -> transcript review -> same tutor route -> approved text answer -> text-to-speech playback.</p>
+          <b>Voice adapter route</b>
+          <p>Speech input -> transcript review -> same Coach agent loop -> approved text answer -> text-to-speech playback.</p>
         </div>
         <div class="lane">
           <div class="lane-head">Voice boundary <span class="arw">v</span></div>
@@ -621,8 +678,8 @@
   </main>
 
   <footer class="footer">
-    <b>Same Tutor Workspace UI; Personal Coach grows as gated lanes inside it.</b>
-    <span>PR preview uses one approved slide; cohort-only demo can swap in richer course excerpts.</span>
+    <b>Same Tutor Workspace; Personal Coach grows through bounded, evaluated capabilities.</b>
+    <span>ASK-state render · one reviewed course slide · synthetic transcript and handout · no learner data, held-out questions, instructor quotations, or raw traces.</span>
   </footer>
 </div>
 
@@ -636,12 +693,6 @@
       modes.forEach((item) => item.classList.toggle("active", item === mode));
       screens.forEach((screen) => screen.classList.toggle("active", screen.id === `screen-${id}`));
       contexts.forEach((context) => context.classList.toggle("active", context.id === `context-${id}`));
-    });
-  });
-  document.querySelectorAll(".voice-replay").forEach((button) => {
-    button.addEventListener("click", () => {
-      button.classList.add("playing");
-      window.setTimeout(() => button.classList.remove("playing"), 900);
     });
   });
 </script>

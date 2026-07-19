@@ -38,11 +38,11 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 9. **Trace-line explainer.** The strip `action · lens · decision · cited spans` documented as the UI
    expression of the spine: action + lens are the agent's (logged) choices; decision band + cited
    spans are the system's deterministic measurements.
-10a. **Real demo slide published (owner's direction, 2026-07-04).** The mockup's slide card first used
-    an original synthetic infographic; the owner directed embedding a real slide. One inspected, benign
-    slide (Week 1 · Session 2 · slide 22 — a framework-primitives overview; no personal data or internal
-    systems) is published in `docs/assets/mockups/` as the featured asset. The remaining deck renders
-    stay private (uninspected third-party content). FR-W9 wording amended to record the exception.
+10a. **Hybrid public demo evidence approved (2026-07-18).** The owner retained one inspected course
+    slide (Week 1 · Session 2 · slide 22) as the sole public course visual. Transcript and handout
+    evidence in the mockup/storyboard is explicitly synthetic, with no instructor quotation or other
+    corpus asset. Prior full real-evidence versions remain in the ignored private archive. FR-W9
+    records this narrow exception.
 10b. **Reasoning strip demoted to disclosure (owner UX call, 2026-07-04 → FR-W11).** The owner flagged
     the always-visible trace strip (`action · lens · decision · cited spans · chips`) as meaningless to
     end users. Correct: it is telemetry, not learner content. Now hidden by default, captured in the
@@ -66,8 +66,8 @@ second-model reviewer) can pick up without re-deriving the reasoning.
 | Finalized PRD | `docs/coach-product-requirements.md` | in PR #61 |
 | Target-architecture spec (phases A→I + Phase-A build detail) | `docs/superpowers/specs/2026-06-30-tutor-workspace-and-target-architecture-design.md` | in PR #61 |
 | Suggestion-chips design (FR-W10) | `docs/coach-v2-next-step-suggestions.md` | in PR #61 |
-| Public mockups (evidence + refusal; representative conversation + one approved real slide per FR-W9's recorded exception) | `docs/assets/mockups/` | in PR #61; FR-W10 chips visualized in both states |
-| Private real-slide variant + rendered deck pages | gitignored local docs | local-only, never committed |
+| Public mockups (evidence + refusal; one reviewed course slide plus representative synthetic transcript/handout text) | `docs/assets/mockups/` | in PR #61; FR-W10 chips visualized in both states |
+| Prior full real-evidence demo artifacts + rendered deck pages | `localdocs/assets-private/` (gitignored) | local-only, never committed or published |
 | This context log | `docs/coach-v2-workspace-session-context.md` | in PR #61 |
 
 ## 3. Guardrails that shaped every decision
