@@ -66,7 +66,7 @@
   .span{font-size:13px;line-height:1.5;color:#28303f;background:var(--code);border:1px solid #eaeef5;
     border-radius:8px;padding:9px 11px}
   .collapsed .lane-body{display:none}
-  /* slide-visual card (embeds a real image, as the build does; sample asset is original) */
+  /* slide-visual card using a repository-owned synthetic illustration */
   .slidefig{margin:9px 0 2px}
   .slideimg{width:100%;display:block;border:1px solid #d8dee9;border-radius:8px;
     box-shadow:0 1px 3px rgba(16,24,40,.10)}
@@ -86,7 +86,7 @@
 </head>
 <body>
 <div class="app">
-  <p class="caption">Mockup · Tutor Workspace — <b>evidence state</b> · conversation text representative · slide card shows one approved real course slide (recorded FR-W9 exception) · design preview, final build is Gradio-native</p>
+  <p class="caption">Public demo mockup · Tutor Workspace — <b>evidence state</b> · one reviewed course slide; synthetic transcript and handout text · design preview, final build is Gradio-native</p>
   <div class="topbar">
     <div class="brand">
       <h1>GenAcademy Coach — Tutor Workspace</h1>
@@ -94,7 +94,7 @@
     </div>
     <div class="filters">
       <span class="chip">All sources ▾</span>
-      <span class="chip">Week 1 ▾</span>
+      <span class="chip">Course + demo sources ▾</span>
       <span class="chip">Lens: bridge ▾</span>
     </div>
   </div>
@@ -103,19 +103,17 @@
     <!-- LEFT: tutor conversation -->
     <div class="pane">
       <h2>Tutor</h2>
-      <div class="msg user"><div class="bubble">What is LangChain, and why would I use it instead of calling an LLM API directly?</div></div>
+      <div class="msg user"><div class="bubble">When is one model API call enough, and when does an LLM framework help?</div></div>
       <div class="msg bot"><div class="bubble">
-        LangChain is a framework for composing LLM calls into larger workflows — chaining prompts, tools,
-        memory, and retrieval so you don't wire each step by hand.<a class="cite" href="#">S1</a>
-        A direct API call is one prompt in, one completion out; LangChain gives you reusable pieces for
-        multi-step apps like a retrieval-augmented tutor.<a class="cite" href="#">T1</a>
-        The handout walks through building exactly that pattern.<a class="cite" href="#">H1</a>
-        <div class="check"><b>Check yourself:</b> in one line — when is a direct API call the better choice than LangChain?</div>
+        One direct model call is enough for an isolated prompt and response. A framework helps when the
+        application must coordinate retrieval, tools, state, or several controlled steps.<a class="cite" href="#">S1</a><a class="cite" href="#">T1</a>
+        The decision rule is to use the simplest path that still meets those needs.<a class="cite" href="#">H1</a>
+        <div class="check"><b>Check yourself:</b> a grounded tutor must retrieve evidence, call tools, and preserve state. Which path fits better?</div>
       </div></div>
       <div class="sugg">
-        <div class="sugg-label">Suggested next steps · anchored to course material</div>
+        <div class="sugg-label">Suggested next steps · anchored to retrieved material</div>
         <div class="chipsrow">
-          <a class="chipbtn" href="#">Next: → Agents &amp; tool calling</a>
+          <a class="chipbtn" href="#">Next: → Retrieval &amp; tool calling</a>
           <a class="chipbtn" href="#">Quiz me on this</a>
           <a class="chipbtn" href="#">Show a handout exercise</a>
         </div>
@@ -135,34 +133,40 @@
         <div class="lane-head">Slides · 1 <span class="arw">▾</span></div>
         <div class="lane-body">
           <div class="srccard">
-            <div class="srcrow"><span class="srclabel">Week 1 · Session 2 · Slides — Slide 22</span><span class="cid">S1</span></div>
-            <div class="why">why this source — the concept as presented in class</div>
+            <div class="srcrow"><span class="srclabel">Course slide · Week 1 · Session 2 · Slide 22</span><span class="cid">S1</span></div>
+            <div class="why">why this source — the framework components as presented in the course</div>
             <div class="slidefig">
-              <img class="slideimg" src="real-slide-week1-s2-slide22.png" alt="Week 1 · Session 2 · Slide 22 — LangChain Core Primitives (real slide from the course deck)">
-              <div class="figcap">Real slide from the Week-1 Session-2 deck, rendered by the FR-W9 pipeline (stored page image keyed by citation → slide index); published here at the owner's direction. At runtime, cited slides are served privately from the gitignored store.</div>
+              <img class="slideimg" src="real-slide-week1-s2-slide22.png" alt="Reviewed course slide showing LangChain core primitives">
+              <div class="figcap">Single inspected course slide retained under the owner's narrow public-demo exception; no other course visual is included.</div>
             </div>
-            <div class="span">LangChain Core Primitives — Models · Prompts · Chains · Memory · Retrievers · Document Loaders · Text Splitters · Vector Stores · Tools · Agents · Callbacks · Output Parsers</div>
+            <div class="span">The course slide presents composable primitives spanning prompts, chains, memory, retrieval, tools, agents, and structured output.</div>
           </div>
         </div>
       </div>
 
       <div class="lane">
-        <div class="lane-head">Instructor explanation · 1 <span class="arw">▾</span></div>
+        <div class="lane-head">Transcript explanation · 1 <span class="arw">▾</span></div>
         <div class="lane-body">
           <div class="srccard">
-            <div class="srcrow"><span class="srclabel">Week 1 · Session 1 · live-session transcript</span><span class="cid">T1</span></div>
-            <div class="why">why this source — how the instructor explained it live</div>
-            <div class="span">"A direct API call is one-shot; LangChain is for multi-step apps — think a tutor that retrieves, then explains."</div>
+            <div class="srcrow"><span class="srclabel">Synthetic demo transcript · 00:02:10</span><span class="cid">T1</span></div>
+            <div class="why">why this source — public-safe explanation written for this mockup</div>
+            <div class="span">A direct model call fits one isolated prompt and response. A framework becomes useful when retrieval, tools, state, or several controlled steps must work together.</div>
           </div>
         </div>
       </div>
 
-      <div class="lane collapsed">
-        <div class="lane-head">Handout · 1 <span class="arw">▸</span></div>
-        <div class="lane-body"></div>
+      <div class="lane">
+        <div class="lane-head">Handout · 1 <span class="arw">▾</span></div>
+        <div class="lane-body">
+          <div class="srccard">
+            <div class="srcrow"><span class="srclabel">Synthetic demo handout · Decision rule</span><span class="cid">H1</span></div>
+            <div class="why">why this source — public-safe worked rule written for this mockup</div>
+            <div class="span">Choose the simplest path that meets the requirement: direct call for one isolated response; framework workflow for retrieval, tools, state, or multi-step control.</div>
+          </div>
+        </div>
       </div>
 
-      <div class="footnote">Panel shows only the sources this answer cited — a projection of one retrieval, not a second search.</div>
+      <div class="footnote">Panel shows only the three cited sources — one reviewed course slide plus synthetic transcript and handout evidence — as a projection of one retrieval, not a second search.</div>
     </div>
   </div>
 </div>
