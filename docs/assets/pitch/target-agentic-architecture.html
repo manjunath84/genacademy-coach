@@ -78,6 +78,7 @@
   .statusbox{border:1px solid var(--border); border-radius:10px; padding:10px; background:#fff;}
   .statusbox h3{font-size:12px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:5px;}
   .statusbox p{font-size:12px; color:var(--muted);}
+  .node.prototype{background:var(--blue2); border-color:#c9d7ee;}
 </style>
 </head>
 <body>
@@ -98,7 +99,7 @@
   <section class="architecture">
     <aside class="lane">
       <h2>Interaction Surfaces</h2>
-      <div class="node green">
+      <div class="node prototype">
         <h3>Tutor Workspace <span class="tag protoTag">prototype</span></h3>
         <p>Question, answer, citations, evidence panel, next-step chips, and trace disclosure.</p>
       </div>
@@ -173,9 +174,9 @@
           </ul>
         </div>
         <div class="agent">
-          <h3>Memory Curator <span class="tag protoTag">prototype</span></h3>
+          <h3>Memory Curator <span class="tag protoTag">prototype surface</span></h3>
           <ul>
-            <li>Suggests durable memory updates.</li>
+            <li>Planned service converts approved updates into durable memory.</li>
             <li>Learner can approve, edit, delete.</li>
             <li>Stores goals, preferences, known, struggled.</li>
           </ul>
@@ -224,8 +225,8 @@
         <p>Slides, handouts, transcripts, and notes with source labels and citeable spans.</p>
       </div>
       <div class="node">
-        <h3>Learner Profile <span class="tag protoTag">prototype</span></h3>
-        <p>Goals, learning preference, known concepts, struggled concepts, and approved memory.</p>
+        <h3>Learner Profile <span class="tag protoTag">prototype surface</span></h3>
+        <p>Planned service stores goals, known and struggled concepts, and explanation preferences behind learner controls.</p>
       </div>
       <div class="node">
         <h3>Scheduler Validator <span class="tag nextTag">next</span></h3>

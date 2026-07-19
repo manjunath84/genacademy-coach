@@ -6,7 +6,7 @@ orchestration role → specialist agents → deterministic trust gates → learn
 
 **Status labels for the pitch:** the grounded teach loop, refusal, citations, and eval traces are the
 evaluated pattern; quiz/check and skill-gap are shipped support surfaces. The Personal Coach,
-memory-profile UI, mock interview, study planner, and voice I/O are target lanes to build
+memory-profile prototype surface with a planned service, mock interview, study planner, and voice I/O are target lanes to build
 incrementally behind the same gates.
 
 **July 11 ADLC cut:** this pitch is intentionally about **Scope**, **Prototype**, and **Evaluate**.
@@ -18,9 +18,9 @@ Build, Deploy, and Monitor remain the post-demo lifecycle once each lane earns i
 flowchart LR
     Learner["Learner"]
     UI["Tutor Workspace / Personal Coach UI"]
-    Voice["Voice Interaction Agent\nspeech input + spoken tutor response"]
+    Voice["Voice Interaction Agent<br/>speech input + spoken tutor response"]
     VoiceConsent["Consent + Transcript Review Gate"]
-    Orchestrator["Target Coach Orchestrator\nprototype routing role"]
+    Orchestrator["Target Coach Orchestrator<br/>prototype routing role"]
     Response["Grounded Tutor Response"]
 
     Learner --> UI --> Orchestrator
@@ -67,10 +67,10 @@ only the grounded response that already passed retrieval, citation, refusal, pri
 flowchart LR
     Learner["Learner"]
     TextUI["Text UI"]
-    Voice["Voice Interaction Agent\nSTT + TTS"]
+    Voice["Voice Interaction Agent<br/>STT + TTS"]
     Consent["Consent + Visible Recording State"]
     Transcript["Reviewed Transcript"]
-    Orchestrator["Target Coach Orchestrator\nprototype routing role"]
+    Orchestrator["Target Coach Orchestrator<br/>prototype routing role"]
     Trust["Grounding + Citation Gate"]
     Privacy["Privacy + Memory Gate"]
     Response["Approved Tutor Response"]
