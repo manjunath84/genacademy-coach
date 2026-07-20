@@ -80,8 +80,9 @@ the local Gradio app are shipped. Role-keyed provenance (`role → span_id`) exi
   keyed citation → deck + slide index. Slide images live in a private, gitignored store and are served
   at runtime only; they are never committed — the repo is public. *Narrow public-demo exception,
   owner-approved and reaffirmed 2026-07-18: one inspected course slide (Week 1 · Session 2 · slide 22)
-  may remain committed as the sole course visual in the evidence mockup and pitch storyboard. Their
-  transcript and handout evidence remains synthetic; the exception does not cover other course assets.*
+  may remain committed as the sole course visual in the evidence mockup and pitch storyboard. The
+  mockup and storyboard's transcript and handout evidence remains synthetic; the exception does not
+  cover other course assets.*
 - **FR-W10** Next-step suggestion chips: after each tutor turn, 2–4 clickable suggestions (continue /
   comprehension / practice slots; a recovery set on refusal). **Every chip carries a grounding anchor**
   (span id, deck/section adjacency, or bounded teaching action) validated at creation — no anchor, no
