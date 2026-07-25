@@ -50,10 +50,18 @@ eval/runs/
 scratch/
 tmp/
 localdocs/
+_cleanup_quarantine/
 
 # AI workflow runtime state (superpowers brainstorm / visual-companion) — never commit
 .superpowers/
 .playwright-cli/
+.playwright-mcp/
+.claude/CLAUDE.md
+.claude/settings.json
+.claude/settings.local.json
+.claude/skills/graphify/
+.kimchi/
+graphify-out/
 test-results/
 
 # OS / editor

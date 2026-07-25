@@ -29,3 +29,18 @@ alternatives alongside these):
 - **Different-model challenge / second opinion** (builder ≠ reviewer — `AGENTS.md` §2 gate 2) → `/codex`.
 - **Bugs / errors** → `/investigate`; **"does it work?" / evidence** (gate 3) → `/qa`, `/health`, `/verify`.
 - **Commit / push / PR** → `/commit-commands:commit-push-pr`.
+
+## Optional Graphify navigation
+
+Some local workspaces have a generated knowledge graph under `graphify-out/`. This is optional,
+gitignored context and is not available in fresh clones, CI, or remote agents.
+
+Rules:
+- When both the `graphify` command and `graphify-out/graph.json` exist, codebase questions may start
+  with `graphify query "<question>"`. Use `graphify path "<A>" "<B>"` for relationships and
+  `graphify explain "<concept>"` for focused concepts.
+- If either prerequisite is absent, continue with the normal repository-navigation workflow.
+- When available, prefer `graphify-out/wiki/index.md` for broad navigation. Read
+  `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when query/path/explain do not
+  surface enough context.
+- After modifying code, run `graphify update .` only when both prerequisites are present.
