@@ -56,7 +56,10 @@ _cleanup_quarantine/
 .superpowers/
 .playwright-cli/
 .playwright-mcp/
-.claude/
+.claude/CLAUDE.md
+.claude/settings.json
+.claude/settings.local.json
+.claude/skills/graphify/
 .kimchi/
 graphify-out/
 test-results/
