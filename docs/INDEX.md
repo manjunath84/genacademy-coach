@@ -23,6 +23,9 @@ commit or quote `localdocs/` content unless the owner explicitly asks.
 
 For post-Week-4 work, start with:
 
+- `docs/2026-07-25-eval-evidence-first-design.md` - active slice: a 30-second eval entry point, a public
+  demo on an openly licensed corpus, and the pipeline landing page. Presentation and reach only; no
+  change to the grounded core, refusal path, or eval protocol. Awaiting independent second-model review.
 - `docs/coach-product-requirements.md` - finalized consolidated PRD for the Tutor Workspace + phased
   target architecture (FR-1..FR-W10, AC-1..6); the requirements source for Phase-1 build work.
 - `docs/superpowers/specs/2026-06-30-tutor-workspace-and-target-architecture-design.md` - phase map A-I
